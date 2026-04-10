@@ -70,6 +70,12 @@ class observer {
         try {
             $pdfcontent = pdf\generator::generate($attemptobj, $quiz, $config);
         } catch (\Throwable $e) {
+            // In PHPUnit/Behat runs with --fail-on-warning, swallowing exceptions here
+            // makes real bugs invisible to the test suite. Re-throw so tests surface
+            // the actual problem instead of asserting "0 PDFs" as a symptom.
+            if (defined('PHPUNIT_TEST') && PHPUNIT_TEST) {
+                throw $e;
+            }
             debugging(
                 'local_eledia_exam2pdf: PDF generation failed for attempt ' . $attemptid . ': ' . $e->getMessage(),
                 DEBUG_DEVELOPER
