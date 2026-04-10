@@ -59,7 +59,11 @@ echo "(clean)"
 
 echo
 echo "── Top-level structure check ──"
-top=$(unzip -l "${ZIP}" | awk 'NR>3 {print $4}' | grep -v '^$' | cut -d/ -f1 | sort -u | head)
+# Nur echte Datei-/Ordnereinträge betrachten: die enthalten dank --prefix immer
+# einen Slash. awk-Header-Zeilen, der --------- Trenner und die Summary-Zeile
+# haben keinen Slash und fallen damit automatisch raus — robust gegen
+# git-archive-Commit-Hash-Kommentarzeilen, die NR>3 verschieben würden.
+top=$(unzip -l "${ZIP}" | awk '{print $4}' | grep '/' | cut -d/ -f1 | sort -u)
 echo "${top}"
 if [[ "$(echo "${top}" | wc -l | tr -d ' ')" != "1" || "${top}" != "${SHORTNAME}" ]]; then
     echo "ERROR: Top-Level-Dir muss exakt '${SHORTNAME}/' sein — tatsächlich:"
