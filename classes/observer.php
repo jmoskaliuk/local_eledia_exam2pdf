@@ -24,6 +24,8 @@
 
 namespace local_eledia_exam2pdf;
 
+use mod_quiz\quiz_attempt;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -44,7 +46,7 @@ class observer {
 
         // Load attempt.
         $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', IGNORE_MISSING);
-        if (!$attempt || $attempt->state !== \quiz_attempt::FINISHED) {
+        if (!$attempt || $attempt->state !== quiz_attempt::FINISHED) {
             return;
         }
 
@@ -66,7 +68,7 @@ class observer {
 
         // Generate the PDF binary.
         require_once($CFG->dirroot . '/mod/quiz/locallib.php');
-        $attemptobj = \quiz_attempt::create($attemptid);
+        $attemptobj = quiz_attempt::create($attemptid);
 
         try {
             $pdfcontent = pdf\generator::generate($attemptobj, $quiz, $config);
