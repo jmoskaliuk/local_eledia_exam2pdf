@@ -209,10 +209,30 @@ if [[ "$NO_PHPUNIT" == false ]]; then
 fi
 
 # Behat (opt-in)
+# Profil konfigurierbar (Default: "default"). Mit "default" werden @javascript-
+# Szenarien automatisch ausgefiltert, weil ohne Selenium-Profil kein JS geht.
+# Wer ein chrome/firefox-Profil initialisiert hat (via MOODLE_BEHAT_SELENIUM_URL),
+# kann BEHAT_PROFILE=chrome bash bin/precheck.sh --with-behat setzen.
 if [[ "$WITH_BEHAT" == true ]]; then
     if docker exec "$CONTAINER" test -f vendor/bin/behat; then
-        run_check "behat" FAIL \
-            "vendor/bin/behat --profile=chrome --tags=@${PLUGIN_COMPONENT}"
+        BEHAT_PROFILE="${BEHAT_PROFILE:-default}"
+        BEHAT_TAGS="@${PLUGIN_COMPONENT}"
+        if [[ "$BEHAT_PROFILE" == "default" ]]; then
+            BEHAT_TAGS="@${PLUGIN_COMPONENT}&&~@javascript"
+        fi
+        # Moodle generiert behat.yml unter $CFG->behat_dataroot/behatrun/behat/.
+        # Ohne explizites -c fällt Behat auf seine interne Baseline zurück (nur
+        # implizites default-Profil, kein FeatureContext, keine Suites).
+        BEHAT_CONFIG_PATH="${BEHAT_CONFIG_PATH:-/var/www/behatdata/behatrun/behat/behat.yml}"
+        if ! docker exec "$CONTAINER" test -f "$BEHAT_CONFIG_PATH"; then
+            skip_check "behat" "behat.yml nicht gefunden unter $BEHAT_CONFIG_PATH — zuerst behat:init"
+        else
+            # Gherkin-Cache kann von früheren root-Init-Läufen www-data gehören,
+            # wird dann als www-data nicht mehr beschreibbar. Einmal als root weg.
+            docker exec -u root "$CONTAINER" rm -rf /tmp/behat_gherkin_cache >/dev/null 2>&1 || true
+            run_check "behat" FAIL \
+                "vendor/bin/behat -c '$BEHAT_CONFIG_PATH' --profile=$BEHAT_PROFILE --tags='$BEHAT_TAGS'"
+        fi
     else
         skip_check "behat" "vendor/bin/behat nicht installiert"
     fi
