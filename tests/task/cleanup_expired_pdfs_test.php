@@ -26,10 +26,10 @@
 
 namespace local_eledia_exam2pdf\task;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Tests the nightly cleanup task that removes expired PDF certificates.
+ *
+ * @covers \local_eledia_exam2pdf\task\cleanup_expired_pdfs
  */
 final class cleanup_expired_pdfs_test extends \advanced_testcase {
     /** @var \stdClass */

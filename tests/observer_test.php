@@ -40,6 +40,8 @@ require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
 /**
  * Tests the observer that reacts to `\mod_quiz\event\attempt_submitted`.
+ *
+ * @covers \local_eledia_exam2pdf\observer
  */
 final class observer_test extends \advanced_testcase {
     /** @var \stdClass Course record used across tests. */
@@ -265,8 +267,8 @@ final class observer_test extends \advanced_testcase {
             $DB->record_exists('local_eledia_exam2pdf', ['attemptid' => $attempt->id])
         );
 
-        // Assert at least one email was sent.  Skip strict subject match because.
-        // Moodle's phpmailer sink may normalise headers; we check at least one recipient.
+        // Assert at least one email was sent. Moodle's phpmailer sink may normalise
+        // headers, so skip the strict subject match and check recipients instead.
         $this->assertGreaterThanOrEqual(
             1,
             count($messages),

@@ -26,10 +26,10 @@
 
 namespace local_eledia_exam2pdf;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Tests for the {@see helper} utility class.
+ *
+ * @covers \local_eledia_exam2pdf\helper
  */
 final class helper_test extends \advanced_testcase {
     /**
@@ -40,7 +40,7 @@ final class helper_test extends \advanced_testcase {
         $this->resetAfterTest();
     }
 
-    // get_effective_config().
+    // Tests for get_effective_config.
 
     /**
      * Returns the hard-coded defaults when no global config and no override are set.
@@ -143,7 +143,7 @@ final class helper_test extends \advanced_testcase {
         $this->assertSame('email', $config['outputmode']);
     }
 
-    // save_quiz_config().
+    // Tests for save_quiz_config.
 
     /**
      * Inserts new override rows when none exist.
@@ -234,7 +234,7 @@ final class helper_test extends \advanced_testcase {
         $this->assertSame(0, $DB->count_records('local_eledia_exam2pdf_cfg', ['quizid' => 42]));
     }
 
-    // get_download_url().
+    // Tests for get_download_url.
 
     /**
      * Returns a moodle_url pointing at the plugin file area for a record.
@@ -259,7 +259,7 @@ final class helper_test extends \advanced_testcase {
         $this->assertStringContainsString('test.pdf', $out);
     }
 
-    // get_stored_file().
+    // Tests for get_stored_file.
 
     /**
      * Returns null when no file has been stored for the record yet.

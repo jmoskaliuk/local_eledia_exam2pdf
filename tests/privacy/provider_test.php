@@ -32,10 +32,10 @@ use core_privacy\local\request\approved_userlist;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Verifies the GDPR provider correctly reports, exports and deletes PDF records.
+ *
+ * @covers \local_eledia_exam2pdf\privacy\provider
  */
 final class provider_test extends \core_privacy\tests\provider_testcase {
     /** @var \stdClass */
@@ -78,7 +78,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->getDataGenerator()->enrol_user($this->user1->id, $this->course->id, 'student');
         $this->getDataGenerator()->enrol_user($this->user2->id, $this->course->id, 'student');
 
-        // user1 passed both quizzes; user2 only passed Quiz A.
+        // User1 passed both quizzes; user2 only passed Quiz A.
         $this->insert_pdf_record($this->quiza, $this->contexta, $this->user1->id);
         $this->insert_pdf_record($this->quizb, $this->contextb, $this->user1->id);
         $this->insert_pdf_record($this->quiza, $this->contexta, $this->user2->id);
@@ -141,7 +141,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertContains('core_files', $names);
     }
 
-    // get_contexts_for_userid().
+    // Tests for get_contexts_for_userid.
 
     /**
      * user1 has records in both Quiz A and Quiz B → both contexts are returned.
@@ -174,7 +174,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertCount(0, $contextlist->get_contextids());
     }
 
-    // get_users_in_context().
+    // Tests for get_users_in_context.
 
     /**
      * Both user1 and user2 have PDFs in Quiz A's context → both are returned.
@@ -203,7 +203,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertSame([(int) $this->user1->id], $ids);
     }
 
-    // export_user_data().
+    // Tests for export_user_data.
 
     /**
      * Exporting user1 emits data for both contexts and the associated files.
@@ -224,7 +224,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertTrue($writerb->has_any_data());
     }
 
-    // delete_data_for_all_users_in_context().
+    // Tests for delete_data_for_all_users_in_context.
 
     /**
      * Deleting a whole context wipes all PDF records and files for that quiz,
@@ -252,7 +252,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertEmpty($files);
     }
 
-    // delete_data_for_user().
+    // Tests for delete_data_for_user.
 
     /**
      * Deleting a single user only removes that user's records, in all contexts.
@@ -272,7 +272,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertSame(1, $DB->count_records('local_eledia_exam2pdf', ['userid' => $this->user2->id]));
     }
 
-    // delete_data_for_users().
+    // Tests for delete_data_for_users.
 
     /**
      * Deleting a set of users from a single context removes only their records
