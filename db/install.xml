@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/eledia_exam2pdf/db" VERSION="20250409"
+       COMMENT="XMLDB file for local_eledia_exam2pdf"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+
+    <TABLE NAME="local_eledia_exam2pdf" COMMENT="Tracks generated PDF records per quiz attempt">
+      <FIELDS>
+        <FIELD NAME="id"          TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
+        <FIELD NAME="quizid"      TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false"/>
+        <FIELD NAME="cmid"        TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false" COMMENT="Course-module ID of the quiz"/>
+        <FIELD NAME="attemptid"   TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false"/>
+        <FIELD NAME="userid"      TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false" DEFAULT="0"/>
+        <FIELD NAME="timeexpires" TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false" DEFAULT="0" COMMENT="Unix timestamp; 0 = never expire"/>
+        <FIELD NAME="contenthash" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="SHA1 hash of stored file for quick lookup"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_quizid"    UNIQUE="false" FIELDS="quizid"/>
+        <INDEX NAME="idx_attemptid" UNIQUE="false" FIELDS="attemptid"/>
+        <INDEX NAME="idx_userid"    UNIQUE="false" FIELDS="userid"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="local_eledia_exam2pdf_cfg" COMMENT="Per-quiz configuration overrides">
+      <FIELDS>
+        <FIELD NAME="id"     TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="true"/>
+        <FIELD NAME="quizid" TYPE="int"  LENGTH="10"  NOTNULL="true"  SEQUENCE="false"/>
+        <FIELD NAME="name"   TYPE="char" LENGTH="100" NOTNULL="true"  SEQUENCE="false"/>
+        <FIELD NAME="value"  TYPE="text"              NOTNULL="false" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="idx_quizid_name" UNIQUE="true" FIELDS="quizid, name"/>
+      </INDEXES>
+    </TABLE>
+
+  </TABLES>
+</XMLDB>

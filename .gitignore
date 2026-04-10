@@ -1,0 +1,31 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Moodle build artefacts
+/vendor/
+/node_modules/
+/build/
+
+# Coverage reports
+coverage/
+
+# Local env
+.env
+*.local
+
+# Deploy staging (lokale Arbeits-Kopie des Plugins für deploy.sh, kein Repo-Inhalt)
+/.deploy/
+
+# Skill-Bundles (generiert, gehören nicht ins Repo)
+*.skill
+
+# Session-Notizen (lokal, nicht für Remote)
+RESUME.md
+CI_CD_KONZEPT.md
