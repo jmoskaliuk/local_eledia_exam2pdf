@@ -28,7 +28,6 @@ namespace local_eledia_exam2pdf;
  * Provides shared utility methods for the plugin.
  */
 class helper {
-
     /**
      * Returns the effective configuration for a given quiz.
      *
@@ -68,8 +67,16 @@ class helper {
         foreach ($overrides as $name => $value) {
             if ($value !== null && $value !== '') {
                 // Cast booleans stored as '0'/'1'.
-                if (in_array($name, ['showcorrectanswers', 'show_score', 'show_passgrade',
-                    'show_percentage', 'show_timestamp', 'show_duration', 'show_attemptnumber'], true)) {
+                $boolfields = [
+                    'showcorrectanswers',
+                    'show_score',
+                    'show_passgrade',
+                    'show_percentage',
+                    'show_timestamp',
+                    'show_duration',
+                    'show_attemptnumber',
+                ];
+                if (in_array($name, $boolfields, true)) {
                     $config[$name] = (bool) $value;
                 } else if ($name === 'retentiondays') {
                     $config[$name] = (int) $value;
@@ -134,6 +141,55 @@ class helper {
             $filename,
             true
         );
+    }
+
+    /**
+     * Returns all PDF records belonging to a given quiz course module.
+     *
+     * The returned rows are augmented with the learner's full name and the
+     * stored file (if any), so callers can render a table without further
+     * lookups.
+     *
+     * @param int $cmid Course module ID of the quiz.
+     * @return array List of objects with keys: record, user, file, downloadurl.
+     */
+    public static function get_quiz_pdfs(int $cmid): array {
+        global $DB;
+
+        $records = $DB->get_records(
+            'local_eledia_exam2pdf',
+            ['cmid' => $cmid],
+            'timecreated DESC'
+        );
+        if (empty($records)) {
+            return [];
+        }
+
+        // Bulk-load users to avoid N+1 queries.
+        $userids = array_unique(array_map(static fn($r) => (int) $r->userid, $records));
+        [$insql, $params] = $DB->get_in_or_equal($userids);
+        $userfields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
+        $users = $DB->get_records_sql(
+            "SELECT u.id, {$userfields} FROM {user} u WHERE u.id {$insql}",
+            $params
+        );
+
+        $result = [];
+        foreach ($records as $record) {
+            $file = self::get_stored_file($record);
+            if (!$file) {
+                continue;
+            }
+            $user = $users[$record->userid] ?? null;
+            $result[] = (object) [
+                'record'      => $record,
+                'user'        => $user,
+                'fullname'    => $user ? fullname($user) : '-',
+                'file'        => $file,
+                'downloadurl' => self::get_download_url($record, $file->get_filename()),
+            ];
+        }
+        return $result;
     }
 
     /**

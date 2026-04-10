@@ -44,11 +44,6 @@ class provider implements
     \core_privacy\local\metadata\provider,
     \core_privacy\local\request\core_userlist_provider,
     \core_privacy\local\request\plugin\provider {
-
-    // -----------------------------------------------------------------------
-    // Metadata.
-    // -----------------------------------------------------------------------
-
     /**
      * Returns the metadata collection describing all personal data stored by
      * this plugin.
@@ -73,10 +68,6 @@ class provider implements
 
         return $collection;
     }
-
-    // -----------------------------------------------------------------------
-    // Context discovery.
-    // -----------------------------------------------------------------------
 
     /**
      * Returns all contexts in which the given user has personal data.
@@ -127,10 +118,6 @@ class provider implements
 
         $userlist->add_from_sql('userid', $sql, ['cmid' => $context->instanceid]);
     }
-
-    // -----------------------------------------------------------------------
-    // Data export.
-    // -----------------------------------------------------------------------
 
     /**
      * Exports all personal data of the given user from the approved contexts.
@@ -184,10 +171,6 @@ class provider implements
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Data deletion.
-    // -----------------------------------------------------------------------
-
     /**
      * Deletes all personal data for every user in the given context.
      *
@@ -239,8 +222,7 @@ class provider implements
                 continue;
             }
 
-            // Scope to the current quiz context so we don't wipe records from
-            // other modules the user has data in.
+            // Scope deletion to the current quiz context only.
             $records = $DB->get_records('local_eledia_exam2pdf', [
                 'userid' => $userid,
                 'quizid' => $cm->instance,

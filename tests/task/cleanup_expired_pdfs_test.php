@@ -32,7 +32,6 @@ defined('MOODLE_INTERNAL') || die();
  * Tests the nightly cleanup task that removes expired PDF certificates.
  */
 final class cleanup_expired_pdfs_test extends \advanced_testcase {
-
     /** @var \stdClass */
     protected \stdClass $course;
 

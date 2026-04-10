@@ -32,7 +32,7 @@ if ($hassiteconfig) {
 
     $ADMIN->add('localplugins', $settings);
 
-    // --- Output mode -----------------------------------------------------------
+    // Output mode.
     $settings->add(new admin_setting_configselect(
         'local_eledia_exam2pdf/outputmode',
         get_string('setting_outputmode', 'local_eledia_exam2pdf'),
@@ -45,7 +45,7 @@ if ($hassiteconfig) {
         ]
     ));
 
-    // --- Default email recipients (comma-separated) ----------------------------
+    // Default email recipients (comma-separated).
     $settings->add(new admin_setting_configtext(
         'local_eledia_exam2pdf/emailrecipients',
         get_string('setting_emailrecipients', 'local_eledia_exam2pdf'),
@@ -54,7 +54,7 @@ if ($hassiteconfig) {
         PARAM_TEXT
     ));
 
-    // --- Default email subject --------------------------------------------------
+    // Default email subject.
     $settings->add(new admin_setting_configtext(
         'local_eledia_exam2pdf/emailsubject',
         get_string('setting_emailsubject', 'local_eledia_exam2pdf'),
@@ -63,7 +63,7 @@ if ($hassiteconfig) {
         PARAM_TEXT
     ));
 
-    // --- Retention period (days) -----------------------------------------------
+    // Retention period in days.
     $settings->add(new admin_setting_configtext(
         'local_eledia_exam2pdf/retentiondays',
         get_string('setting_retentiondays', 'local_eledia_exam2pdf'),
@@ -72,7 +72,7 @@ if ($hassiteconfig) {
         PARAM_INT
     ));
 
-    // --- Optional PDF fields ---------------------------------------------------
+    // Optional PDF fields.
     $settings->add(new admin_setting_heading(
         'local_eledia_exam2pdf/optionalfields_heading',
         get_string('setting_optionalfields_heading', 'local_eledia_exam2pdf'),
@@ -88,7 +88,7 @@ if ($hassiteconfig) {
         ));
     }
 
-    // --- Show correct answers in PDF ------------------------------------------
+    // Show correct answers in PDF.
     $settings->add(new admin_setting_configcheckbox(
         'local_eledia_exam2pdf/showcorrectanswers',
         get_string('setting_showcorrectanswers', 'local_eledia_exam2pdf'),

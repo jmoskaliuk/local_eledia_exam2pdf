@@ -31,7 +31,6 @@ use mod_quiz\quiz_attempt;
  * when the attempt is passed.
  */
 class observer {
-
     /**
      * Handles \mod_quiz\event\attempt_submitted.
      *
@@ -126,9 +125,7 @@ class observer {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Private helpers
-    // -----------------------------------------------------------------------
+    // Private helpers.
 
     /**
      * Determines whether a quiz attempt reached the passing grade.
@@ -200,8 +197,11 @@ class observer {
             '{date}'      => userdate(time()),
         ];
         $subject = str_replace(array_keys($replacements), array_values($replacements), $config['emailsubject'] ?? $quiz->name);
-        $body    = str_replace(array_keys($replacements), array_values($replacements),
-            get_string('email_body', 'local_eledia_exam2pdf'));
+        $body    = str_replace(
+            array_keys($replacements),
+            array_values($replacements),
+            get_string('email_body', 'local_eledia_exam2pdf')
+        );
 
         // Write PDF to a temp file for attachment.
         $tempdir  = make_request_directory();

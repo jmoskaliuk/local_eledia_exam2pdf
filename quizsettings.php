@@ -53,7 +53,6 @@ $form->set_data($formdefaults);
 
 if ($form->is_cancelled()) {
     redirect(new moodle_url('/mod/quiz/view.php', ['id' => $cmid]));
-
 } else if ($data = $form->get_data()) {
     $tosave = [];
     $keys = [

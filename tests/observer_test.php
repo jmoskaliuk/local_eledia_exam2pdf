@@ -42,7 +42,6 @@ require_once($CFG->dirroot . '/mod/quiz/locallib.php');
  * Tests the observer that reacts to `\mod_quiz\event\attempt_submitted`.
  */
 final class observer_test extends \advanced_testcase {
-
     /** @var \stdClass Course record used across tests. */
     protected \stdClass $course;
 
@@ -61,9 +60,7 @@ final class observer_test extends \advanced_testcase {
         $this->getDataGenerator()->enrol_user($this->student->id, $this->course->id, 'student');
     }
 
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
+    // Helpers.
 
     /**
      * Creates a quiz with a single true/false question and returns the quiz record.
@@ -145,9 +142,7 @@ final class observer_test extends \advanced_testcase {
         $event->trigger();
     }
 
-    // -----------------------------------------------------------------------
-    // Pass / fail decision
-    // -----------------------------------------------------------------------
+    // Pass / fail decision.
 
     /**
      * A passed attempt creates exactly one PDF record and one stored file.
@@ -222,9 +217,7 @@ final class observer_test extends \advanced_testcase {
         );
     }
 
-    // -----------------------------------------------------------------------
-    // Idempotency
-    // -----------------------------------------------------------------------
+    // Idempotency.
 
     /**
      * Re-firing the event for the same attempt must not create a second record.
@@ -243,9 +236,7 @@ final class observer_test extends \advanced_testcase {
         $this->assertSame(1, $count, 'Observer must be idempotent per attempt.');
     }
 
-    // -----------------------------------------------------------------------
-    // Email output mode
-    // -----------------------------------------------------------------------
+    // Email output mode.
 
     /**
      * With outputmode='email' the observer sends an email on successful PDF generation.
@@ -274,10 +265,13 @@ final class observer_test extends \advanced_testcase {
             $DB->record_exists('local_eledia_exam2pdf', ['attemptid' => $attempt->id])
         );
 
-        // Assert at least one email was sent.  Skip strict subject match because
+        // Assert at least one email was sent.  Skip strict subject match because.
         // Moodle's phpmailer sink may normalise headers; we check at least one recipient.
-        $this->assertGreaterThanOrEqual(1, count($messages),
-            'Expected at least one email to be sent in email output mode.');
+        $this->assertGreaterThanOrEqual(
+            1,
+            count($messages),
+            'Expected at least one email to be sent in email output mode.'
+        );
     }
 
     /**

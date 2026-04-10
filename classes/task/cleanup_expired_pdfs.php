@@ -28,7 +28,6 @@ namespace local_eledia_exam2pdf\task;
  * Nightly task that removes PDF files and records whose retention period has elapsed.
  */
 class cleanup_expired_pdfs extends \core\task\scheduled_task {
-
     /**
      * Returns the localised name of this scheduled task.
      *

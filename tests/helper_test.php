@@ -32,7 +32,6 @@ defined('MOODLE_INTERNAL') || die();
  * Tests for the {@see helper} utility class.
  */
 final class helper_test extends \advanced_testcase {
-
     /**
      * Reset DB after each test.
      */
@@ -41,9 +40,7 @@ final class helper_test extends \advanced_testcase {
         $this->resetAfterTest();
     }
 
-    // -----------------------------------------------------------------------
-    // get_effective_config()
-    // -----------------------------------------------------------------------
+    // get_effective_config().
 
     /**
      * Returns the hard-coded defaults when no global config and no override are set.
@@ -146,9 +143,7 @@ final class helper_test extends \advanced_testcase {
         $this->assertSame('email', $config['outputmode']);
     }
 
-    // -----------------------------------------------------------------------
-    // save_quiz_config()
-    // -----------------------------------------------------------------------
+    // save_quiz_config().
 
     /**
      * Inserts new override rows when none exist.
@@ -197,14 +192,18 @@ final class helper_test extends \advanced_testcase {
 
         helper::save_quiz_config(42, ['outputmode' => 'email']);
         $this->assertTrue(
-            $DB->record_exists('local_eledia_exam2pdf_cfg',
-                ['quizid' => 42, 'name' => 'outputmode'])
+            $DB->record_exists(
+                'local_eledia_exam2pdf_cfg',
+                ['quizid' => 42, 'name' => 'outputmode']
+            )
         );
 
         helper::save_quiz_config(42, ['outputmode' => '']);
         $this->assertFalse(
-            $DB->record_exists('local_eledia_exam2pdf_cfg',
-                ['quizid' => 42, 'name' => 'outputmode'])
+            $DB->record_exists(
+                'local_eledia_exam2pdf_cfg',
+                ['quizid' => 42, 'name' => 'outputmode']
+            )
         );
     }
 
@@ -218,8 +217,10 @@ final class helper_test extends \advanced_testcase {
         helper::save_quiz_config(42, ['outputmode' => null]);
 
         $this->assertFalse(
-            $DB->record_exists('local_eledia_exam2pdf_cfg',
-                ['quizid' => 42, 'name' => 'outputmode'])
+            $DB->record_exists(
+                'local_eledia_exam2pdf_cfg',
+                ['quizid' => 42, 'name' => 'outputmode']
+            )
         );
     }
 
@@ -233,9 +234,7 @@ final class helper_test extends \advanced_testcase {
         $this->assertSame(0, $DB->count_records('local_eledia_exam2pdf_cfg', ['quizid' => 42]));
     }
 
-    // -----------------------------------------------------------------------
-    // get_download_url()
-    // -----------------------------------------------------------------------
+    // get_download_url().
 
     /**
      * Returns a moodle_url pointing at the plugin file area for a record.
@@ -260,9 +259,7 @@ final class helper_test extends \advanced_testcase {
         $this->assertStringContainsString('test.pdf', $out);
     }
 
-    // -----------------------------------------------------------------------
-    // get_stored_file()
-    // -----------------------------------------------------------------------
+    // get_stored_file().
 
     /**
      * Returns null when no file has been stored for the record yet.

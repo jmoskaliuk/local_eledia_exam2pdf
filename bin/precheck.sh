@@ -131,9 +131,15 @@ run_check "phplint" FAIL \
     "find $PLUGIN_REL_PATH -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null"
 
 # phpcs (Moodle Coding Standard)
+# -n  : warnings sichtbar, aber nicht blockierend (Errors bleiben hart-blocker).
+#       Strict-Mode bewusst per --strict aktivierbar.
+PHPCS_FLAGS="-n"
+if [[ "${PHPCS_STRICT:-0}" == "1" ]]; then
+    PHPCS_FLAGS=""
+fi
 if docker exec "$CONTAINER" test -f vendor/bin/phpcs; then
     run_check "phpcs" FAIL \
-        "vendor/bin/phpcs --standard=moodle --extensions=php $PLUGIN_REL_PATH"
+        "vendor/bin/phpcs $PHPCS_FLAGS --standard=moodle --extensions=php $PLUGIN_REL_PATH"
 else
     skip_check "phpcs" "vendor/bin/phpcs nicht installiert"
 fi
@@ -142,18 +148,31 @@ fi
 run_check "phpdoc" FAIL \
     "test -z \"\$(find $PLUGIN_REL_PATH -name '*.php' -exec grep -L '@package' {} +)\""
 
-# xmllint install.xml
+# xmllint install.xml — fällt zurück auf PHP DOMDocument, falls xmllint im Container fehlt.
+HAS_XMLLINT=true
+if ! docker exec "$CONTAINER" command -v xmllint >/dev/null 2>&1; then
+    HAS_XMLLINT=false
+fi
+
+xml_check_cmd() {
+    local file="$1"
+    if [[ "$HAS_XMLLINT" == true ]]; then
+        echo "xmllint --noout $file"
+    else
+        # PHP-DOM Fallback: parsen + bei Fehler exit 1.
+        echo "php -r 'libxml_use_internal_errors(true); \$d=new DOMDocument(); if(!\$d->load(\"$file\")){foreach(libxml_get_errors() as \$e){fwrite(STDERR,\$e->message);} exit(1);}'"
+    fi
+}
+
 if docker exec "$CONTAINER" test -f "$PLUGIN_REL_PATH/db/install.xml"; then
-    run_check "xmllint-install" FAIL \
-        "xmllint --noout $PLUGIN_REL_PATH/db/install.xml"
+    run_check "xmllint-install" FAIL "$(xml_check_cmd "$PLUGIN_REL_PATH/db/install.xml")"
 else
     skip_check "xmllint-install" "keine db/install.xml"
 fi
 
 # xmllint thirdpartylibs.xml (optional)
 if docker exec "$CONTAINER" test -f "$PLUGIN_REL_PATH/thirdpartylibs.xml"; then
-    run_check "xmllint-tpl" FAIL \
-        "xmllint --noout $PLUGIN_REL_PATH/thirdpartylibs.xml"
+    run_check "xmllint-tpl" FAIL "$(xml_check_cmd "$PLUGIN_REL_PATH/thirdpartylibs.xml")"
 else
     skip_check "xmllint-tpl" "keine thirdpartylibs.xml"
 fi

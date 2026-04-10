@@ -30,10 +30,7 @@ use mod_quiz\quiz_attempt;
  * Generates the PDF certificate for a passed quiz attempt using TCPDF.
  */
 class generator {
-
-    // -----------------------------------------------------------------------
     // Public API.
-    // -----------------------------------------------------------------------
 
     /**
      * Generates the complete PDF for one quiz attempt and returns it as a string.
@@ -95,9 +92,7 @@ class generator {
         return $pdf->Output('', 'S');
     }
 
-    // -----------------------------------------------------------------------
     // Private render helpers.
-    // -----------------------------------------------------------------------
 
     /**
      * Renders the PDF header block (mandatory + optional fields).

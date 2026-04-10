@@ -38,7 +38,6 @@ defined('MOODLE_INTERNAL') || die();
  * Verifies the GDPR provider correctly reports, exports and deletes PDF records.
  */
 final class provider_test extends \core_privacy\tests\provider_testcase {
-
     /** @var \stdClass */
     protected \stdClass $course;
 
@@ -119,9 +118,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         return $recordid;
     }
 
-    // -----------------------------------------------------------------------
-    // Metadata
-    // -----------------------------------------------------------------------
+    // Metadata.
 
     /**
      * get_metadata() returns a populated collection that includes the
@@ -144,9 +141,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertContains('core_files', $names);
     }
 
-    // -----------------------------------------------------------------------
-    // get_contexts_for_userid()
-    // -----------------------------------------------------------------------
+    // get_contexts_for_userid().
 
     /**
      * user1 has records in both Quiz A and Quiz B → both contexts are returned.
@@ -179,9 +174,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertCount(0, $contextlist->get_contextids());
     }
 
-    // -----------------------------------------------------------------------
-    // get_users_in_context()
-    // -----------------------------------------------------------------------
+    // get_users_in_context().
 
     /**
      * Both user1 and user2 have PDFs in Quiz A's context → both are returned.
@@ -210,9 +203,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertSame([(int) $this->user1->id], $ids);
     }
 
-    // -----------------------------------------------------------------------
-    // export_user_data()
-    // -----------------------------------------------------------------------
+    // export_user_data().
 
     /**
      * Exporting user1 emits data for both contexts and the associated files.
@@ -233,9 +224,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertTrue($writerb->has_any_data());
     }
 
-    // -----------------------------------------------------------------------
-    // delete_data_for_all_users_in_context()
-    // -----------------------------------------------------------------------
+    // delete_data_for_all_users_in_context().
 
     /**
      * Deleting a whole context wipes all PDF records and files for that quiz,
@@ -263,9 +252,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertEmpty($files);
     }
 
-    // -----------------------------------------------------------------------
-    // delete_data_for_user()
-    // -----------------------------------------------------------------------
+    // delete_data_for_user().
 
     /**
      * Deleting a single user only removes that user's records, in all contexts.
@@ -285,9 +272,7 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         $this->assertSame(1, $DB->count_records('local_eledia_exam2pdf', ['userid' => $this->user2->id]));
     }
 
-    // -----------------------------------------------------------------------
-    // delete_data_for_users()
-    // -----------------------------------------------------------------------
+    // delete_data_for_users().
 
     /**
      * Deleting a set of users from a single context removes only their records
@@ -307,20 +292,26 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
         // Both Quiz A records for user1 & user2 are gone.
         $this->assertSame(
             0,
-            $DB->count_records('local_eledia_exam2pdf',
-                ['quizid' => $this->quiza->id, 'userid' => $this->user1->id])
+            $DB->count_records(
+                'local_eledia_exam2pdf',
+                ['quizid' => $this->quiza->id, 'userid' => $this->user1->id]
+            )
         );
         $this->assertSame(
             0,
-            $DB->count_records('local_eledia_exam2pdf',
-                ['quizid' => $this->quiza->id, 'userid' => $this->user2->id])
+            $DB->count_records(
+                'local_eledia_exam2pdf',
+                ['quizid' => $this->quiza->id, 'userid' => $this->user2->id]
+            )
         );
 
         // But user1's Quiz B record still exists (was not in the passed context).
         $this->assertSame(
             1,
-            $DB->count_records('local_eledia_exam2pdf',
-                ['quizid' => $this->quizb->id, 'userid' => $this->user1->id])
+            $DB->count_records(
+                'local_eledia_exam2pdf',
+                ['quizid' => $this->quizb->id, 'userid' => $this->user1->id]
+            )
         );
     }
 }

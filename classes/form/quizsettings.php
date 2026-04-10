@@ -35,7 +35,6 @@ require_once($CFG->libdir . '/formslib.php');
  * (output mode, email recipients, retention period, optional header fields).
  */
 class quizsettings extends \moodleform {
-
     /**
      * Defines all form fields.
      *
