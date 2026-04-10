@@ -24,8 +24,6 @@
 
 namespace local_eledia_exam2pdf\hook;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Injects the PDF download button into the quiz review page using the
  * Moodle 4.3+ Hooks API.
@@ -35,7 +33,8 @@ class quiz_page_callbacks {
     /**
      * Adds the download button HTML before the page footer on quiz review pages.
      *
-     * @param \core\hook\output\before_footer_html_generation $hook
+     * @param \core\hook\output\before_footer_html_generation $hook The firing hook instance.
+     * @return void
      */
     public static function inject_download_button(
         \core\hook\output\before_footer_html_generation $hook

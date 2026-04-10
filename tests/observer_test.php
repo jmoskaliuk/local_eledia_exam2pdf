@@ -31,6 +31,8 @@
 
 namespace local_eledia_exam2pdf;
 
+use mod_quiz\quiz_attempt;
+
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
@@ -111,7 +113,7 @@ final class observer_test extends \advanced_testcase {
         // Force the attempt into a finished state with the requested score.
         $DB->update_record('quiz_attempts', (object) [
             'id'         => $attempt->id,
-            'state'      => \quiz_attempt::FINISHED,
+            'state'      => quiz_attempt::FINISHED,
             'timefinish' => $timenow,
             'sumgrades'  => $sumgrades,
         ]);
@@ -121,6 +123,10 @@ final class observer_test extends \advanced_testcase {
 
     /**
      * Triggers `\mod_quiz\event\attempt_submitted` for a given attempt.
+     *
+     * @param \stdClass $attempt The quiz_attempts row.
+     * @param \stdClass $quiz    The quiz row the attempt belongs to.
+     * @return void
      */
     protected function trigger_attempt_submitted(\stdClass $attempt, \stdClass $quiz): void {
         $cm      = get_coursemodule_from_instance('quiz', $quiz->id, 0, false, MUST_EXIST);
@@ -149,9 +155,11 @@ final class observer_test extends \advanced_testcase {
     public function test_passed_attempt_creates_pdf_record(): void {
         global $DB;
 
-        $this->setAdminUser(); // required for some privileged operations during PDF generation
+        // Admin user required for some privileged operations during PDF generation.
+        $this->setAdminUser();
         $quiz    = $this->create_quiz_with_question(['sumgrades' => 10, 'grade' => 10, 'gradepass' => 5]);
-        $attempt = $this->create_finished_attempt($quiz, 8.0); // 8/10 >= 5 → pass
+        // 8/10 >= 5 → pass.
+        $attempt = $this->create_finished_attempt($quiz, 8.0);
 
         $this->trigger_attempt_submitted($attempt, $quiz);
 
@@ -185,7 +193,8 @@ final class observer_test extends \advanced_testcase {
 
         $this->setAdminUser();
         $quiz    = $this->create_quiz_with_question(['sumgrades' => 10, 'grade' => 10, 'gradepass' => 5]);
-        $attempt = $this->create_finished_attempt($quiz, 2.0); // 2/10 < 5 → fail
+        // 2/10 < 5 → fail.
+        $attempt = $this->create_finished_attempt($quiz, 2.0);
 
         $this->trigger_attempt_submitted($attempt, $quiz);
 

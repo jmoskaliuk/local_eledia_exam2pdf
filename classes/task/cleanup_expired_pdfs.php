@@ -24,22 +24,24 @@
 
 namespace local_eledia_exam2pdf\task;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Nightly task that removes PDF files and records whose retention period has elapsed.
  */
 class cleanup_expired_pdfs extends \core\task\scheduled_task {
 
     /**
-     * {@inheritdoc}
+     * Returns the localised name of this scheduled task.
+     *
+     * @return string
      */
     public function get_name(): string {
         return get_string('task_cleanup', 'local_eledia_exam2pdf');
     }
 
     /**
-     * Executes the task.
+     * Executes the task: deletes expired PDF files and DB records.
+     *
+     * @return void
      */
     public function execute(): void {
         global $DB;

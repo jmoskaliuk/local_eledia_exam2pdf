@@ -24,8 +24,6 @@
 
 namespace local_eledia_exam2pdf;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Provides shared utility methods for the plugin.
  */
@@ -37,7 +35,7 @@ class helper {
      * Global admin settings are used as defaults; per-quiz overrides from
      * local_eledia_exam2pdf_cfg take precedence.
      *
-     * @param int $quizid
+     * @param int $quizid The quiz ID whose effective config should be computed.
      * @return array Associative array of config key => value.
      */
     public static function get_effective_config(int $quizid): array {
@@ -87,8 +85,9 @@ class helper {
     /**
      * Saves per-quiz configuration overrides.
      *
-     * @param int   $quizid
-     * @param array $values  Associative array of name => value.  Pass null to remove an override.
+     * @param int   $quizid The quiz ID whose overrides should be updated.
+     * @param array $values Associative array of name => value. Pass null or '' to remove an override.
+     * @return void
      */
     public static function save_quiz_config(int $quizid, array $values): void {
         global $DB;
@@ -120,8 +119,8 @@ class helper {
     /**
      * Returns the pluginfile URL for a PDF record.
      *
-     * @param \stdClass $record  Row from local_eledia_exam2pdf.
-     * @param string    $filename
+     * @param \stdClass $record   Row from local_eledia_exam2pdf.
+     * @param string    $filename The filename to serve to the client.
      * @return \moodle_url
      */
     public static function get_download_url(\stdClass $record, string $filename): \moodle_url {
@@ -133,14 +132,14 @@ class helper {
             $record->id,
             '/',
             $filename,
-            true  // force download
+            true
         );
     }
 
     /**
      * Returns the stored file for a PDF record, or null if not found.
      *
-     * @param \stdClass $record  Row from local_eledia_exam2pdf.
+     * @param \stdClass $record Row from local_eledia_exam2pdf.
      * @return \stored_file|null
      */
     public static function get_stored_file(\stdClass $record): ?\stored_file {

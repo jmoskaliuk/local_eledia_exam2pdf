@@ -87,6 +87,11 @@ final class provider_test extends \core_privacy\tests\provider_testcase {
 
     /**
      * Inserts a fake PDF record (and dummy file) for a given user in a quiz.
+     *
+     * @param \stdClass $quiz    The quiz module record (must have ->id and ->cmid).
+     * @param \context  $context The module context that will own the stored file.
+     * @param int       $userid  The owning user ID for the PDF record.
+     * @return int The newly inserted local_eledia_exam2pdf record ID.
      */
     protected function insert_pdf_record(\stdClass $quiz, \context $context, int $userid): int {
         global $DB;

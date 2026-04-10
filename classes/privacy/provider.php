@@ -24,14 +24,13 @@
 
 namespace local_eledia_exam2pdf\privacy;
 
-defined('MOODLE_INTERNAL') || die();
-
+use context;
 use core_privacy\local\metadata\collection;
 use core_privacy\local\request\approved_contextlist;
 use core_privacy\local\request\approved_userlist;
 use core_privacy\local\request\contextlist;
-use core_privacy\local\request\userlist;
 use core_privacy\local\request\transform;
+use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
 /**
@@ -43,15 +42,19 @@ use core_privacy\local\request\writer;
  */
 class provider implements
     \core_privacy\local\metadata\provider,
-    \core_privacy\local\request\plugin\provider,
-    \core_privacy\local\request\core_userlist_provider {
+    \core_privacy\local\request\core_userlist_provider,
+    \core_privacy\local\request\plugin\provider {
 
     // -----------------------------------------------------------------------
-    // Metadata
+    // Metadata.
     // -----------------------------------------------------------------------
 
     /**
-     * {@inheritdoc}
+     * Returns the metadata collection describing all personal data stored by
+     * this plugin.
+     *
+     * @param collection $collection The collection to add items to.
+     * @return collection The populated collection.
      */
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table(
@@ -72,11 +75,14 @@ class provider implements
     }
 
     // -----------------------------------------------------------------------
-    // Context discovery
+    // Context discovery.
     // -----------------------------------------------------------------------
 
     /**
-     * {@inheritdoc}
+     * Returns all contexts in which the given user has personal data.
+     *
+     * @param int $userid The user ID to look up.
+     * @return contextlist The list of module contexts with data for this user.
      */
     public static function get_contexts_for_userid(int $userid): contextlist {
         $contextlist = new contextlist();
@@ -99,7 +105,11 @@ class provider implements
     }
 
     /**
-     * {@inheritdoc}
+     * Adds all users that have personal data in the given context to the
+     * supplied userlist.
+     *
+     * @param userlist $userlist The userlist to populate.
+     * @return void
      */
     public static function get_users_in_context(userlist $userlist): void {
         $context = $userlist->get_context();
@@ -119,11 +129,14 @@ class provider implements
     }
 
     // -----------------------------------------------------------------------
-    // Data export
+    // Data export.
     // -----------------------------------------------------------------------
 
     /**
-     * {@inheritdoc}
+     * Exports all personal data of the given user from the approved contexts.
+     *
+     * @param approved_contextlist $contextlist The approved list of contexts.
+     * @return void
      */
     public static function export_user_data(approved_contextlist $contextlist): void {
         global $DB;
@@ -148,7 +161,6 @@ class provider implements
                 continue;
             }
 
-            $fs = get_file_storage();
             foreach ($records as $record) {
                 $data = [
                     'quizid'      => $record->quizid,
@@ -173,13 +185,16 @@ class provider implements
     }
 
     // -----------------------------------------------------------------------
-    // Data deletion
+    // Data deletion.
     // -----------------------------------------------------------------------
 
     /**
-     * {@inheritdoc}
+     * Deletes all personal data for every user in the given context.
+     *
+     * @param context $context The context whose data should be wiped.
+     * @return void
      */
-    public static function delete_data_for_all_users_in_context(\context $context): void {
+    public static function delete_data_for_all_users_in_context(context $context): void {
         global $DB;
 
         if ($context->contextlevel !== CONTEXT_MODULE) {
@@ -203,7 +218,10 @@ class provider implements
     }
 
     /**
-     * {@inheritdoc}
+     * Deletes personal data for a single user, scoped to the approved contexts.
+     *
+     * @param approved_contextlist $contextlist The approved list of contexts.
+     * @return void
      */
     public static function delete_data_for_user(approved_contextlist $contextlist): void {
         global $DB;
@@ -216,7 +234,17 @@ class provider implements
                 continue;
             }
 
-            $records = $DB->get_records('local_eledia_exam2pdf', ['userid' => $userid]);
+            $cm = get_coursemodule_from_id('quiz', $context->instanceid);
+            if (!$cm) {
+                continue;
+            }
+
+            // Scope to the current quiz context so we don't wipe records from
+            // other modules the user has data in.
+            $records = $DB->get_records('local_eledia_exam2pdf', [
+                'userid' => $userid,
+                'quizid' => $cm->instance,
+            ]);
             foreach ($records as $record) {
                 $fs->delete_area_files($context->id, 'local_eledia_exam2pdf', 'attempt_pdf', $record->id);
                 $DB->delete_records('local_eledia_exam2pdf', ['id' => $record->id]);
@@ -225,13 +253,21 @@ class provider implements
     }
 
     /**
-     * {@inheritdoc}
+     * Deletes personal data for a batch of users inside a single context.
+     *
+     * @param approved_userlist $userlist The approved list of users, bound to a context.
+     * @return void
      */
     public static function delete_data_for_users(approved_userlist $userlist): void {
         global $DB;
 
         $context = $userlist->get_context();
         if ($context->contextlevel !== CONTEXT_MODULE) {
+            return;
+        }
+
+        $cm = get_coursemodule_from_id('quiz', $context->instanceid);
+        if (!$cm) {
             return;
         }
 
@@ -242,9 +278,11 @@ class provider implements
 
         $fs = get_file_storage();
 
-        list($insql, $params) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        [$insql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        $params['quizid'] = $cm->instance;
+
         $records = $DB->get_records_sql(
-            "SELECT * FROM {local_eledia_exam2pdf} WHERE userid {$insql}",
+            "SELECT * FROM {local_eledia_exam2pdf} WHERE quizid = :quizid AND userid {$insql}",
             $params
         );
 

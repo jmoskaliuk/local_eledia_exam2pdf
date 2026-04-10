@@ -27,17 +27,23 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Serve plugin files (PDFs) via Moodle's pluginfile mechanism.
  *
- * @param stdClass $course Course object.
- * @param stdClass $cm Course module object.
- * @param context  $context Context of the file.
- * @param string   $filearea Filearea name.
- * @param array    $args Extra arguments (item ID + filename).
+ * @param stdClass $course        Course object.
+ * @param stdClass $cm            Course module object.
+ * @param context  $context       Context of the file.
+ * @param string   $filearea      Filearea name.
+ * @param array    $args          Extra arguments (item ID + filename).
  * @param bool     $forcedownload Whether to force download.
- * @param array    $options Options array.
- * @return bool    False if file not found, does not return if file served.
+ * @param array    $options       Options array.
+ * @return bool False if file not found, does not return if file served.
  */
 function local_eledia_exam2pdf_pluginfile(
-    $course, $cm, $context, $filearea, $args, $forcedownload, array $options = []
+    $course,
+    $cm,
+    $context,
+    $filearea,
+    $args,
+    $forcedownload,
+    array $options = []
 ): bool {
     global $DB, $USER;
 
@@ -46,7 +52,7 @@ function local_eledia_exam2pdf_pluginfile(
     }
 
     $recordid = (int) array_shift($args);
-    $filename  = array_shift($args);
+    $filename = array_shift($args);
 
     // Load the PDF record.
     $record = $DB->get_record('local_eledia_exam2pdf', ['id' => $recordid], '*', IGNORE_MISSING);
@@ -73,6 +79,7 @@ function local_eledia_exam2pdf_pluginfile(
     }
 
     send_stored_file($file, 0, 0, $forcedownload, $options);
+    return true;
 }
 
 /**
@@ -80,16 +87,18 @@ function local_eledia_exam2pdf_pluginfile(
  * the PDF overview page.
  *
  * @param global_navigation $navigation The navigation tree.
+ * @return void
  */
 function local_eledia_exam2pdf_extend_navigation(global_navigation $navigation): void {
     // Navigation extension handled via hooks and dedicated pages.
 }
 
 /**
- * Extend the quiz settings navigation.
+ * Extend the quiz settings navigation with a link to the per-quiz config page.
  *
  * @param settings_navigation $settingsnav Settings navigation node.
- * @param context             $context Current context.
+ * @param context             $context     Current context.
+ * @return void
  */
 function local_eledia_exam2pdf_extend_settings_navigation(
     settings_navigation $settingsnav,

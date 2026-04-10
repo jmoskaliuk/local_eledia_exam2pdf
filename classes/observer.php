@@ -26,8 +26,6 @@ namespace local_eledia_exam2pdf;
 
 use mod_quiz\quiz_attempt;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Listens for quiz attempt_submitted events and triggers PDF generation
  * when the attempt is passed.
@@ -137,7 +135,7 @@ class observer {
      *
      * @param \stdClass $attempt quiz_attempts row.
      * @param \stdClass $quiz    quiz row.
-     * @return bool
+     * @return bool True when the attempt reached or exceeded the pass grade.
      */
     private static function is_passed(\stdClass $attempt, \stdClass $quiz): bool {
         // If no passing grade is configured, treat every finished attempt as passed.
@@ -157,8 +155,8 @@ class observer {
     /**
      * Builds a safe PDF filename for the attempt.
      *
-     * @param \stdClass $attempt
-     * @param \stdClass $quiz
+     * @param \stdClass $attempt The quiz attempt row.
+     * @param \stdClass $quiz    The quiz row.
      * @return string  e.g. "quiz-my-quiz-attempt-3-20250409.pdf"
      */
     private static function build_filename(\stdClass $attempt, \stdClass $quiz): string {
@@ -175,6 +173,7 @@ class observer {
      * @param array               $config     Effective config values.
      * @param \stored_file        $storedfile Moodle stored file object.
      * @param string              $filename   Attachment filename.
+     * @return void
      */
     private static function send_email(
         \stdClass $attempt,
