@@ -80,6 +80,18 @@ final class helper_test extends \advanced_testcase {
     }
 
     /**
+     * `retentiondays = '0'` must stay 0 (never-expire sentinel), not fall back to 365.
+     * Guards against the short-ternary `?:` bug that eats zero.
+     */
+    public function test_get_effective_config_preserves_retentiondays_zero(): void {
+        set_config('retentiondays', '0', 'local_eledia_exam2pdf');
+
+        $config = helper::get_effective_config(42);
+
+        $this->assertSame(0, $config['retentiondays']);
+    }
+
+    /**
      * Per-quiz overrides take precedence over global defaults.
      */
     public function test_per_quiz_overrides_take_precedence(): void {

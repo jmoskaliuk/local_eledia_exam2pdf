@@ -277,37 +277,39 @@ class generator {
      * @return string The resolved correct-answer text, or empty string if unknown.
      */
     private static function get_correct_answer_text(\question_definition $question, string $qtype): string {
+        // The qtype_truefalse_question class does NOT expose an ->answers array —
+        // it stores ->rightanswer (bool) via its loader. Handle truefalse separately
+        // before touching $question->answers anywhere else.
+        if ($qtype === 'truefalse') {
+            if (property_exists($question, 'rightanswer') && isset($question->rightanswer)) {
+                return $question->rightanswer
+                    ? get_string('true', 'qtype_truefalse')
+                    : get_string('false', 'qtype_truefalse');
+            }
+            return '';
+        }
+
+        // For all other qtypes that populate ->answers, guard against it being null or
+        // not iterable — some question types lazy-load answers and may leave the
+        // property empty when rendered via the question engine.
+        $answers = (property_exists($question, 'answers') && is_iterable($question->answers))
+            ? $question->answers
+            : [];
+
         switch ($qtype) {
             case 'multichoice':
                 $correct = [];
-                foreach ($question->answers as $answer) {
+                foreach ($answers as $answer) {
                     if ($answer->fraction > 0) {
                         $correct[] = strip_tags($answer->answer);
                     }
                 }
                 return implode(', ', $correct);
 
-            case 'truefalse':
-                // The correct answer is whichever option has fraction == 1.
-                foreach ($question->answers as $answer) {
-                    if ((float) $answer->fraction === 1.0) {
-                        return strip_tags($answer->answer);
-                    }
-                }
-                return '';
-
             case 'shortanswer':
-                $best = null;
-                foreach ($question->answers as $answer) {
-                    if ($best === null || $answer->fraction > $best->fraction) {
-                        $best = $answer;
-                    }
-                }
-                return $best ? strip_tags($best->answer) : '';
-
             case 'numerical':
                 $best = null;
-                foreach ($question->answers as $answer) {
+                foreach ($answers as $answer) {
                     if ($best === null || $answer->fraction > $best->fraction) {
                         $best = $answer;
                     }
@@ -315,7 +317,7 @@ class generator {
                 return $best ? strip_tags($best->answer) : '';
 
             default:
-                // For other types use get_correct_response() if available.
+                // For other types fall back to get_correct_response() if available.
                 if (method_exists($question, 'get_correct_response')) {
                     $cr = $question->get_correct_response();
                     if ($cr) {

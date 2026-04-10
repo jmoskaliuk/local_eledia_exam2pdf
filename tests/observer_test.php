@@ -71,6 +71,8 @@ final class observer_test extends \advanced_testcase {
      * @return \stdClass
      */
     protected function create_quiz_with_question(array $quizoverrides = []): \stdClass {
+        global $DB;
+
         $defaults = [
             'course'     => $this->course->id,
             'sumgrades'  => 1,
@@ -78,7 +80,8 @@ final class observer_test extends \advanced_testcase {
             'gradepass'  => 5,
             'attempts'   => 0,
         ];
-        $quiz = $this->getDataGenerator()->create_module('quiz', array_merge($defaults, $quizoverrides));
+        $requested = array_merge($defaults, $quizoverrides);
+        $quiz = $this->getDataGenerator()->create_module('quiz', $requested);
 
         /** @var \core_question_generator $questiongen */
         $questiongen = $this->getDataGenerator()->get_plugin_generator('core_question');
@@ -86,7 +89,14 @@ final class observer_test extends \advanced_testcase {
         $question    = $questiongen->create_question('truefalse', null, ['category' => $cat->id]);
         quiz_add_quiz_question($question->id, $quiz);
 
-        return $quiz;
+        // Moodle's quiz_add_quiz_question() recalculates quiz.sumgrades based on the
+        // added question's default maxmark (1.0 for truefalse). Restore the caller's
+        // requested scale so the observer's pass/fail math matches the test's intent;
+        // then re-read the quiz row to pick up any other side effects of question
+        // insertion.
+        $DB->set_field('quiz', 'sumgrades', (float) $requested['sumgrades'], ['id' => $quiz->id]);
+
+        return $DB->get_record('quiz', ['id' => $quiz->id], '*', MUST_EXIST);
     }
 
     /**
@@ -106,6 +116,11 @@ final class observer_test extends \advanced_testcase {
         $quba->set_preferred_behaviour($quizobj->get_quiz()->preferredbehaviour);
 
         $attempt = quiz_create_attempt($quizobj, 1, null, $timenow, false, $this->student->id);
+        // Moodle 5.x internally reads `$attempt->studentisonline` from the attempt row;
+        // `quiz_create_attempt()` does not always initialise it, which triggers an
+        // `Undefined array key "studentisonline"` warning that fails PHPUnit runs with
+        // --fail-on-warning. Setting it explicitly keeps the pipeline clean.
+        $attempt->studentisonline = false;
         quiz_start_new_attempt($quizobj, $quba, $attempt, 1, $timenow);
         quiz_attempt_save_started($quizobj, $quba, $attempt);
 

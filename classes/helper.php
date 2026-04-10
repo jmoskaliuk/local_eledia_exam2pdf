@@ -41,12 +41,18 @@ class helper {
         global $DB;
 
         // Start with global defaults.
+        // NOTE: retentiondays intentionally does NOT use the short-ternary `?:` fallback
+        // because '0' is a valid, meaningful value (never expire). `?: 365` would silently
+        // rewrite zero to the default.
+        $retentionraw = get_config('local_eledia_exam2pdf', 'retentiondays');
         $config = [
             'outputmode'          => get_config('local_eledia_exam2pdf', 'outputmode') ?: 'download',
             'emailrecipients'     => get_config('local_eledia_exam2pdf', 'emailrecipients') ?: '',
             'emailsubject'        => get_config('local_eledia_exam2pdf', 'emailsubject')
                                         ?: get_string('email_subject_default', 'local_eledia_exam2pdf'),
-            'retentiondays'       => (int) (get_config('local_eledia_exam2pdf', 'retentiondays') ?: 365),
+            'retentiondays'       => ($retentionraw === false || $retentionraw === '' || $retentionraw === null)
+                                        ? 365
+                                        : (int) $retentionraw,
             'showcorrectanswers'  => (bool) get_config('local_eledia_exam2pdf', 'showcorrectanswers'),
             'show_score'          => (bool) get_config('local_eledia_exam2pdf', 'show_score'),
             'show_passgrade'      => (bool) get_config('local_eledia_exam2pdf', 'show_passgrade'),

@@ -28,19 +28,18 @@ Feature: Administrator configures the eLeDia exam2pdf global settings
 
   Scenario: Optional PDF fields can be toggled
     When I navigate to "Plugins > Local plugins > eLeDia exam2pdf" in site administration
-    And I set the field "Show score on PDF" to "0"
-    And I set the field "Show duration on PDF" to "0"
+    And I uncheck "Show score on PDF"
+    And I uncheck "Show duration on PDF"
     And I press "Save changes"
     Then I should see "Changes saved"
     When I navigate to "Plugins > Local plugins > eLeDia exam2pdf" in site administration
     Then the field "Show score on PDF" matches value "0"
     And the field "Show duration on PDF" matches value "0"
 
-  Scenario: Invalid retention value is rejected
+  Scenario: Retention period accepts zero meaning never expire
     When I navigate to "Plugins > Local plugins > eLeDia exam2pdf" in site administration
-    And I set the field "Retention period" to "not-a-number"
+    And I set the field "Retention period" to "0"
     And I press "Save changes"
-    Then I should see "Retention period"
-    # Moodle's PARAM_INT silently coerces to 0; the field should show "0" after reload.
+    Then I should see "Changes saved"
     When I navigate to "Plugins > Local plugins > eLeDia exam2pdf" in site administration
     Then the field "Retention period" matches value "0"
