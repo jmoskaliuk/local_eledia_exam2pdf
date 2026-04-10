@@ -27,3 +27,11 @@ RESUME.md               export-ignore
 .idea/                  export-ignore
 .vscode/                export-ignore
 *.swp                   export-ignore
+
+# DevFlow-Docs (interne Design-Dokumente, nicht für Moodle Plugin Directory)
+00-master.md            export-ignore
+01-features.md          export-ignore
+02-user-doc.md          export-ignore
+03-dev-doc.md           export-ignore
+04-tasks.md             export-ignore
+05-quality.md           export-ignore
