@@ -12,7 +12,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:14
+        # Moodle 5.1 verlangt PostgreSQL >= 15; postgres:16 deckt auch 4.5/5.0
+        # ab (kein Max-Pin). postgres:14 war die Ursache für den 501/pgsql-Fail.
+        image: postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_HOST_AUTH_METHOD: trust
