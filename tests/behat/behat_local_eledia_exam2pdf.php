@@ -30,22 +30,18 @@ require_once(__DIR__ . '/../../../../lib/behat/behat_base.php');
 /**
  * Step definitions for the local_eledia_exam2pdf plugin.
  *
- * Provides steps that simulate the plugin observer after the standard quiz
+ * Provides steps that trigger the plugin observer after the standard quiz
  * attempt generator has written the attempt to the database. The built-in
  * generator step "user X has attempted Y with responses:" does NOT fire the
  * attempt_submitted event, so the plugin observer never runs during Behat.
- *
- * Instead of calling the real observer (which depends on TCPDF), this step
- * creates the DB record and a dummy PDF file directly. The Behat tests
- * verify download-button visibility, not PDF content.
  */
 class behat_local_eledia_exam2pdf extends behat_base {
     /**
-     * Simulates the exam2pdf observer for the latest attempt of a user on a quiz.
+     * Triggers the exam2pdf observer for the latest attempt of a user on a quiz.
      *
-     * Creates a PDF record and dummy file if the attempt is in scope (passed
-     * or all-finished, depending on config). Does nothing when the attempt is
-     * out of scope, so "failed-attempt" scenarios correctly see no button.
+     * This must be called AFTER the standard generator step that creates the
+     * quiz attempt, because that step writes the attempt row without firing
+     * the attempt_submitted event.
      *
      * @Given the exam2pdf observer has processed the attempt for :username in :quizname
      * @param string $username The username (e.g. "student1").
@@ -77,54 +73,128 @@ class behat_local_eledia_exam2pdf extends behat_base {
             MUST_EXIST
         );
 
-        // Get effective config (global defaults merged with per-quiz overrides).
-        $config = \local_eledia_exam2pdf\helper::get_effective_config($quiz->id);
-
-        // Check if the attempt is in scope for PDF generation.
-        if (!\local_eledia_exam2pdf\helper::is_in_pdf_scope($attempt, $quiz, $config)) {
-            return;
-        }
-
-        // Create the DB record and store a minimal dummy PDF file.
-        // This bypasses TCPDF so the Behat test is independent of the PDF
-        // rendering engine and only tests the download-button UI logic.
+        // Build the event object the observer expects.
         $cm      = get_coursemodule_from_instance('quiz', $quiz->id, 0, false, MUST_EXIST);
         $context = \core\context\module::instance($cm->id);
 
-        $retentiondays = (int) ($config['retentiondays'] ?? 365);
-        $timeexpires   = $retentiondays > 0 ? (time() + $retentiondays * DAYSECS) : 0;
+        $event = \mod_quiz\event\attempt_submitted::create([
+            'objectid'      => $attempt->id,
+            'relateduserid' => $user->id,
+            'context'       => $context,
+            'other'         => [
+                'quizid'       => $quiz->id,
+                'submitterid'  => $user->id,
+            ],
+        ]);
 
-        $record              = new \stdClass();
-        $record->quizid      = $quiz->id;
-        $record->cmid        = $cm->id;
-        $record->attemptid   = $attempt->id;
-        $record->userid      = $user->id;
-        $record->timecreated = time();
-        $record->timeexpires = $timeexpires;
-        $record->contenthash = '';
-        $record->id          = $DB->insert_record('local_eledia_exam2pdf', $record);
+        // Call the observer directly (triggering via $event->trigger() would
+        // go through the event manager and all registered observers, which is
+        // fine too, but a direct call is more predictable in tests).
+        \local_eledia_exam2pdf\observer::on_attempt_submitted($event);
+    }
 
-        // Store a minimal PDF placeholder in the Moodle file system.
-        $fs       = get_file_storage();
-        $filename = 'behat-test-certificate.pdf';
-        $fileinfo = [
-            'contextid' => $context->id,
-            'component' => 'local_eledia_exam2pdf',
-            'filearea'  => 'attempt_pdf',
-            'itemid'    => $record->id,
-            'filepath'  => '/',
-            'filename'  => $filename,
-        ];
+    /**
+     * Asserts that a PDF record was created for the user's latest attempt.
+     *
+     * This is a diagnostic step that checks the database state directly
+     * and reports detailed information on failure.
+     *
+     * @Then the exam2pdf PDF record for :username in :quizname should exist
+     * @param string $username The username (e.g. "student1").
+     * @param string $quizname The quiz name (e.g. "Compliance Exam").
+     */
+    public function the_exam2pdf_pdf_record_should_exist(
+        string $username,
+        string $quizname
+    ): void {
+        global $DB, $CFG;
 
-        $dummypdf   = '%PDF-1.4 dummy content for Behat testing';
-        $storedfile = $fs->create_file_from_string($fileinfo, $dummypdf);
+        $user = $DB->get_record('user', ['username' => $username], '*', MUST_EXIST);
+        $quiz = $DB->get_record('quiz', ['name' => $quizname], '*', MUST_EXIST);
 
-        // Update content hash in DB record.
-        $DB->set_field(
-            'local_eledia_exam2pdf',
-            'contenthash',
-            $storedfile->get_contenthash(),
-            ['id' => $record->id]
+        $attempt = $DB->get_record_sql(
+            "SELECT *
+               FROM {quiz_attempts}
+              WHERE quiz = :quiz AND userid = :userid AND state = :state
+           ORDER BY id DESC",
+            [
+                'quiz'   => $quiz->id,
+                'userid' => $user->id,
+                'state'  => 'finished',
+            ],
+            IGNORE_MISSING
         );
+
+        if (!$attempt) {
+            throw new \Exception(
+                "No finished attempt for {$username} in '{$quizname}'."
+            );
+        }
+
+        // Gather grading diagnostics.
+        require_once($CFG->libdir . '/gradelib.php');
+        $gradeitem = \grade_item::fetch([
+            'itemtype'     => 'mod',
+            'itemmodule'   => 'quiz',
+            'iteminstance'  => $quiz->id,
+            'courseid'     => $quiz->course,
+        ]);
+        $gradepass = ($gradeitem && !empty($gradeitem->gradepass))
+            ? (float) $gradeitem->gradepass : 0.0;
+        $grade = ($quiz->sumgrades > 0)
+            ? ($attempt->sumgrades / $quiz->sumgrades * $quiz->grade) : 0;
+
+        // Check config.
+        $config = \local_eledia_exam2pdf\helper::get_effective_config($quiz->id);
+
+        // Check PDF record.
+        $record = $DB->get_record(
+            'local_eledia_exam2pdf',
+            ['attemptid' => $attempt->id],
+            '*',
+            IGNORE_MISSING
+        );
+
+        // Check stored file.
+        $fileinfo = 'N/A';
+        if ($record) {
+            $file = \local_eledia_exam2pdf\helper::get_stored_file($record);
+            $fileinfo = $file ? 'OK (size=' . $file->get_filesize() . ')' : 'NOT_FOUND';
+        }
+
+        $diag = sprintf(
+            "attempt.id=%d, attempt.sumgrades=%s, attempt.state=%s, " .
+            "quiz.id=%d, quiz.sumgrades=%s, quiz.grade=%s, " .
+            "grade=%.2f, gradepass=%.2f, passed=%s, " .
+            "config.pdfgeneration=%s, config.pdfscope=%s, config.studentdownload=%s, " .
+            "pdf_record=%s, stored_file=%s",
+            $attempt->id,
+            $attempt->sumgrades ?? 'NULL',
+            $attempt->state,
+            $quiz->id,
+            $quiz->sumgrades,
+            $quiz->grade,
+            $grade,
+            $gradepass,
+            ($gradepass > 0 && $grade >= $gradepass) ? 'YES' : ($gradepass <= 0 ? 'YES(no_pass_grade)' : 'NO'),
+            $config['pdfgeneration'] ?? 'NULL',
+            $config['pdfscope'] ?? 'NULL',
+            isset($config['studentdownload']) ? ($config['studentdownload'] ? '1' : '0') : 'NULL',
+            $record ? "id={$record->id}, cmid={$record->cmid}, userid={$record->userid}" : 'NOT_FOUND',
+            $fileinfo
+        );
+
+        if (!$record) {
+            throw new \Exception(
+                "No PDF record found for attempt {$attempt->id}. Diagnostics: {$diag}"
+            );
+        }
+
+        // Also verify the stored file exists.
+        if (!$fileinfo || $fileinfo === 'NOT_FOUND') {
+            throw new \Exception(
+                "PDF record exists (id={$record->id}) but stored file not found. Diagnostics: {$diag}"
+            );
+        }
     }
 }

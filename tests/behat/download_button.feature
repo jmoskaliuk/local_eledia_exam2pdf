@@ -36,6 +36,7 @@ Feature: Download a PDF certificate after passing a quiz
       | slot | response |
       | 1    | True     |
     And the exam2pdf observer has processed the attempt for "student1" in "Compliance Exam"
+    And the exam2pdf PDF record for "student1" in "Compliance Exam" should exist
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
@@ -57,6 +58,7 @@ Feature: Download a PDF certificate after passing a quiz
       | slot | response |
       | 1    | True     |
     And the exam2pdf observer has processed the attempt for "student1" in "Compliance Exam"
+    And the exam2pdf PDF record for "student1" in "Compliance Exam" should exist
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"

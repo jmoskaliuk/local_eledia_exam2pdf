@@ -40,20 +40,65 @@ class quiz_page_callbacks {
      * @return void
      */
     public static function inject_footer_html(before_footer_html_generation $hook): void {
-        $html = self::get_footer_html();
-        if ($html !== '') {
-            $hook->add_html($html);
+        global $PAGE, $USER, $DB;
+
+        // Trainer/Manager: report overview page gets the bulk PDF section.
+        if ($PAGE->pagetype === 'mod-quiz-report') {
+            $mode = optional_param('mode', '', PARAM_ALPHA);
+            if ($mode === 'overview' || $mode === '') {
+                $html = self::get_report_section_html();
+                if ($html !== '') {
+                    $hook->add_html($html);
+                }
+            }
+            return;
         }
+
+        // Student: quiz review page gets the download button.
+        if ($PAGE->pagetype !== 'mod-quiz-review') {
+            return;
+        }
+
+        if (empty($PAGE->cm)) {
+            return;
+        }
+
+        $config = \local_eledia_exam2pdf\helper::get_effective_config($PAGE->cm->instance);
+        if (empty($config['studentdownload'])) {
+            return;
+        }
+
+        $attemptid = optional_param('attempt', 0, PARAM_INT);
+        if (!$attemptid) {
+            return;
+        }
+
+        // Look up the PDF record for the current user / attempt.
+        $record = $DB->get_record(
+            'local_eledia_exam2pdf',
+            ['attemptid' => $attemptid, 'userid' => $USER->id],
+            'id, cmid, timeexpires',
+            IGNORE_MISSING
+        );
+
+        if (!$record) {
+            return;
+        }
+
+        // Check the file still exists (not yet expired / deleted).
+        $file = \local_eledia_exam2pdf\helper::get_stored_file($record);
+        if (!$file) {
+            return;
+        }
+
+        $downloadurl = \local_eledia_exam2pdf\helper::get_download_url($record, $file->get_filename());
+        $hook->add_html(self::render_download_button($downloadurl->out(false)));
     }
 
     /**
      * Returns the HTML to inject before the page footer.
      *
-     * Dispatches between the student-facing review page (download button)
-     * and the trainer-facing report overview page (bulk PDF section).
-     *
-     * Called from {@see inject_footer_html()} (hook) and also from
-     * {@see local_eledia_exam2pdf_before_footer()} in lib.php (legacy fallback).
+     * Public helper for the legacy before_footer callback in lib.php.
      *
      * @return string HTML fragment, or empty string if nothing to inject.
      */
