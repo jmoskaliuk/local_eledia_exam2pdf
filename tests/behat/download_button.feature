@@ -28,6 +28,8 @@ Feature: Download a PDF certificate after passing a quiz
     And quiz "Compliance Exam" contains the following questions:
       | question    | page |
       | TF question | 1    |
+    And the following config values are set as admin:
+      | local_eledia_exam2pdf/studentdownload | 1 |
 
   Scenario: Student passes the quiz and sees a download button on the review page
     Given user "student1" has attempted "Compliance Exam" with responses:

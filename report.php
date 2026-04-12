@@ -67,7 +67,7 @@ if (empty($entries)) {
     $table->head        = [
         get_string('manage_col_learner', 'local_eledia_exam2pdf'),
         get_string('manage_col_timecreated', 'local_eledia_exam2pdf'),
-        get_string('manage_col_actions', 'local_eledia_exam2pdf'),
+        get_string('actions'),
     ];
     $table->attributes  = ['class' => 'generaltable'];
     $table->colclasses  = ['', '', 'text-center'];

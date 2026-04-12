@@ -46,7 +46,7 @@ class helper {
         // rewrite zero to the default.
         $retentionraw = get_config('local_eledia_exam2pdf', 'retentiondays');
 
-        // get_config() returns boolean false (not null) when a setting has never been saved.
+        // The get_config() function returns boolean false (not null) when a setting has never been saved.
         // The null-coalescing operator `??` only fires for null, so `false ?? true` stays
         // false. We must explicitly detect false and substitute the intended default (true).
         $sdraw = get_config('local_eledia_exam2pdf', 'studentdownload');

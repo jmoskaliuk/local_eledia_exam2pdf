@@ -77,8 +77,10 @@ class observer {
             // In test environments, swallowing exceptions makes real bugs invisible.
             // Re-throw so tests surface the actual problem instead of silently
             // asserting "0 PDFs" as a symptom.
-            if ((defined('PHPUNIT_TEST') && PHPUNIT_TEST) ||
-                    (defined('BEHAT_SITE_RUNNING') && BEHAT_SITE_RUNNING)) {
+            if (
+                (defined('PHPUNIT_TEST') && PHPUNIT_TEST) ||
+                (defined('BEHAT_SITE_RUNNING') && BEHAT_SITE_RUNNING)
+            ) {
                 throw $e;
             }
             debugging(

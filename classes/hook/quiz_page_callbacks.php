@@ -160,7 +160,7 @@ HTML;
         $intro   = get_string('report_section_intro', 'local_eledia_exam2pdf');
         $colname = get_string('manage_col_learner', 'local_eledia_exam2pdf');
         $coldate = get_string('manage_col_timecreated', 'local_eledia_exam2pdf');
-        $colact  = get_string('manage_col_actions', 'local_eledia_exam2pdf');
+        $colact  = get_string('actions');
         $dliconlabel = get_string('report_download_one', 'local_eledia_exam2pdf');
 
         if (empty($entries)) {
