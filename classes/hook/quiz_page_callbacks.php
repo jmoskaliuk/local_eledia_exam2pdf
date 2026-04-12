@@ -42,6 +42,47 @@ class quiz_page_callbacks {
     public static function inject_footer_html(before_footer_html_generation $hook): void {
         global $PAGE, $USER, $DB;
 
+        // --- DIAGNOSTIC: temporary, remove after CI debugging ---
+        if ($PAGE->pagetype === 'mod-quiz-review') {
+            $diag = [];
+            $diag[] = 'pt=mod-quiz-review';
+            $diag[] = 'cm=' . (!empty($PAGE->cm) ? 'yes(inst=' . $PAGE->cm->instance . ')' : 'NO');
+
+            if (!empty($PAGE->cm)) {
+                $config = \local_eledia_exam2pdf\helper::get_effective_config($PAGE->cm->instance);
+                $diag[] = 'sd=' . var_export($config['studentdownload'] ?? null, true);
+            }
+
+            $attemptid = optional_param('attempt', 0, PARAM_INT);
+            $diag[] = 'att=' . $attemptid;
+            $diag[] = 'uid=' . ($USER->id ?? 0);
+
+            if ($attemptid > 0 && !empty($USER->id)) {
+                $rec = $DB->get_record('local_eledia_exam2pdf',
+                    ['attemptid' => $attemptid, 'userid' => $USER->id],
+                    'id, cmid', IGNORE_MISSING);
+                $diag[] = 'rec_uid=' . ($rec ? $rec->id : 'null');
+
+                $rec2 = $DB->get_record('local_eledia_exam2pdf',
+                    ['attemptid' => $attemptid],
+                    'id, userid', IGNORE_MISSING);
+                $diag[] = 'rec_any=' . ($rec2 ? 'id=' . $rec2->id . ',uid=' . $rec2->userid : 'null');
+
+                if ($rec) {
+                    $file = \local_eledia_exam2pdf\helper::get_stored_file($rec);
+                    $diag[] = 'file=' . ($file ? 'ok(' . $file->get_filesize() . ')' : 'null');
+                }
+            }
+
+            $hook->add_html(
+                '<div id="exam2pdf-diag" style="background:#ffe0e0;border:2px solid red;'
+                . 'padding:8px;margin:10px 0;">'
+                . 'EXAM2PDF_DIAG: ' . implode(', ', $diag)
+                . '</div>'
+            );
+        }
+        // --- END DIAGNOSTIC ---
+
         // Trainer/Manager: report overview page gets the bulk PDF section.
         if ($PAGE->pagetype === 'mod-quiz-report') {
             $mode = optional_param('mode', '', PARAM_ALPHA);

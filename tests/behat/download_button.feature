@@ -40,7 +40,8 @@ Feature: Download a PDF certificate after passing a quiz
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
-    Then I should see "Download certificate"
+    Then I should see "EXAM2PDF_DIAG"
+    And I should see "Download certificate"
     And "Download certificate" "link" should exist
 
   Scenario: A failed attempt does not show the download button
@@ -51,7 +52,8 @@ Feature: Download a PDF certificate after passing a quiz
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
-    Then I should not see "Download certificate"
+    Then I should see "EXAM2PDF_DIAG"
+    And I should not see "Download certificate"
 
   Scenario: The certificate link points at the plugin download endpoint
     Given user "student1" has attempted "Compliance Exam" with responses:
@@ -62,4 +64,5 @@ Feature: Download a PDF certificate after passing a quiz
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
-    Then "Download certificate" "link" should exist
+    Then I should see "EXAM2PDF_DIAG"
+    And "Download certificate" "link" should exist
