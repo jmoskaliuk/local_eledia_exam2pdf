@@ -32,7 +32,7 @@ if ($hassiteconfig) {
 
     $ADMIN->add('localplugins', $settings);
 
-    // --- PDF generation section ---
+    // PDF generation section.
     $settings->add(new admin_setting_heading(
         'local_eledia_exam2pdf/heading_generation',
         get_string('setting_heading_generation', 'local_eledia_exam2pdf'),
