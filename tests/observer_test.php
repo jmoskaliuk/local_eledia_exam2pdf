@@ -31,8 +31,6 @@
 
 namespace local_eledia_exam2pdf;
 
-use mod_quiz\quiz_attempt;
-
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
@@ -142,7 +140,7 @@ final class observer_test extends \advanced_testcase {
         // Force the attempt into a finished state with the requested score.
         $DB->update_record('quiz_attempts', (object) [
             'id'         => $attempt->id,
-            'state'      => quiz_attempt::FINISHED,
+            'state'      => 'finished',
             'timefinish' => $timenow,
             'sumgrades'  => $sumgrades,
         ]);

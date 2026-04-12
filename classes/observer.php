@@ -24,8 +24,6 @@
 
 namespace local_eledia_exam2pdf;
 
-use mod_quiz\quiz_attempt;
-
 /**
  * Listens for quiz attempt_submitted events and triggers PDF generation
  * when the attempt is passed.
@@ -41,12 +39,10 @@ class observer {
 
         $attemptid = $event->objectid;
 
-        // Load quiz locallib early — quiz_attempt class may depend on it.
-        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
-
-        // Load attempt.
+        // Load attempt — use string 'finished' directly to avoid class-loading
+        // issues with \mod_quiz\quiz_attempt during event dispatch.
         $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', IGNORE_MISSING);
-        if (!$attempt || $attempt->state !== quiz_attempt::FINISHED) {
+        if (!$attempt || $attempt->state !== 'finished') {
             return;
         }
 
@@ -68,7 +64,8 @@ class observer {
 
         // Generate the PDF binary.
         try {
-            $attemptobj = quiz_attempt::create($attemptid);
+            require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+            $attemptobj = \mod_quiz\quiz_attempt::create($attemptid);
             $pdfcontent = pdf\generator::generate($attemptobj, $quiz, $config);
         } catch (\Throwable $e) {
             // In PHPUnit/Behat runs with --fail-on-warning, swallowing exceptions here

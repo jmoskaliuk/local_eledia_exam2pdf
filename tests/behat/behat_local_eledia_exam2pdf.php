@@ -51,9 +51,7 @@ class behat_local_eledia_exam2pdf extends behat_base {
         string $username,
         string $quizname
     ): void {
-        global $DB, $CFG;
-
-        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        global $DB;
 
         // Look up the user.
         $user = $DB->get_record('user', ['username' => $username], '*', MUST_EXIST);
@@ -70,7 +68,7 @@ class behat_local_eledia_exam2pdf extends behat_base {
             [
                 'quiz'   => $quiz->id,
                 'userid' => $user->id,
-                'state'  => \mod_quiz\quiz_attempt::FINISHED,
+                'state'  => 'finished',
             ],
             MUST_EXIST
         );
