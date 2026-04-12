@@ -1,0 +1,45 @@
+{
+    "name": "exam2pdf: Downloading PDF Certificates",
+    "description": "Shows teachers where to find and download PDF certificates on the quiz report page.",
+    "pathmatch": "%/mod/quiz/report.php%",
+    "enabled": 1,
+    "sortorder": 2,
+    "endtourlabel": "OK",
+    "displaystepnumbers": 1,
+    "showtourwhen": 1,
+    "configdata": "{}",
+    "steps": [
+        {
+            "title": "PDF Certificates Section",
+            "content": "<p>Scroll down to find the <strong>PDF certificates</strong> section below the standard quiz report.</p><p>It shows all generated certificates for this quiz with learner name, date, and a download icon.</p>",
+            "targettype": 1,
+            "targetvalue": ".local-eledia-exam2pdf-reportwrap",
+            "placement": "top",
+            "ordering": 0
+        },
+        {
+            "title": "Download Individual PDFs",
+            "content": "<p>Click the <strong>download icon</strong> next to any learner to download their individual PDF certificate.</p>",
+            "targettype": 1,
+            "targetvalue": ".local-eledia-exam2pdf-reportwrap table",
+            "placement": "top",
+            "ordering": 1
+        },
+        {
+            "title": "Bulk Download as ZIP",
+            "content": "<p>Use the <strong>Download all as ZIP</strong> button to get all certificates at once &mdash; handy for archiving or printing.</p>",
+            "targettype": 1,
+            "targetvalue": ".local-eledia-exam2pdf-reportwrap .btn-primary",
+            "placement": "top",
+            "ordering": 2
+        },
+        {
+            "title": "Customize Settings",
+            "content": "<p>Want to change what appears in the PDFs or who can download them? Go to <strong>Quiz &rarr; More &rarr; PDF Certificate settings</strong> to override the defaults for this quiz.</p>",
+            "targettype": 2,
+            "targetvalue": "",
+            "placement": "bottom",
+            "ordering": 3
+        }
+    ]
+}

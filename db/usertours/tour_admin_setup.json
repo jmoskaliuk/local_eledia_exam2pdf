@@ -1,0 +1,61 @@
+{
+    "name": "exam2pdf: Administrator Setup",
+    "description": "Guides administrators through the initial configuration of the PDF certificate plugin.",
+    "pathmatch": "%/admin/settings.php%section=local_eledia_exam2pdf%",
+    "enabled": 1,
+    "sortorder": 0,
+    "endtourlabel": "OK",
+    "displaystepnumbers": 1,
+    "showtourwhen": 1,
+    "configdata": "{}",
+    "steps": [
+        {
+            "title": "Welcome to PDF Certificate Settings",
+            "content": "<p>This is where you configure how PDF certificates are generated after quiz attempts.</p><p>All settings defined here serve as <strong>global defaults</strong>. Teachers can override them per quiz.</p>",
+            "targettype": 2,
+            "targetvalue": "",
+            "placement": "bottom",
+            "ordering": 0
+        },
+        {
+            "title": "When are PDFs generated?",
+            "content": "<p><strong>On submission (automatic)</strong> creates the PDF immediately when a student finishes a quiz.</p><p><strong>On demand</strong> only creates it when a teacher clicks the download button &mdash; useful for high-traffic quizzes.</p>",
+            "targettype": 1,
+            "targetvalue": "#admin-pdfgeneration",
+            "placement": "bottom",
+            "ordering": 1
+        },
+        {
+            "title": "Which attempts get a PDF?",
+            "content": "<p><strong>Passed only</strong> requires the attempt to meet the quiz pass grade (set in the Gradebook).</p><p><strong>All finished</strong> generates a PDF for every completed attempt, regardless of score.</p>",
+            "targettype": 1,
+            "targetvalue": "#admin-pdfscope",
+            "placement": "bottom",
+            "ordering": 2
+        },
+        {
+            "title": "How are PDFs delivered?",
+            "content": "<p>Choose <strong>Download</strong> (button on the review page), <strong>Email</strong> (automatic notification), or <strong>Both</strong>.</p><p>You can also configure extra email recipients below &mdash; the learner always receives a copy.</p>",
+            "targettype": 1,
+            "targetvalue": "#admin-outputmode",
+            "placement": "bottom",
+            "ordering": 3
+        },
+        {
+            "title": "Retention &amp; Cleanup",
+            "content": "<p>PDFs are stored for the configured number of days. After that, a nightly task deletes them automatically.</p><p>Set to <strong>0</strong> to keep PDFs indefinitely.</p>",
+            "targettype": 1,
+            "targetvalue": "#admin-retentiondays",
+            "placement": "bottom",
+            "ordering": 4
+        },
+        {
+            "title": "You're all set!",
+            "content": "<p>Save these settings and you're ready to go. Teachers can fine-tune settings per quiz via <strong>Quiz &rarr; Settings &rarr; PDF Certificate settings</strong>.</p>",
+            "targettype": 2,
+            "targetvalue": "",
+            "placement": "bottom",
+            "ordering": 5
+        }
+    ]
+}

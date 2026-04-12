@@ -1,0 +1,45 @@
+{
+    "name": "exam2pdf: Per-Quiz PDF Settings",
+    "description": "Guides teachers through the per-quiz PDF certificate settings on first visit.",
+    "pathmatch": "%/local/eledia_exam2pdf/quizsettings.php%",
+    "enabled": 1,
+    "sortorder": 1,
+    "endtourlabel": "OK",
+    "displaystepnumbers": 1,
+    "showtourwhen": 1,
+    "configdata": "{}",
+    "steps": [
+        {
+            "title": "Per-Quiz PDF Settings",
+            "content": "<p>Here you can override the global PDF certificate settings <strong>for this quiz only</strong>.</p><p>Any field left at &ldquo;Use global default&rdquo; inherits the administrator's setting.</p>",
+            "targettype": 2,
+            "targetvalue": "",
+            "placement": "bottom",
+            "ordering": 0
+        },
+        {
+            "title": "Student Download Toggle",
+            "content": "<p>Controls whether students see a <strong>Download certificate</strong> button on their quiz review page.</p><p>If disabled, only teachers can access PDFs via the quiz report overview.</p>",
+            "targettype": 1,
+            "targetvalue": "#id_studentdownload",
+            "placement": "right",
+            "ordering": 1
+        },
+        {
+            "title": "Email &amp; Retention",
+            "content": "<p>You can add extra email recipients (comma-separated) and set a custom retention period for this quiz.</p><p>The learner always receives a copy when email mode is active.</p>",
+            "targettype": 1,
+            "targetvalue": "#id_emailrecipients",
+            "placement": "right",
+            "ordering": 2
+        },
+        {
+            "title": "Save &amp; Done",
+            "content": "<p>Click <strong>Save changes</strong> to apply. Your overrides take effect for all future quiz attempts.</p><p>Existing PDF certificates are not affected by setting changes.</p>",
+            "targettype": 1,
+            "targetvalue": "#id_submitbutton",
+            "placement": "top",
+            "ordering": 3
+        }
+    ]
+}

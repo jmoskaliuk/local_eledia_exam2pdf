@@ -15,17 +15,27 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version information for local_eledia_exam2pdf.
+ * Upgrade steps for local_eledia_exam2pdf.
  *
  * @package    local_eledia_exam2pdf
  * @copyright  2026 eLeDia GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+/**
+ * Executes upgrade steps for local_eledia_exam2pdf.
+ *
+ * @param int $oldversion The previous plugin version.
+ * @return bool
+ */
+function xmldb_local_eledia_exam2pdf_upgrade($oldversion) {
+    if ($oldversion < 2026041202) {
+        // Import bundled User Tours.
+        require_once(__DIR__ . '/install.php');
+        local_eledia_exam2pdf_import_tours();
 
-$plugin->component = 'local_eledia_exam2pdf';
-$plugin->version   = 2026041202;
-$plugin->requires  = 2024100700; // Moodle 4.5.
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.3.0';
+        upgrade_plugin_savepoint(true, 2026041202, 'local', 'eledia_exam2pdf');
+    }
+
+    return true;
+}
