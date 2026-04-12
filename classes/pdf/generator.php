@@ -44,15 +44,24 @@ class generator {
         global $CFG, $DB;
 
         require_once($CFG->libdir . '/tcpdf/tcpdf.php');
+        require_once($CFG->libdir . '/gradelib.php');
 
         $attempt = $attemptobj->get_attempt();
         $learner = $DB->get_record('user', ['id' => $attempt->userid], '*', MUST_EXIST);
 
-        // Determine pass status.
+        // Determine pass status via the gradebook (gradepass is not in the quiz table).
+        $gradeitem = \grade_item::fetch([
+            'itemtype' => 'mod',
+            'itemmodule' => 'quiz',
+            'iteminstance' => $quiz->id,
+            'courseid' => $quiz->course,
+        ]);
+        $gradepass = ($gradeitem && !empty($gradeitem->gradepass)) ? (float) $gradeitem->gradepass : 0.0;
+
         $passed = true;
-        if (!empty($quiz->gradepass) && $quiz->gradepass > 0 && $quiz->sumgrades > 0) {
+        if ($gradepass > 0 && $quiz->sumgrades > 0) {
             $grade  = $attempt->sumgrades / $quiz->sumgrades * $quiz->grade;
-            $passed = ($grade >= (float) $quiz->gradepass);
+            $passed = ($grade >= $gradepass);
         }
 
         // Compute optional header values.
@@ -150,10 +159,10 @@ class generator {
                 round($grade, 2) . ' / ' . round($quiz->grade, 2)
             );
         }
-        if (!empty($config['show_passgrade']) && !empty($quiz->gradepass)) {
+        if (!empty($config['show_passgrade']) && $gradepass > 0) {
             $html .= self::header_row(
                 get_string('pdf_passgrade', 'local_eledia_exam2pdf'),
-                round($quiz->gradepass, 2)
+                round($gradepass, 2)
             );
         }
         if (!empty($config['show_percentage'])) {

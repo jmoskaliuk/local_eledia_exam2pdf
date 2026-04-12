@@ -71,7 +71,8 @@ final class observer_test extends \advanced_testcase {
      * @return \stdClass
      */
     protected function create_quiz_with_question(array $quizoverrides = []): \stdClass {
-        global $DB;
+        global $DB, $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
 
         $defaults = [
             'course'     => $this->course->id,
@@ -95,6 +96,20 @@ final class observer_test extends \advanced_testcase {
         // then re-read the quiz row to pick up any other side effects of question
         // insertion.
         $DB->set_field('quiz', 'sumgrades', (float) $requested['sumgrades'], ['id' => $quiz->id]);
+
+        // The observer reads gradepass from the gradebook (grade_items), not from the
+        // quiz table. Ensure the grade item has the requested pass grade.
+        $gradepass = (float) ($requested['gradepass'] ?? 0);
+        $gradeitem = \grade_item::fetch([
+            'itemtype' => 'mod',
+            'itemmodule' => 'quiz',
+            'iteminstance' => $quiz->id,
+            'courseid' => $this->course->id,
+        ]);
+        if ($gradeitem) {
+            $gradeitem->gradepass = $gradepass;
+            $gradeitem->update();
+        }
 
         return $DB->get_record('quiz', ['id' => $quiz->id], '*', MUST_EXIST);
     }
@@ -138,6 +153,11 @@ final class observer_test extends \advanced_testcase {
     /**
      * Triggers `\mod_quiz\event\attempt_submitted` for a given attempt.
      *
+     * Calls the observer directly rather than going through Moodle's event
+     * manager, because the event dispatcher silently catches exceptions from
+     * observer callbacks. Calling the observer directly ensures that any
+     * exception surfaces as a test error.
+     *
      * @param \stdClass $attempt The quiz_attempts row.
      * @param \stdClass $quiz    The quiz row the attempt belongs to.
      * @return void
@@ -156,7 +176,9 @@ final class observer_test extends \advanced_testcase {
                 'quizid'      => $quiz->id,
             ],
         ]);
-        $event->trigger();
+
+        // Call observer directly — bypasses the event manager's exception swallowing.
+        observer::on_attempt_submitted($event);
     }
 
     // Pass / fail decision.

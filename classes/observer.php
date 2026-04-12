@@ -65,9 +65,9 @@ class observer {
 
         // Generate the PDF binary.
         require_once($CFG->dirroot . '/mod/quiz/locallib.php');
-        $attemptobj = quiz_attempt::create($attemptid);
 
         try {
+            $attemptobj = quiz_attempt::create($attemptid);
             $pdfcontent = pdf\generator::generate($attemptobj, $quiz, $config);
         } catch (\Throwable $e) {
             // In PHPUnit/Behat runs with --fail-on-warning, swallowing exceptions here
@@ -136,13 +136,19 @@ class observer {
     /**
      * Determines whether a quiz attempt reached the passing grade.
      *
+     * The pass threshold is stored in the gradebook (grade_items), not in the
+     * quiz table itself. We must look it up from grade_item.
+     *
      * @param \stdClass $attempt quiz_attempts row.
      * @param \stdClass $quiz    quiz row.
      * @return bool True when the attempt reached or exceeded the pass grade.
      */
     private static function is_passed(\stdClass $attempt, \stdClass $quiz): bool {
+        // Fetch the pass grade from the gradebook.
+        $gradepass = self::get_quiz_gradepass($quiz);
+
         // If no passing grade is configured, treat every finished attempt as passed.
-        if (empty($quiz->gradepass) || $quiz->gradepass <= 0) {
+        if ($gradepass <= 0) {
             return true;
         }
 
@@ -152,7 +158,30 @@ class observer {
         }
 
         $grade = $attempt->sumgrades / $quiz->sumgrades * $quiz->grade;
-        return ($grade >= (float) $quiz->gradepass);
+        return ($grade >= $gradepass);
+    }
+
+    /**
+     * Returns the quiz pass grade from the gradebook.
+     *
+     * @param \stdClass $quiz The quiz row (must contain id and course).
+     * @return float The pass grade, or 0 if none is configured.
+     */
+    private static function get_quiz_gradepass(\stdClass $quiz): float {
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+
+        $gradeitem = \grade_item::fetch([
+            'itemtype' => 'mod',
+            'itemmodule' => 'quiz',
+            'iteminstance' => $quiz->id,
+            'courseid' => $quiz->course,
+        ]);
+
+        if ($gradeitem && !empty($gradeitem->gradepass)) {
+            return (float) $gradeitem->gradepass;
+        }
+        return 0.0;
     }
 
     /**
