@@ -206,7 +206,9 @@ class generator {
      * @return string HTML markup.
      */
     private static function render_questions(quiz_attempt $attemptobj, array $config): string {
-        $quba  = $attemptobj->get_question_usage();
+        // get_question_usage() is restricted to unit tests in Moodle 5.x.
+        // Load the question usage via the public question engine API instead.
+        $quba  = \question_engine::load_questions_usage_by_activity($attemptobj->get_uniqueid());
         $slots = $attemptobj->get_slots();
 
         if (empty($slots)) {
