@@ -26,6 +26,26 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
 
+    // Configure per-quiz settings.
+    'local/eledia_exam2pdf:configure' => [
+        'captype'      => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes'   => [
+            'editingteacher' => CAP_ALLOW,
+            'manager'        => CAP_ALLOW,
+        ],
+    ],
+
+    // Download all PDF certificates for a quiz (teacher report page).
+    'local/eledia_exam2pdf:downloadall' => [
+        'captype'      => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes'   => [
+            'editingteacher' => CAP_ALLOW,
+            'manager'        => CAP_ALLOW,
+        ],
+    ],
+
     // Download own PDF (passed attempts only).
     'local/eledia_exam2pdf:downloadown' => [
         'captype'      => 'read',
@@ -36,8 +56,8 @@ $capabilities = [
         ],
     ],
 
-    // Manage / view all PDFs for a quiz (trainers + admins).
-    'local/eledia_exam2pdf:manage' => [
+    // Generate or regenerate PDF certificates on demand.
+    'local/eledia_exam2pdf:generatepdf' => [
         'captype'      => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes'   => [
@@ -46,8 +66,8 @@ $capabilities = [
         ],
     ],
 
-    // Configure per-quiz settings.
-    'local/eledia_exam2pdf:configure' => [
+    // Manage / view all PDFs for a quiz (legacy, kept for backward compatibility).
+    'local/eledia_exam2pdf:manage' => [
         'captype'      => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes'   => [

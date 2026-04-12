@@ -31,6 +31,7 @@
 
 namespace local_eledia_exam2pdf;
 
+
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
@@ -65,7 +66,7 @@ final class observer_test extends \advanced_testcase {
     /**
      * Creates a quiz with a single true/false question and returns the quiz record.
      *
-     * @param array $quizoverrides  Values to override in `create_module('quiz', …)`.
+     * @param array $quizoverrides  Values to override in `create_module('quiz', ...)`.
      * @return \stdClass
      */
     protected function create_quiz_with_question(array $quizoverrides = []): \stdClass {
@@ -190,7 +191,7 @@ final class observer_test extends \advanced_testcase {
         // Admin user required for some privileged operations during PDF generation.
         $this->setAdminUser();
         $quiz    = $this->create_quiz_with_question(['sumgrades' => 10, 'grade' => 10, 'gradepass' => 5]);
-        // 8/10 >= 5 → pass.
+        // 8/10 >= 5 — pass.
         $attempt = $this->create_finished_attempt($quiz, 8.0);
 
         $this->trigger_attempt_submitted($attempt, $quiz);
@@ -225,7 +226,7 @@ final class observer_test extends \advanced_testcase {
 
         $this->setAdminUser();
         $quiz    = $this->create_quiz_with_question(['sumgrades' => 10, 'grade' => 10, 'gradepass' => 5]);
-        // 2/10 < 5 → fail.
+        // 2/10 < 5 — fail.
         $attempt = $this->create_finished_attempt($quiz, 2.0);
 
         $this->trigger_attempt_submitted($attempt, $quiz);

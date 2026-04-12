@@ -48,6 +48,10 @@ final class helper_test extends \advanced_testcase {
     public function test_get_effective_config_returns_hardcoded_defaults(): void {
         $config = helper::get_effective_config(42);
 
+        $this->assertSame('auto', $config['pdfgeneration']);
+        $this->assertSame('passed', $config['pdfscope']);
+        $this->assertIsBool($config['studentdownload']);
+        $this->assertSame('zip', $config['bulkformat']);
         $this->assertSame('download', $config['outputmode']);
         $this->assertSame('', $config['emailrecipients']);
         $this->assertSame(365, $config['retentiondays']);
@@ -244,6 +248,114 @@ final class helper_test extends \advanced_testcase {
 
         global $DB;
         $this->assertSame(0, $DB->count_records('local_eledia_exam2pdf_cfg', ['quizid' => 42]));
+    }
+
+    // Tests for is_in_pdf_scope.
+
+    /**
+     * An unfinished attempt is never in scope.
+     */
+    public function test_is_in_pdf_scope_unfinished_attempt_returns_false(): void {
+        $attempt = (object) ['state' => 'inprogress', 'sumgrades' => 10.0];
+        $quiz    = (object) ['id' => 1, 'course' => 1, 'sumgrades' => 10, 'grade' => 10];
+
+        $this->assertFalse(helper::is_in_pdf_scope($attempt, $quiz, ['pdfscope' => 'all']));
+        $this->assertFalse(helper::is_in_pdf_scope($attempt, $quiz, ['pdfscope' => 'passed']));
+    }
+
+    /**
+     * With scope 'all', every finished attempt is in scope.
+     */
+    public function test_is_in_pdf_scope_all_accepts_every_finished(): void {
+        $attempt = (object) ['state' => 'finished', 'sumgrades' => 0.0];
+        $quiz    = (object) ['id' => 1, 'course' => 1, 'sumgrades' => 10, 'grade' => 10];
+
+        $this->assertTrue(helper::is_in_pdf_scope($attempt, $quiz, ['pdfscope' => 'all']));
+    }
+
+    /**
+     * With scope 'passed', a passed attempt is in scope.
+     */
+    public function test_is_in_pdf_scope_passed_accepts_passing_attempt(): void {
+        $course = $this->getDataGenerator()->create_course();
+        $quiz   = $this->getDataGenerator()->create_module('quiz', [
+            'course' => $course->id, 'sumgrades' => 10, 'grade' => 10,
+        ]);
+
+        // Set gradepass in gradebook.
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+        $gradeitem = \grade_item::fetch([
+            'itemtype' => 'mod', 'itemmodule' => 'quiz',
+            'iteminstance' => $quiz->id, 'courseid' => $course->id,
+        ]);
+        $gradeitem->gradepass = 5.0;
+        $gradeitem->update();
+
+        $quizrecord = (object) [
+            'id' => $quiz->id, 'course' => $course->id,
+            'sumgrades' => 10, 'grade' => 10,
+        ];
+
+        // 8/10 >= 5 — passed.
+        $attempt = (object) ['state' => 'finished', 'sumgrades' => 8.0];
+        $this->assertTrue(helper::is_in_pdf_scope($attempt, $quizrecord, ['pdfscope' => 'passed']));
+    }
+
+    /**
+     * With scope 'passed', a failed attempt is NOT in scope.
+     */
+    public function test_is_in_pdf_scope_passed_rejects_failing_attempt(): void {
+        $course = $this->getDataGenerator()->create_course();
+        $quiz   = $this->getDataGenerator()->create_module('quiz', [
+            'course' => $course->id, 'sumgrades' => 10, 'grade' => 10,
+        ]);
+
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+        $gradeitem = \grade_item::fetch([
+            'itemtype' => 'mod', 'itemmodule' => 'quiz',
+            'iteminstance' => $quiz->id, 'courseid' => $course->id,
+        ]);
+        $gradeitem->gradepass = 5.0;
+        $gradeitem->update();
+
+        $quizrecord = (object) [
+            'id' => $quiz->id, 'course' => $course->id,
+            'sumgrades' => 10, 'grade' => 10,
+        ];
+
+        // 2/10 < 5 — failed.
+        $attempt = (object) ['state' => 'finished', 'sumgrades' => 2.0];
+        $this->assertFalse(helper::is_in_pdf_scope($attempt, $quizrecord, ['pdfscope' => 'passed']));
+    }
+
+    /**
+     * Defaults to scope 'passed' when pdfscope key is missing from config.
+     */
+    public function test_is_in_pdf_scope_defaults_to_passed(): void {
+        $course = $this->getDataGenerator()->create_course();
+        $quiz   = $this->getDataGenerator()->create_module('quiz', [
+            'course' => $course->id, 'sumgrades' => 10, 'grade' => 10,
+        ]);
+
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+        $gradeitem = \grade_item::fetch([
+            'itemtype' => 'mod', 'itemmodule' => 'quiz',
+            'iteminstance' => $quiz->id, 'courseid' => $course->id,
+        ]);
+        $gradeitem->gradepass = 5.0;
+        $gradeitem->update();
+
+        $quizrecord = (object) [
+            'id' => $quiz->id, 'course' => $course->id,
+            'sumgrades' => 10, 'grade' => 10,
+        ];
+
+        // 2/10 < 5 — failed, and no pdfscope key — should default to 'passed' — false.
+        $attempt = (object) ['state' => 'finished', 'sumgrades' => 2.0];
+        $this->assertFalse(helper::is_in_pdf_scope($attempt, $quizrecord, []));
     }
 
     // Tests for get_download_url.

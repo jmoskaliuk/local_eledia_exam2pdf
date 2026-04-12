@@ -46,6 +46,10 @@ class helper {
         // rewrite zero to the default.
         $retentionraw = get_config('local_eledia_exam2pdf', 'retentiondays');
         $config = [
+            'pdfgeneration'       => get_config('local_eledia_exam2pdf', 'pdfgeneration') ?: 'auto',
+            'pdfscope'            => get_config('local_eledia_exam2pdf', 'pdfscope') ?: 'passed',
+            'studentdownload'     => (bool) (get_config('local_eledia_exam2pdf', 'studentdownload') ?? true),
+            'bulkformat'          => get_config('local_eledia_exam2pdf', 'bulkformat') ?: 'zip',
             'outputmode'          => get_config('local_eledia_exam2pdf', 'outputmode') ?: 'download',
             'emailrecipients'     => get_config('local_eledia_exam2pdf', 'emailrecipients') ?: '',
             'emailsubject'        => get_config('local_eledia_exam2pdf', 'emailsubject')
@@ -74,6 +78,7 @@ class helper {
             if ($value !== null && $value !== '') {
                 // Cast booleans stored as '0'/'1'.
                 $boolfields = [
+                    'studentdownload',
                     'showcorrectanswers',
                     'show_score',
                     'show_passgrade',
@@ -127,6 +132,71 @@ class helper {
                 ]);
             }
         }
+    }
+
+    /**
+     * Determines whether a quiz attempt is eligible for PDF generation
+     * according to the current PDF scope setting.
+     *
+     * This is the central scope check used by the observer, the report page,
+     * and the student download hook.
+     *
+     * @param \stdClass $attempt The quiz_attempts row (must have 'state' and 'sumgrades').
+     * @param \stdClass $quiz    The quiz row (must have 'sumgrades', 'grade', 'id', 'course').
+     * @param array     $config  Effective config from get_effective_config() (needs 'pdfscope').
+     * @return bool True if the attempt is in scope for PDF generation.
+     */
+    public static function is_in_pdf_scope(\stdClass $attempt, \stdClass $quiz, array $config): bool {
+        // Only finished attempts are eligible.
+        if (($attempt->state ?? '') !== 'finished') {
+            return false;
+        }
+
+        // If scope is 'all', every finished attempt qualifies.
+        $scope = $config['pdfscope'] ?? 'passed';
+        if ($scope === 'all') {
+            return true;
+        }
+
+        // Scope is 'passed' — check the grade.
+        return self::is_attempt_passed($attempt, $quiz);
+    }
+
+    /**
+     * Determines whether a quiz attempt reached the passing grade.
+     *
+     * Extracted from the observer so it can be reused by is_in_pdf_scope()
+     * and the report page.
+     *
+     * @param \stdClass $attempt The quiz_attempts row.
+     * @param \stdClass $quiz    The quiz row.
+     * @return bool True when the attempt reached or exceeded the pass grade.
+     */
+    public static function is_attempt_passed(\stdClass $attempt, \stdClass $quiz): bool {
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+
+        $gradeitem = \grade_item::fetch([
+            'itemtype' => 'mod',
+            'itemmodule' => 'quiz',
+            'iteminstance' => $quiz->id,
+            'courseid' => $quiz->course,
+        ]);
+
+        $gradepass = ($gradeitem && !empty($gradeitem->gradepass)) ? (float) $gradeitem->gradepass : 0.0;
+
+        // If no passing grade is configured, every finished attempt counts as passed.
+        if ($gradepass <= 0) {
+            return true;
+        }
+
+        // Rescale attempt score to the quiz's grade scale.
+        if ($quiz->sumgrades == 0) {
+            return false;
+        }
+
+        $grade = $attempt->sumgrades / $quiz->sumgrades * $quiz->grade;
+        return ($grade >= $gradepass);
     }
 
     /**

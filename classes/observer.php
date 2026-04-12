@@ -49,18 +49,24 @@ class observer {
         // Load quiz.
         $quiz = $DB->get_record('quiz', ['id' => $attempt->quiz], '*', MUST_EXIST);
 
-        // Determine if the attempt is passed.
-        if (!self::is_passed($attempt, $quiz)) {
-            return; // No PDF for failed attempts.
+        // Get effective config (global defaults merged with per-quiz overrides).
+        $config = helper::get_effective_config($quiz->id);
+
+        // Only generate automatically in 'auto' mode; in 'ondemand' mode the
+        // observer does nothing — PDFs are created on teacher/student click.
+        if (($config['pdfgeneration'] ?? 'auto') !== 'auto') {
+            return;
+        }
+
+        // Check if the attempt is in scope (passed-only or all finished).
+        if (!helper::is_in_pdf_scope($attempt, $quiz, $config)) {
+            return;
         }
 
         // Avoid duplicate: if a PDF record already exists for this attempt, skip.
         if ($DB->record_exists('local_eledia_exam2pdf', ['attemptid' => $attemptid])) {
             return;
         }
-
-        // Get effective config (global defaults merged with per-quiz overrides).
-        $config = helper::get_effective_config($quiz->id);
 
         // Generate the PDF binary.
         try {
@@ -130,57 +136,6 @@ class observer {
     }
 
     // Private helpers.
-
-    /**
-     * Determines whether a quiz attempt reached the passing grade.
-     *
-     * The pass threshold is stored in the gradebook (grade_items), not in the
-     * quiz table itself. We must look it up from grade_item.
-     *
-     * @param \stdClass $attempt quiz_attempts row.
-     * @param \stdClass $quiz    quiz row.
-     * @return bool True when the attempt reached or exceeded the pass grade.
-     */
-    private static function is_passed(\stdClass $attempt, \stdClass $quiz): bool {
-        // Fetch the pass grade from the gradebook.
-        $gradepass = self::get_quiz_gradepass($quiz);
-
-        // If no passing grade is configured, treat every finished attempt as passed.
-        if ($gradepass <= 0) {
-            return true;
-        }
-
-        // Rescale attempt score to the quiz's grade scale.
-        if ($quiz->sumgrades == 0) {
-            return false;
-        }
-
-        $grade = $attempt->sumgrades / $quiz->sumgrades * $quiz->grade;
-        return ($grade >= $gradepass);
-    }
-
-    /**
-     * Returns the quiz pass grade from the gradebook.
-     *
-     * @param \stdClass $quiz The quiz row (must contain id and course).
-     * @return float The pass grade, or 0 if none is configured.
-     */
-    private static function get_quiz_gradepass(\stdClass $quiz): float {
-        global $CFG;
-        require_once($CFG->libdir . '/gradelib.php');
-
-        $gradeitem = \grade_item::fetch([
-            'itemtype' => 'mod',
-            'itemmodule' => 'quiz',
-            'iteminstance' => $quiz->id,
-            'courseid' => $quiz->course,
-        ]);
-
-        if ($gradeitem && !empty($gradeitem->gradepass)) {
-            return (float) $gradeitem->gradepass;
-        }
-        return 0.0;
-    }
 
     /**
      * Builds a safe PDF filename for the attempt.

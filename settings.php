@@ -32,6 +32,57 @@ if ($hassiteconfig) {
 
     $ADMIN->add('localplugins', $settings);
 
+    // --- PDF generation section ---
+    $settings->add(new admin_setting_heading(
+        'local_eledia_exam2pdf/heading_generation',
+        get_string('setting_heading_generation', 'local_eledia_exam2pdf'),
+        get_string('setting_heading_generation_desc', 'local_eledia_exam2pdf')
+    ));
+
+    // PDF generation mode (auto / ondemand).
+    $settings->add(new admin_setting_configselect(
+        'local_eledia_exam2pdf/pdfgeneration',
+        get_string('setting_pdfgeneration', 'local_eledia_exam2pdf'),
+        get_string('setting_pdfgeneration_desc', 'local_eledia_exam2pdf'),
+        'auto',
+        [
+            'auto'     => get_string('pdfgeneration_auto', 'local_eledia_exam2pdf'),
+            'ondemand' => get_string('pdfgeneration_ondemand', 'local_eledia_exam2pdf'),
+        ]
+    ));
+
+    // PDF scope (passed / all).
+    $settings->add(new admin_setting_configselect(
+        'local_eledia_exam2pdf/pdfscope',
+        get_string('setting_pdfscope', 'local_eledia_exam2pdf'),
+        get_string('setting_pdfscope_desc', 'local_eledia_exam2pdf'),
+        'passed',
+        [
+            'passed' => get_string('pdfscope_passed', 'local_eledia_exam2pdf'),
+            'all'    => get_string('pdfscope_all', 'local_eledia_exam2pdf'),
+        ]
+    ));
+
+    // Student may download.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_eledia_exam2pdf/studentdownload',
+        get_string('setting_studentdownload', 'local_eledia_exam2pdf'),
+        get_string('setting_studentdownload_desc', 'local_eledia_exam2pdf'),
+        1
+    ));
+
+    // Bulk download format.
+    $settings->add(new admin_setting_configselect(
+        'local_eledia_exam2pdf/bulkformat',
+        get_string('setting_bulkformat', 'local_eledia_exam2pdf'),
+        get_string('setting_bulkformat_desc', 'local_eledia_exam2pdf'),
+        'zip',
+        [
+            'zip'    => get_string('bulkformat_zip', 'local_eledia_exam2pdf'),
+            'merged' => get_string('bulkformat_merged', 'local_eledia_exam2pdf'),
+        ]
+    ));
+
     // Output mode.
     $settings->add(new admin_setting_configselect(
         'local_eledia_exam2pdf/outputmode',
