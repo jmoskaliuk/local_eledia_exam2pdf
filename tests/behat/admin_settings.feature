@@ -26,6 +26,7 @@ Feature: Administrator configures the eLeDia exam2pdf global settings
     Then the field "Output mode" matches value "Email"
     And the field "Retention period" matches value "90"
 
+  @javascript
   Scenario: Optional PDF fields can be toggled
     When I navigate to "Plugins > Local plugins > eLeDia exam2pdf" in site administration
     And I set the following fields to these values:

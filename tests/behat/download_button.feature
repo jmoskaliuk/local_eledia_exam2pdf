@@ -33,6 +33,7 @@ Feature: Download a PDF certificate after passing a quiz
     Given user "student1" has attempted "Compliance Exam" with responses:
       | slot | response |
       | 1    | True     |
+    And the exam2pdf observer has processed the attempt for "student1" in "Compliance Exam"
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
@@ -43,6 +44,7 @@ Feature: Download a PDF certificate after passing a quiz
     Given user "student1" has attempted "Compliance Exam" with responses:
       | slot | response |
       | 1    | False    |
+    And the exam2pdf observer has processed the attempt for "student1" in "Compliance Exam"
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
@@ -52,6 +54,7 @@ Feature: Download a PDF certificate after passing a quiz
     Given user "student1" has attempted "Compliance Exam" with responses:
       | slot | response |
       | 1    | True     |
+    And the exam2pdf observer has processed the attempt for "student1" in "Compliance Exam"
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
