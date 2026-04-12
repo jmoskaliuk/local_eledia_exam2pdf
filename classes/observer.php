@@ -74,14 +74,16 @@ class observer {
             $attemptobj = \mod_quiz\quiz_attempt::create($attemptid);
             $pdfcontent = pdf\generator::generate($attemptobj, $quiz, $config);
         } catch (\Throwable $e) {
-            // In PHPUnit/Behat runs with --fail-on-warning, swallowing exceptions here
-            // makes real bugs invisible to the test suite. Re-throw so tests surface
-            // the actual problem instead of asserting "0 PDFs" as a symptom.
-            if (defined('PHPUNIT_TEST') && PHPUNIT_TEST) {
+            // In test environments, swallowing exceptions makes real bugs invisible.
+            // Re-throw so tests surface the actual problem instead of silently
+            // asserting "0 PDFs" as a symptom.
+            if ((defined('PHPUNIT_TEST') && PHPUNIT_TEST) ||
+                    (defined('BEHAT_SITE_RUNNING') && BEHAT_SITE_RUNNING)) {
                 throw $e;
             }
             debugging(
-                'local_eledia_exam2pdf: PDF generation failed for attempt ' . $attemptid . ': ' . $e->getMessage(),
+                'local_eledia_exam2pdf: PDF generation failed for attempt '
+                    . $attemptid . ': ' . $e->getMessage(),
                 DEBUG_DEVELOPER
             );
             return;
@@ -120,12 +122,22 @@ class observer {
         ];
 
         // Delete old file for this record if any (idempotency).
-        $fs->delete_area_files($context->id, 'local_eledia_exam2pdf', 'attempt_pdf', $record->id);
+        $fs->delete_area_files(
+            $context->id,
+            'local_eledia_exam2pdf',
+            'attempt_pdf',
+            $record->id
+        );
 
         $storedfile = $fs->create_file_from_string($fileinfo, $pdfcontent);
 
         // Update content hash in DB record.
-        $DB->set_field('local_eledia_exam2pdf', 'contenthash', $storedfile->get_contenthash(), ['id' => $record->id]);
+        $DB->set_field(
+            'local_eledia_exam2pdf',
+            'contenthash',
+            $storedfile->get_contenthash(),
+            ['id' => $record->id]
+        );
 
         // Handle output: email and/or prepare for download.
         $outputmode = $config['outputmode'] ?? 'download';
@@ -153,11 +165,11 @@ class observer {
     /**
      * Sends the PDF as an email attachment.
      *
-     * @param \stdClass           $attempt    The quiz attempt record.
-     * @param \stdClass           $quiz       The quiz record.
-     * @param array               $config     Effective config values.
-     * @param \stored_file        $storedfile Moodle stored file object.
-     * @param string              $filename   Attachment filename.
+     * @param \stdClass    $attempt    The quiz attempt record.
+     * @param \stdClass    $quiz       The quiz record.
+     * @param array        $config     Effective config values.
+     * @param \stored_file $storedfile Moodle stored file object.
+     * @param string       $filename   Attachment filename.
      * @return void
      */
     private static function send_email(
@@ -174,18 +186,23 @@ class observer {
 
         // Build recipient list: learner + additional addresses.
         $recipients   = [$learner->email];
-        $extraaddrs   = array_filter(array_map('trim', explode(',', $config['emailrecipients'] ?? '')));
+        $extraraw     = $config['emailrecipients'] ?? '';
+        $extraaddrs   = array_filter(array_map('trim', explode(',', $extraraw)));
         $recipients   = array_unique(array_merge($recipients, $extraaddrs));
 
         // Resolve subject / body placeholders.
         $replacements = [
             '{quizname}' => $quiz->name,
-            '{username}'  => fullname($learner),
-            '{fullname}'  => fullname($learner),
-            '{date}'      => userdate(time()),
+            '{username}' => fullname($learner),
+            '{fullname}' => fullname($learner),
+            '{date}'     => userdate(time()),
         ];
-        $subject = str_replace(array_keys($replacements), array_values($replacements), $config['emailsubject'] ?? $quiz->name);
-        $body    = str_replace(
+        $subject = str_replace(
+            array_keys($replacements),
+            array_values($replacements),
+            $config['emailsubject'] ?? $quiz->name
+        );
+        $body = str_replace(
             array_keys($replacements),
             array_values($replacements),
             get_string('email_body', 'local_eledia_exam2pdf')
@@ -200,9 +217,9 @@ class observer {
             // Build a fake user object for email_to_user().
             $recipient        = new \stdClass();
             $recipient->email = $address;
-            $recipient->id    = -1;  // Non-Moodle recipient.
+            $recipient->id    = -1;
             if ($address === $learner->email) {
-                $recipient = $learner; // Use full user object for the learner.
+                $recipient = $learner;
             }
 
             email_to_user(

@@ -30,18 +30,22 @@ require_once(__DIR__ . '/../../../../lib/behat/behat_base.php');
 /**
  * Step definitions for the local_eledia_exam2pdf plugin.
  *
- * Provides steps that trigger the plugin observer after the standard quiz
+ * Provides steps that simulate the plugin observer after the standard quiz
  * attempt generator has written the attempt to the database. The built-in
  * generator step "user X has attempted Y with responses:" does NOT fire the
  * attempt_submitted event, so the plugin observer never runs during Behat.
+ *
+ * Instead of calling the real observer (which depends on TCPDF), this step
+ * creates the DB record and a dummy PDF file directly. The Behat tests
+ * verify download-button visibility, not PDF content.
  */
 class behat_local_eledia_exam2pdf extends behat_base {
     /**
-     * Triggers the exam2pdf observer for the latest attempt of a user on a quiz.
+     * Simulates the exam2pdf observer for the latest attempt of a user on a quiz.
      *
-     * This must be called AFTER the standard generator step that creates the
-     * quiz attempt, because that step writes the attempt row without firing
-     * the attempt_submitted event.
+     * Creates a PDF record and dummy file if the attempt is in scope (passed
+     * or all-finished, depending on config). Does nothing when the attempt is
+     * out of scope, so "failed-attempt" scenarios correctly see no button.
      *
      * @Given the exam2pdf observer has processed the attempt for :username in :quizname
      * @param string $username The username (e.g. "student1").
@@ -73,23 +77,54 @@ class behat_local_eledia_exam2pdf extends behat_base {
             MUST_EXIST
         );
 
-        // Build the event object the observer expects.
+        // Get effective config (global defaults merged with per-quiz overrides).
+        $config = \local_eledia_exam2pdf\helper::get_effective_config($quiz->id);
+
+        // Check if the attempt is in scope for PDF generation.
+        if (!\local_eledia_exam2pdf\helper::is_in_pdf_scope($attempt, $quiz, $config)) {
+            return;
+        }
+
+        // Create the DB record and store a minimal dummy PDF file.
+        // This bypasses TCPDF so the Behat test is independent of the PDF
+        // rendering engine and only tests the download-button UI logic.
         $cm      = get_coursemodule_from_instance('quiz', $quiz->id, 0, false, MUST_EXIST);
         $context = \core\context\module::instance($cm->id);
 
-        $event = \mod_quiz\event\attempt_submitted::create([
-            'objectid'      => $attempt->id,
-            'relateduserid' => $user->id,
-            'context'       => $context,
-            'other'         => [
-                'quizid'       => $quiz->id,
-                'submitterid'  => $user->id,
-            ],
-        ]);
+        $retentiondays = (int) ($config['retentiondays'] ?? 365);
+        $timeexpires   = $retentiondays > 0 ? (time() + $retentiondays * DAYSECS) : 0;
 
-        // Call the observer directly (triggering via $event->trigger() would
-        // go through the event manager and all registered observers, which is
-        // fine too, but a direct call is more predictable in tests).
-        \local_eledia_exam2pdf\observer::on_attempt_submitted($event);
+        $record              = new \stdClass();
+        $record->quizid      = $quiz->id;
+        $record->cmid        = $cm->id;
+        $record->attemptid   = $attempt->id;
+        $record->userid      = $user->id;
+        $record->timecreated = time();
+        $record->timeexpires = $timeexpires;
+        $record->contenthash = '';
+        $record->id          = $DB->insert_record('local_eledia_exam2pdf', $record);
+
+        // Store a minimal PDF placeholder in the Moodle file system.
+        $fs       = get_file_storage();
+        $filename = 'behat-test-certificate.pdf';
+        $fileinfo = [
+            'contextid' => $context->id,
+            'component' => 'local_eledia_exam2pdf',
+            'filearea'  => 'attempt_pdf',
+            'itemid'    => $record->id,
+            'filepath'  => '/',
+            'filename'  => $filename,
+        ];
+
+        $dummypdf   = '%PDF-1.4 dummy content for Behat testing';
+        $storedfile = $fs->create_file_from_string($fileinfo, $dummypdf);
+
+        // Update content hash in DB record.
+        $DB->set_field(
+            'local_eledia_exam2pdf',
+            'contenthash',
+            $storedfile->get_contenthash(),
+            ['id' => $record->id]
+        );
     }
 }
