@@ -28,7 +28,7 @@ $callbacks = [
     [
         // Inject the PDF download button into the quiz review page footer.
         'hook'     => \core\hook\output\before_footer_html_generation::class,
-        'callback' => '\local_eledia_exam2pdf\hook\quiz_page_callbacks::inject_download_button',
+        'callback' => 'local_eledia_exam2pdf\hook\quiz_page_callbacks::inject_download_button',
         'priority' => 500,
     ],
 ];
