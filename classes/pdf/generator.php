@@ -92,7 +92,7 @@ class generator {
         $pdf->AddPage();
 
         // Build HTML content.
-        $html  = self::render_header($learner, $quiz, $passed, $attempt, $grade, $percentage, $duration, $config);
+        $html  = self::render_header($learner, $quiz, $passed, $attempt, $grade, $percentage, $duration, $config, $gradepass);
         $html .= self::render_questions($attemptobj, $config);
 
         $pdf->writeHTML($html, true, false, true, false, '');
@@ -114,6 +114,7 @@ class generator {
      * @param float     $percentage The grade as a percentage of the maximum.
      * @param string    $duration   Formatted duration string ("H:i:s" or empty).
      * @param array     $config     Effective config values.
+     * @param float     $gradepass  The pass grade from the gradebook (0 = none configured).
      * @return string HTML markup.
      */
     private static function render_header(
@@ -124,7 +125,8 @@ class generator {
         float $grade,
         float $percentage,
         string $duration,
-        array $config
+        array $config,
+        float $gradepass = 0.0
     ): string {
         $passedlabel = $passed
             ? get_string('pdf_passed_yes', 'local_eledia_exam2pdf')

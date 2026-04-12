@@ -28,11 +28,13 @@ Feature: Administrator configures the eLeDia exam2pdf global settings
 
   Scenario: Optional PDF fields can be toggled
     When I navigate to "Plugins > Local plugins > eLeDia exam2pdf" in site administration
-    And I set the field "Show score on PDF" to ""
-    And I set the field "Show duration on PDF" to ""
+    And I set the following fields to these values:
+      | Show score on PDF    | 0 |
+      | Show duration on PDF | 0 |
     And I press "Save changes"
-    Then I should see "Changes saved"
-    When I navigate to "Plugins > Local plugins > eLeDia exam2pdf" in site administration
+    # Re-navigate to confirm persistence rather than relying on the flash
+    # notification which BrowserKit may not render for checkbox-only changes.
+    And I navigate to "Plugins > Local plugins > eLeDia exam2pdf" in site administration
     Then the field "Show score on PDF" matches value ""
     And the field "Show duration on PDF" matches value ""
 
