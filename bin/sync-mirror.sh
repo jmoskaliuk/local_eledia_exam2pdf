@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd)"
 MIRROR="$ROOT/.deploy/local/eledia_exam2pdf"
 
 echo "═══════════════════════════════════════════════════════════════"
@@ -42,6 +42,7 @@ INCLUDES=(
     tests
     bin
     download.php
+    report.php
     zip.php
     lib.php
     settings.php
