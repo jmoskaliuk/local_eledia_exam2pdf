@@ -24,18 +24,36 @@
 
 namespace local_eledia_exam2pdf\hook;
 
+use core\hook\output\before_footer_html_generation;
+
 /**
  * Provides HTML fragments that are injected into the quiz review and
- * quiz report pages via the legacy before_footer callback in lib.php.
+ * quiz report pages via the before_footer_html_generation hook.
  */
 class quiz_page_callbacks {
+    /**
+     * Hook callback: injects download button / report section before the footer.
+     *
+     * Registered in db/hooks.php for the before_footer_html_generation hook.
+     *
+     * @param before_footer_html_generation $hook The hook instance.
+     * @return void
+     */
+    public static function inject_footer_html(before_footer_html_generation $hook): void {
+        $html = self::get_footer_html();
+        if ($html !== '') {
+            $hook->add_html($html);
+        }
+    }
+
     /**
      * Returns the HTML to inject before the page footer.
      *
      * Dispatches between the student-facing review page (download button)
      * and the trainer-facing report overview page (bulk PDF section).
      *
-     * Called from {@see local_eledia_exam2pdf_before_footer()} in lib.php.
+     * Called from {@see inject_footer_html()} (hook) and also from
+     * {@see local_eledia_exam2pdf_before_footer()} in lib.php (legacy fallback).
      *
      * @return string HTML fragment, or empty string if nothing to inject.
      */
