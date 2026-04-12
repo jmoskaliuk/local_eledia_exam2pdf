@@ -36,7 +36,6 @@ require_once(__DIR__ . '/../../../../lib/behat/behat_base.php');
  * attempt_submitted event, so the plugin observer never runs during Behat.
  */
 class behat_local_eledia_exam2pdf extends behat_base {
-
     /**
      * Triggers the exam2pdf observer for the latest attempt of a user on a quiz.
      *
@@ -85,7 +84,8 @@ class behat_local_eledia_exam2pdf extends behat_base {
             'relateduserid' => $user->id,
             'context'       => $context,
             'other'         => [
-                'quizid' => $quiz->id,
+                'quizid'       => $quiz->id,
+                'submitterid'  => $user->id,
             ],
         ]);
 
