@@ -18,7 +18,7 @@
  * PDF generator for local_eledia_exam2pdf.
  *
  * @package    local_eledia_exam2pdf
- * @copyright  2025 eLeDia GmbH
+ * @copyright  2026 eLeDia GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -92,7 +92,8 @@ class generator {
         $pdf->AddPage();
 
         // Build HTML content.
-        $html  = self::render_header($learner, $quiz, $passed, $attempt, $grade, $percentage, $duration, $config, $gradepass);
+        $html  = self::get_logo_html();
+        $html .= self::render_header($learner, $quiz, $passed, $attempt, $grade, $percentage, $duration, $config, $gradepass);
         $html .= self::render_questions($attemptobj, $config);
 
         $pdf->writeHTML($html, true, false, true, false, '');
@@ -102,6 +103,40 @@ class generator {
     }
 
     // Private render helpers.
+
+    /**
+     * Fetches the site logo from the Moodle file storage and returns an HTML
+     * img element with a base64 data-URI src, suitable for embedding in TCPDF.
+     *
+     * The logo is read from the core_admin/logo file area (set via Site
+     * Administration -> Appearance -> Logos). Falls back to an empty string
+     * when no logo has been uploaded — PDF generation is never aborted.
+     *
+     * @return string HTML <div> containing the logo <img>, or empty string.
+     */
+    private static function get_logo_html(): string {
+        try {
+            $syscontext = \core\context\system::instance();
+            $fs         = get_file_storage();
+            // Try full-size logo first, then compact logo as fallback.
+            foreach (['logo', 'logocompact'] as $area) {
+                $files = $fs->get_area_files(
+                    $syscontext->id, 'core_admin', $area, 0, 'filename', false
+                );
+                if (!empty($files)) {
+                    $file = reset($files);
+                    $mime = $file->get_mimetype();
+                    $data = base64_encode($file->get_content());
+                    $src  = 'data:' . $mime . ';base64,' . $data;
+                    return '<div style="text-align:center; margin-bottom:10px;">'.
+                           '<img src="' . $src . '" style="max-height:40px;" /></div>';
+                }
+            }
+        } catch (\Throwable $e) {
+            // Never let a missing logo crash PDF generation.
+        }
+        return '';
+    }
 
     /**
      * Renders the PDF header block (mandatory + optional fields).
@@ -133,13 +168,14 @@ class generator {
             : get_string('pdf_passed_no', 'local_eledia_exam2pdf');
         $passedcolor = $passed ? '#1a7a2e' : '#c0392b';
 
-        $html  = '<h1 style="color:#1a3a5c; font-size:18pt; text-align:center;">';
+        $html  = '<h1 style="color:#1a3a5c; font-size:18pt; text-align:center;'.
+                 ' background-color:#e8f2fc; padding:8px 12px;'.
+                 ' border-bottom:2px solid #1a3a5c;">';
         $html .= get_string('pdf_title', 'local_eledia_exam2pdf');
         $html .= '</h1>';
-        $html .= '<hr style="color:#1a3a5c;"/>';
 
         // Mandatory fields table.
-        $html .= '<table cellpadding="4" style="width:100%; border:1px solid #ccc;">';
+        $html .= '<table cellpadding="4" style="width:100%; border:1px solid #ccc; margin-top:8px;">';
 
         $html .= self::header_row(
             get_string('pdf_name', 'local_eledia_exam2pdf'),
@@ -149,10 +185,11 @@ class generator {
             get_string('pdf_quiz', 'local_eledia_exam2pdf'),
             s($quiz->name)
         );
-        $html .= '<tr>'
-            . '<td style="font-weight:bold; width:40%;">' . get_string('pdf_passed', 'local_eledia_exam2pdf') . '</td>'
-            . '<td style="color:' . $passedcolor . '; font-weight:bold;">' . $passedlabel . '</td>'
-            . '</tr>';
+        $html .= '<tr>'.
+            '<td style="font-weight:bold; width:40%; background:#f5f5f5;">'
+            . get_string('pdf_passed', 'local_eledia_exam2pdf') . '</td>'.
+            '<td style="color:' . $passedcolor . '; font-weight:bold;">' . $passedlabel . '</td>'.
+            '</tr>';
 
         // Optional fields.
         if (!empty($config['show_score'])) {
@@ -229,10 +266,10 @@ class generator {
 
             // Question text.
             $qtext = strip_tags($question->questiontext);
-            $html .= '<tr style="background:#f0f4f8;">'
-                . '<td colspan="2"><strong>' . get_string('pdf_question', 'local_eledia_exam2pdf')
-                . ' ' . $num . ':</strong> ' . s($qtext) . '</td>'
-                . '</tr>';
+            $html .= '<tr style="background:#f0f4f8;">'.
+                '<td colspan="2"><strong>' . get_string('pdf_question', 'local_eledia_exam2pdf').
+                ' ' . $num . ':</strong> ' . s($qtext) . '</td>'.
+                '</tr>';
 
             // Student answer.
             $response    = $qa->get_response_summary();
@@ -255,10 +292,10 @@ class generator {
                 ? s($response)
                 : get_string('pdf_noanswer', 'local_eledia_exam2pdf');
 
-            $html .= '<tr>'
-                . '<td style="width:40%; font-weight:bold;">'
-                . get_string('pdf_youranswer', 'local_eledia_exam2pdf') . '</td>'
-                . '<td>' . $displayanswer;
+            $html .= '<tr>'.
+                '<td style="width:40%; font-weight:bold;">'.
+                get_string('pdf_youranswer', 'local_eledia_exam2pdf') . '</td>'.
+                '<td>' . $displayanswer;
 
             if ($statelabel) {
                 $html .= ' <span style="color:' . $statecolor . '; font-weight:bold;">(' . $statelabel . ')</span>';
@@ -269,10 +306,10 @@ class generator {
             // Correct answer (SC/MC + short answer — not essay).
             if (!empty($config['showcorrectanswers']) && $qtype !== 'essay') {
                 $correct = self::get_correct_answer_text($question, $qtype);
-                $html .= '<tr style="background:#fafafa;">'
-                    . '<td style="font-weight:bold;">' . get_string('pdf_correctanswer', 'local_eledia_exam2pdf') . '</td>'
-                    . '<td>' . ($correct ?: get_string('pdf_nocorrectanswer', 'local_eledia_exam2pdf')) . '</td>'
-                    . '</tr>';
+                $html .= '<tr style="background:#fafafa;">'.
+                    '<td style="font-weight:bold;">' . get_string('pdf_correctanswer', 'local_eledia_exam2pdf') . '</td>'.
+                    '<td>' . ($correct ?: get_string('pdf_nocorrectanswer', 'local_eledia_exam2pdf')) . '</td>'.
+                    '</tr>';
             }
 
             $html .= '</table>';
@@ -349,9 +386,9 @@ class generator {
      * @return string HTML <tr> element.
      */
     private static function header_row(string $label, $value): string {
-        return '<tr>'
-            . '<td style="font-weight:bold; width:40%;">' . s($label) . '</td>'
-            . '<td>' . s((string) $value) . '</td>'
-            . '</tr>';
+        return '<tr>'.
+            '<td style="font-weight:bold; width:40%; background:#f5f5f5;">' . s($label) . '</td>'.
+            '<td>' . s((string) $value) . '</td>'.
+            '</tr>';
     }
 }

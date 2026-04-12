@@ -19,7 +19,7 @@
  *
  * URL: /local/eledia_exam2pdf/report.php?cmid=<cmid>
  *
- * Requires the local/eledia_exam2pdf:downloadall capability (editing teacher,
+ * Requires the local/eledia_exam2pdf:manage capability (editing teacher,
  * manager). Students are directed to the quiz review page instead.
  *
  * @package    local_eledia_exam2pdf
@@ -37,7 +37,9 @@ $quiz    = $DB->get_record('quiz', ['id' => $cm->instance], '*', MUST_EXIST);
 $context = \core\context\module::instance($cm->id);
 
 require_login($course, false, $cm);
-require_capability('local/eledia_exam2pdf:downloadall', $context);
+// Use :manage (same capability checked in the nav link) so teachers always
+// have access without needing a separate :downloadall assignment in the DB.
+require_capability('local/eledia_exam2pdf:manage', $context);
 
 $PAGE->set_url('/local/eledia_exam2pdf/report.php', ['cmid' => $cmid]);
 $PAGE->set_context($context);

@@ -20,7 +20,7 @@
  * URL: /local/eledia_exam2pdf/quizsettings.php?cmid=<cmid>
  *
  * @package    local_eledia_exam2pdf
- * @copyright  2025 eLeDia GmbH
+ * @copyright  2026 eLeDia GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -44,11 +44,29 @@ $PAGE->set_heading(format_string($quiz->name));
 // Load current per-quiz config (already merged with globals for display).
 $currentconfig = \local_eledia_exam2pdf\helper::get_effective_config($quiz->id);
 
+// Read the raw per-quiz overrides so that 3-state selects (inherit / yes / no)
+// can show an empty value when no quiz-level override exists.
+$rawoverrides = $DB->get_records_menu(
+    'local_eledia_exam2pdf_cfg',
+    ['quizid' => $quiz->id],
+    '',
+    'name, value'
+);
+
 $form = new \local_eledia_exam2pdf\form\quizsettings(null, null, 'post', '', null, true, ['cmid' => $cmid]);
 
 // Pre-populate form with current effective config.
-$formdefaults = (array) $currentconfig;
+$formdefaults         = (array) $currentconfig;
 $formdefaults['cmid'] = $cmid;
+
+// For 3-state selects, show the raw override value ('1'/'0') or '' (inherit)
+// rather than the resolved effective boolean so teachers can tell whether an
+// override is active and can reset it to the global default.
+$formdefaults['outputmode']      = $rawoverrides['outputmode'] ?? '';
+$formdefaults['studentdownload'] = isset($rawoverrides['studentdownload'])
+    ? $rawoverrides['studentdownload']
+    : '';
+
 $form->set_data($formdefaults);
 
 if ($form->is_cancelled()) {
@@ -57,6 +75,7 @@ if ($form->is_cancelled()) {
     $tosave = [];
     $keys = [
         'outputmode',
+        'studentdownload',
         'emailrecipients',
         'emailsubject',
         'retentiondays',
@@ -70,7 +89,9 @@ if ($form->is_cancelled()) {
     ];
     foreach ($keys as $key) {
         $val = $data->$key ?? null;
-        // Store empty string to signal "inherit global default".
+        // Store null to signal "inherit global default" (removes override).
+        // Note: '0' must NOT be treated as empty — it is a valid explicit
+        // value meaning "disabled". Only the empty string or null means inherit.
         $tosave[$key] = ($val === '') ? null : $val;
     }
 

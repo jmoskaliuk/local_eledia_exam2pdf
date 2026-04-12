@@ -18,7 +18,7 @@
  * Per-quiz PDF certificate settings form.
  *
  * @package    local_eledia_exam2pdf
- * @copyright  2025 eLeDia GmbH
+ * @copyright  2026 eLeDia GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -32,7 +32,8 @@ require_once($CFG->libdir . '/formslib.php');
  * Moodle form for the per-quiz PDF certificate settings.
  *
  * Lets teachers override the global PDF defaults for a single quiz
- * (output mode, email recipients, retention period, optional header fields).
+ * (output mode, student download, email recipients, retention period,
+ * optional header fields).
  */
 class quizsettings extends \moodleform {
     /**
@@ -55,6 +56,18 @@ class quizsettings extends \moodleform {
                 'download' => get_string('outputmode_download', 'local_eledia_exam2pdf'),
                 'email'    => get_string('outputmode_email', 'local_eledia_exam2pdf'),
                 'both'     => get_string('outputmode_both', 'local_eledia_exam2pdf'),
+            ]
+        );
+
+        // Student may download — 3-state: inherit global / yes / no.
+        $mform->addElement(
+            'select',
+            'studentdownload',
+            get_string('setting_studentdownload', 'local_eledia_exam2pdf'),
+            [
+                ''  => get_string('quizsettings_inherit', 'local_eledia_exam2pdf'),
+                '1' => get_string('yes'),
+                '0' => get_string('no'),
             ]
         );
 

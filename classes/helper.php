@@ -18,7 +18,7 @@
  * General helper utilities for local_eledia_exam2pdf.
  *
  * @package    local_eledia_exam2pdf
- * @copyright  2025 eLeDia GmbH
+ * @copyright  2026 eLeDia GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -45,10 +45,16 @@ class helper {
         // because '0' is a valid, meaningful value (never expire). `?: 365` would silently
         // rewrite zero to the default.
         $retentionraw = get_config('local_eledia_exam2pdf', 'retentiondays');
+
+        // get_config() returns boolean false (not null) when a setting has never been saved.
+        // The null-coalescing operator `??` only fires for null, so `false ?? true` stays
+        // false. We must explicitly detect false and substitute the intended default (true).
+        $sdraw = get_config('local_eledia_exam2pdf', 'studentdownload');
+
         $config = [
             'pdfgeneration'       => get_config('local_eledia_exam2pdf', 'pdfgeneration') ?: 'auto',
             'pdfscope'            => get_config('local_eledia_exam2pdf', 'pdfscope') ?: 'passed',
-            'studentdownload'     => (bool) (get_config('local_eledia_exam2pdf', 'studentdownload') ?? true),
+            'studentdownload'     => ($sdraw === false) ? true : (bool) $sdraw,
             'bulkformat'          => get_config('local_eledia_exam2pdf', 'bulkformat') ?: 'zip',
             'outputmode'          => get_config('local_eledia_exam2pdf', 'outputmode') ?: 'download',
             'emailrecipients'     => get_config('local_eledia_exam2pdf', 'emailrecipients') ?: '',

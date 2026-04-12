@@ -18,14 +18,14 @@
  * Version information for local_eledia_exam2pdf.
  *
  * @package    local_eledia_exam2pdf
- * @copyright  2025 eLeDia GmbH
+ * @copyright  2026 eLeDia GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_eledia_exam2pdf';
-$plugin->version   = 2026041200;
+$plugin->version   = 2026041201;
 $plugin->requires  = 2024100700; // Moodle 4.5.
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.2.0';
+$plugin->release   = '0.2.1';
