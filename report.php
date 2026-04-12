@@ -15,9 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * PDF certificates report page — lists all generated PDFs for a given quiz.
+ * PDF certificates report page — paginated, sortable, filterable table.
  *
  * URL: /local/eledia_exam2pdf/report.php?cmid=<cmid>
+ *
+ * Modelled after the quiz grades report (mod/quiz/report). Provides
+ * pagination, A-Z name initials filter, sortable columns, and per-row
+ * download actions.
  *
  * Requires the local/eledia_exam2pdf:manage capability (editing teacher,
  * manager). Students are directed to the quiz review page instead.
@@ -29,7 +33,9 @@
 
 require_once('../../config.php');
 
-$cmid = required_param('cmid', PARAM_INT);
+$cmid     = required_param('cmid', PARAM_INT);
+$pagesize = optional_param('pagesize', 30, PARAM_INT);
+$download = optional_param('download', '', PARAM_ALPHA);
 
 $cm      = get_coursemodule_from_id('quiz', $cmid, 0, false, MUST_EXIST);
 $course  = get_course($cm->course);
@@ -37,11 +43,11 @@ $quiz    = $DB->get_record('quiz', ['id' => $cm->instance], '*', MUST_EXIST);
 $context = \core\context\module::instance($cm->id);
 
 require_login($course, false, $cm);
-// Use :manage (same capability checked in the nav link) so teachers always
-// have access without needing a separate :downloadall assignment in the DB.
 require_capability('local/eledia_exam2pdf:manage', $context);
 
-$PAGE->set_url('/local/eledia_exam2pdf/report.php', ['cmid' => $cmid]);
+$baseurl = new moodle_url('/local/eledia_exam2pdf/report.php', ['cmid' => $cmid]);
+
+$PAGE->set_url($baseurl);
 $PAGE->set_context($context);
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_title(
@@ -49,51 +55,23 @@ $PAGE->set_title(
 );
 $PAGE->set_pagelayout('incourse');
 
-echo $OUTPUT->header();
+// Set up the table.
+$table = new \local_eledia_exam2pdf\output\report_table('exam2pdf_report_' . $cmid, $quiz, $cmid, $baseurl);
 
-echo $OUTPUT->heading(get_string('report_heading', 'local_eledia_exam2pdf'));
-echo html_writer::tag('p', format_string($quiz->name), ['class' => 'lead']);
+// Support CSV / Excel download.
+$table->is_downloading($download, 'exam2pdf_' . $quiz->id, get_string('report_heading', 'local_eledia_exam2pdf'));
 
-$entries = \local_eledia_exam2pdf\helper::get_quiz_pdfs($cm->id);
+if (!$table->is_downloading()) {
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('report_heading', 'local_eledia_exam2pdf'));
+    echo html_writer::tag('p', format_string($quiz->name), ['class' => 'lead']);
+}
 
-if (empty($entries)) {
-    echo $OUTPUT->notification(
-        get_string('manage_norecords', 'local_eledia_exam2pdf'),
-        'info'
-    );
-} else {
-    // Build the PDF-certificates table.
-    $table              = new html_table();
-    $table->head        = [
-        get_string('manage_col_learner', 'local_eledia_exam2pdf'),
-        get_string('manage_col_timecreated', 'local_eledia_exam2pdf'),
-        get_string('actions'),
-    ];
-    $table->attributes  = ['class' => 'generaltable'];
-    $table->colclasses  = ['', '', 'text-center'];
+// Populate and render the table.
+$table->query_db($pagesize);
+$table->out($pagesize, true);
 
-    foreach ($entries as $entry) {
-        $label = get_string('report_download_one', 'local_eledia_exam2pdf');
-        $icon  = $OUTPUT->pix_icon('i/download', $label);
-        $btn   = html_writer::link(
-            $entry->downloadurl,
-            $icon,
-            [
-                'class'      => 'btn btn-sm btn-outline-primary',
-                'aria-label' => $label,
-                'title'      => $label,
-            ]
-        );
-
-        $table->data[] = [
-            s($entry->fullname),
-            userdate($entry->record->timecreated),
-            $btn,
-        ];
-    }
-
-    echo html_writer::table($table);
-
+if (!$table->is_downloading()) {
     // Bulk ZIP download button below the table.
     $zipurl   = new moodle_url('/local/eledia_exam2pdf/zip.php', ['cmid' => $cmid]);
     $ziplabel = get_string('report_download_zip', 'local_eledia_exam2pdf');
@@ -101,6 +79,6 @@ if (empty($entries)) {
         html_writer::link($zipurl, $ziplabel, ['class' => 'btn btn-primary']),
         'mt-3'
     );
-}
 
-echo $OUTPUT->footer();
+    echo $OUTPUT->footer();
+}

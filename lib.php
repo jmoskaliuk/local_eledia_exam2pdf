@@ -81,18 +81,64 @@ function local_eledia_exam2pdf_pluginfile(
 }
 
 /**
- * Add a navigation node to quiz activities so learners/trainers can access
- * the PDF overview page.
+ * Extend the quiz module's secondary navigation with exam2pdf links.
  *
- * @param global_navigation $navigation The navigation tree.
+ * In Moodle 4+, items added here appear in the activity's secondary
+ * navigation bar (the tabbed "More" dropdown).
+ *
+ * @param navigation_node $navref  The module's navigation node.
+ * @param stdClass        $course  The course record.
+ * @param stdClass        $module  The module record (quiz row).
+ * @param cm_info         $cm      The course module info object.
  * @return void
  */
-function local_eledia_exam2pdf_extend_navigation(global_navigation $navigation): void {
-    // Navigation extension handled via hooks and dedicated pages.
+function local_eledia_exam2pdf_extend_navigation_module(
+    navigation_node $navref,
+    stdClass $course,
+    stdClass $module,
+    cm_info $cm
+): void {
+    if ($cm->modname !== 'quiz') {
+        return;
+    }
+
+    $context = \core\context\module::instance($cm->id);
+
+    // PDF Certificates report — visible to teachers / managers.
+    if (has_capability('local/eledia_exam2pdf:manage', $context)) {
+        $reporturl = new moodle_url(
+            '/local/eledia_exam2pdf/report.php',
+            ['cmid' => $cm->id]
+        );
+        $navref->add(
+            get_string('report_nav_link', 'local_eledia_exam2pdf'),
+            $reporturl,
+            navigation_node::TYPE_CUSTOM,
+            null,
+            'exam2pdf_report'
+        );
+    }
+
+    // Per-quiz PDF settings — visible to users with the configure capability.
+    if (has_capability('local/eledia_exam2pdf:configure', $context)) {
+        $settingsurl = new moodle_url(
+            '/local/eledia_exam2pdf/quizsettings.php',
+            ['cmid' => $cm->id]
+        );
+        $navref->add(
+            get_string('quizsettings', 'local_eledia_exam2pdf'),
+            $settingsurl,
+            navigation_node::TYPE_CUSTOM,
+            null,
+            'exam2pdf_quizsettings'
+        );
+    }
 }
 
 /**
  * Extend the quiz settings navigation with a link to the per-quiz config page.
+ *
+ * Kept alongside extend_navigation_module for the settings gear menu.
  *
  * @param settings_navigation $settingsnav Settings navigation node.
  * @param context             $context     Current context.
@@ -110,8 +156,6 @@ function local_eledia_exam2pdf_extend_settings_navigation(
 
         if ($quiznode) {
             // PDF Certificates report — visible to teachers / managers.
-            // Use :manage (legacy catch-all) so the link appears even before
-            // the :downloadall capability is explicitly assigned in the DB.
             if (has_capability('local/eledia_exam2pdf:manage', $quizcontext)) {
                 $reporturl = new moodle_url(
                     '/local/eledia_exam2pdf/report.php',
