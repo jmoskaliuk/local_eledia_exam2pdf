@@ -15,7 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Hook callback registrations for local_eledia_exam2pdf (Moodle 4.3+ Hooks API).
+ * Hook callback registrations for local_eledia_exam2pdf.
+ *
+ * Currently empty — the plugin uses the legacy before_footer callback in
+ * lib.php instead. The Hooks API registration can be enabled once Moodle 4.5
+ * testing confirms reliable hook dispatch during Behat.
  *
  * @package    local_eledia_exam2pdf
  * @copyright  2025 eLeDia GmbH
@@ -24,11 +28,4 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$callbacks = [
-    [
-        // Inject the PDF download button into the quiz review page footer.
-        'hook'     => \core\hook\output\before_footer_html_generation::class,
-        'callback' => 'local_eledia_exam2pdf\hook\quiz_page_callbacks::inject_download_button',
-        'priority' => 500,
-    ],
-];
+$callbacks = [];

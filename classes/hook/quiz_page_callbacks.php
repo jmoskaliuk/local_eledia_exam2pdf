@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Hook callbacks for injecting UI into Moodle output.
+ * Callbacks for injecting UI into Moodle output.
  *
  * @package    local_eledia_exam2pdf
  * @copyright  2025 eLeDia GmbH
@@ -25,51 +25,60 @@
 namespace local_eledia_exam2pdf\hook;
 
 /**
- * Injects the PDF download button into the quiz review page using the
- * Moodle 4.3+ Hooks API.
+ * Provides HTML fragments that are injected into the quiz review and
+ * quiz report pages via the legacy before_footer callback in lib.php.
  */
 class quiz_page_callbacks {
     /**
-     * Adds the download button HTML before the page footer on quiz review pages.
+     * Returns the HTML to inject before the page footer.
      *
-     * Dispatches between the student-facing review page and the trainer-facing
-     * report overview page based on the current pagetype.
+     * Dispatches between the student-facing review page (download button)
+     * and the trainer-facing report overview page (bulk PDF section).
      *
-     * @param \core\hook\output\before_footer_html_generation $hook The firing hook instance.
-     * @return void
+     * Called from {@see local_eledia_exam2pdf_before_footer()} in lib.php.
+     *
+     * @return string HTML fragment, or empty string if nothing to inject.
      */
-    public static function inject_download_button(
-        \core\hook\output\before_footer_html_generation $hook
-    ): void {
-        global $PAGE, $USER, $DB;
+    public static function get_footer_html(): string {
+        global $PAGE;
 
         // Trainer/Manager: report overview page gets the bulk PDF section.
         if ($PAGE->pagetype === 'mod-quiz-report') {
             $mode = optional_param('mode', '', PARAM_ALPHA);
             if ($mode === 'overview' || $mode === '') {
-                self::inject_report_section($hook);
+                return self::get_report_section_html();
             }
-            return;
+            return '';
         }
 
-        // Only act on the quiz review page.
-        if ($PAGE->pagetype !== 'mod-quiz-review') {
-            return;
+        // Student: quiz review page gets the download button.
+        if ($PAGE->pagetype === 'mod-quiz-review') {
+            return self::get_download_button_html();
         }
 
-        // Respect the studentdownload setting — if disabled, no button on the
-        // review page. Teachers can still access PDFs via the report page.
+        return '';
+    }
+
+    /**
+     * Returns the download-button HTML for the quiz review page.
+     *
+     * @return string HTML or empty string.
+     */
+    private static function get_download_button_html(): string {
+        global $PAGE, $USER, $DB;
+
+        // Respect the studentdownload setting.
         if (empty($PAGE->cm)) {
-            return;
+            return '';
         }
         $config = \local_eledia_exam2pdf\helper::get_effective_config($PAGE->cm->instance);
         if (empty($config['studentdownload'])) {
-            return;
+            return '';
         }
 
         $attemptid = optional_param('attempt', 0, PARAM_INT);
         if (!$attemptid) {
-            return;
+            return '';
         }
 
         // Look up the PDF record for the current user / attempt.
@@ -80,50 +89,41 @@ class quiz_page_callbacks {
             IGNORE_MISSING
         );
 
-        // No PDF exists for this attempt (not yet generated, or not in scope).
         if (!$record) {
-            return;
+            return '';
         }
 
         // Check the file still exists (not yet expired / deleted).
         $file = \local_eledia_exam2pdf\helper::get_stored_file($record);
         if (!$file) {
-            return;
+            return '';
         }
 
         $downloadurl = \local_eledia_exam2pdf\helper::get_download_url($record, $file->get_filename());
 
-        $html = self::render_download_button($downloadurl->out(false));
-        $hook->add_html($html);
+        return self::render_download_button($downloadurl->out(false));
     }
 
     /**
-     * Injects the bulk PDF section into the trainer report overview page.
+     * Returns the bulk PDF section HTML for the trainer report overview page.
      *
-     * Renders a table of all generated PDFs for the quiz with always-visible
-     * per-row download icons, plus a single ZIP-download button below.
-     *
-     * @param \core\hook\output\before_footer_html_generation $hook The firing hook instance.
-     * @return void
+     * @return string HTML or empty string.
      */
-    private static function inject_report_section(
-        \core\hook\output\before_footer_html_generation $hook
-    ): void {
+    private static function get_report_section_html(): string {
         global $PAGE;
 
         if (empty($PAGE->cm)) {
-            return;
+            return '';
         }
 
         $context = \core\context\module::instance($PAGE->cm->id);
         if (!has_capability('local/eledia_exam2pdf:manage', $context)) {
-            return;
+            return '';
         }
 
         $entries = \local_eledia_exam2pdf\helper::get_quiz_pdfs($PAGE->cm->id);
 
-        $html = self::render_report_section($PAGE->cm->id, $entries);
-        $hook->add_html($html);
+        return self::render_report_section($PAGE->cm->id, $entries);
     }
 
     // Private HTML renderers.
@@ -136,16 +136,14 @@ class quiz_page_callbacks {
      */
     private static function render_download_button(string $url): string {
         $label = get_string('download_button', 'local_eledia_exam2pdf');
-        return <<<HTML
-<div class="local-eledia-exam2pdf-downloadwrap" style="margin:1.5em 0; text-align:center;">
-    <a href="{$url}"
-       class="btn btn-primary"
-       download
-       aria-label="{$label}">
-        <i class="fa fa-file-pdf-o" aria-hidden="true"></i>&nbsp;{$label}
-    </a>
-</div>
-HTML;
+        return '<div class="local-eledia-exam2pdf-downloadwrap" style="margin:1.5em 0; text-align:center;">'
+            . '<a href="' . $url . '"'
+            . ' class="btn btn-primary"'
+            . ' download'
+            . ' aria-label="' . $label . '">'
+            . '<i class="fa fa-file-pdf-o" aria-hidden="true"></i>&nbsp;' . $label
+            . '</a>'
+            . '</div>';
     }
 
     /**
@@ -165,12 +163,10 @@ HTML;
 
         if (empty($entries)) {
             $empty = get_string('manage_norecords', 'local_eledia_exam2pdf');
-            return <<<HTML
-<section class="local-eledia-exam2pdf-reportwrap" style="margin:2em 0;">
-    <h3>{$heading}</h3>
-    <p class="text-muted">{$empty}</p>
-</section>
-HTML;
+            return '<section class="local-eledia-exam2pdf-reportwrap" style="margin:2em 0;">'
+                . '<h3>' . $heading . '</h3>'
+                . '<p class="text-muted">' . $empty . '</p>'
+                . '</section>';
         }
 
         $rows = '';
@@ -178,63 +174,39 @@ HTML;
             $name = s($entry->fullname);
             $when = userdate($entry->record->timecreated);
             $url  = $entry->downloadurl->out(false);
-            $rows .= <<<HTML
-<tr>
-    <td>{$name}</td>
-    <td>{$when}</td>
-    <td class="text-center">
-        <a href="{$url}" download
-           class="btn btn-sm btn-outline-primary"
-           aria-label="{$dliconlabel}"
-           title="{$dliconlabel}">
-            <i class="fa fa-download" aria-hidden="true"></i>
-        </a>
-    </td>
-</tr>
-HTML;
+            $rows .= '<tr>'
+                . '<td>' . $name . '</td>'
+                . '<td>' . $when . '</td>'
+                . '<td class="text-center">'
+                . '<a href="' . $url . '" download'
+                . ' class="btn btn-sm btn-outline-primary"'
+                . ' aria-label="' . $dliconlabel . '"'
+                . ' title="' . $dliconlabel . '">'
+                . '<i class="fa fa-download" aria-hidden="true"></i>'
+                . '</a>'
+                . '</td>'
+                . '</tr>';
         }
 
-        $zipurl  = (new \moodle_url('/local/eledia_exam2pdf/zip.php', ['cmid' => $cmid]))->out(false);
+        $zipurl   = (new \moodle_url('/local/eledia_exam2pdf/zip.php', ['cmid' => $cmid]))->out(false);
         $ziplabel = get_string('report_download_zip', 'local_eledia_exam2pdf');
 
-        return <<<HTML
-<section class="local-eledia-exam2pdf-reportwrap" style="margin:2em 0;">
-    <h3>{$heading}</h3>
-    <p>{$intro}</p>
-    <table class="generaltable">
-        <thead>
-            <tr>
-                <th>{$colname}</th>
-                <th>{$coldate}</th>
-                <th class="text-center">{$colact}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {$rows}
-        </tbody>
-    </table>
-    <div style="margin-top:1em;">
-        <a href="{$zipurl}" class="btn btn-primary">
-            <i class="fa fa-file-archive-o" aria-hidden="true"></i>&nbsp;{$ziplabel}
-        </a>
-    </div>
-</section>
-HTML;
-    }
-
-    /**
-     * Returns the HTML for a disabled (not-passed) button.
-     *
-     * @return string HTML.
-     */
-    private static function render_disabled_button(): string {
-        $label = get_string('download_button_notpassed', 'local_eledia_exam2pdf');
-        return <<<HTML
-<div class="local-eledia-exam2pdf-downloadwrap" style="margin:1.5em 0; text-align:center;">
-    <button class="btn btn-secondary" disabled aria-disabled="true" title="{$label}">
-        <i class="fa fa-file-pdf-o" aria-hidden="true"></i>&nbsp;{$label}
-    </button>
-</div>
-HTML;
+        return '<section class="local-eledia-exam2pdf-reportwrap" style="margin:2em 0;">'
+            . '<h3>' . $heading . '</h3>'
+            . '<p>' . $intro . '</p>'
+            . '<table class="generaltable">'
+            . '<thead><tr>'
+            . '<th>' . $colname . '</th>'
+            . '<th>' . $coldate . '</th>'
+            . '<th class="text-center">' . $colact . '</th>'
+            . '</tr></thead>'
+            . '<tbody>' . $rows . '</tbody>'
+            . '</table>'
+            . '<div style="margin-top:1em;">'
+            . '<a href="' . $zipurl . '" class="btn btn-primary">'
+            . '<i class="fa fa-file-archive-o" aria-hidden="true"></i>&nbsp;' . $ziplabel
+            . '</a>'
+            . '</div>'
+            . '</section>';
     }
 }

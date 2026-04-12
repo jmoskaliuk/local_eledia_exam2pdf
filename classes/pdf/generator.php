@@ -138,7 +138,8 @@ class generator {
                 }
             }
         } catch (\Throwable $e) {
-            // Intentionally empty — logo is optional.
+            // Logo is optional — PDF generation continues without it.
+            debugging('exam2pdf: logo fetch failed: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
         return '';
     }
