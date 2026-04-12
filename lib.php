@@ -106,15 +106,33 @@ function local_eledia_exam2pdf_extend_settings_navigation(
 
     if ($PAGE->cm && $PAGE->cm->modname === 'quiz') {
         $quizcontext = \core\context\module::instance($PAGE->cm->id);
-        if (has_capability('local/eledia_exam2pdf:manage', $quizcontext)) {
-            if ($quiznode = $settingsnav->find('modulesettings', navigation_node::TYPE_SETTING)) {
-                $url = new moodle_url(
+        $quiznode    = $settingsnav->find('modulesettings', navigation_node::TYPE_SETTING);
+
+        if ($quiznode) {
+            // PDF Certificates report — visible to teachers / managers with downloadall.
+            if (has_capability('local/eledia_exam2pdf:downloadall', $quizcontext)) {
+                $reporturl = new moodle_url(
+                    '/local/eledia_exam2pdf/report.php',
+                    ['cmid' => $PAGE->cm->id]
+                );
+                $quiznode->add(
+                    get_string('report_nav_link', 'local_eledia_exam2pdf'),
+                    $reporturl,
+                    navigation_node::TYPE_SETTING,
+                    null,
+                    'exam2pdf_report'
+                );
+            }
+
+            // Per-quiz PDF settings — visible to teachers / managers with configure.
+            if (has_capability('local/eledia_exam2pdf:configure', $quizcontext)) {
+                $settingsurl = new moodle_url(
                     '/local/eledia_exam2pdf/quizsettings.php',
                     ['cmid' => $PAGE->cm->id]
                 );
                 $quiznode->add(
                     get_string('quizsettings', 'local_eledia_exam2pdf'),
-                    $url,
+                    $settingsurl,
                     navigation_node::TYPE_SETTING,
                     null,
                     'exam2pdf_quizsettings'

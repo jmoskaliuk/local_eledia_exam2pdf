@@ -57,6 +57,16 @@ class quiz_page_callbacks {
             return;
         }
 
+        // Respect the studentdownload setting — if disabled, no button on the
+        // review page. Teachers can still access PDFs via the report page.
+        if (empty($PAGE->cm)) {
+            return;
+        }
+        $config = \local_eledia_exam2pdf\helper::get_effective_config($PAGE->cm->instance);
+        if (empty($config['studentdownload'])) {
+            return;
+        }
+
         $attemptid = optional_param('attempt', 0, PARAM_INT);
         if (!$attemptid) {
             return;
@@ -70,32 +80,14 @@ class quiz_page_callbacks {
             IGNORE_MISSING
         );
 
-        // Also allow managers to see the button for any user.
-        if (!$record && $PAGE->cm) {
-            $context   = \core\context\module::instance($PAGE->cm->id);
-            $canmanage = has_capability('local/eledia_exam2pdf:manage', $context);
-            if ($canmanage) {
-                $record = $DB->get_record(
-                    'local_eledia_exam2pdf',
-                    ['attemptid' => $attemptid],
-                    'id, cmid, timeexpires',
-                    IGNORE_MISSING
-                );
-            }
-        }
-
+        // No PDF exists for this attempt (not yet generated, or not in scope).
         if (!$record) {
-            // Attempt is either not passed or no PDF yet — show disabled button.
-            $html = self::render_disabled_button();
-            $hook->add_html($html);
             return;
         }
 
-        // Check file still exists (not yet expired/deleted).
+        // Check the file still exists (not yet expired / deleted).
         $file = \local_eledia_exam2pdf\helper::get_stored_file($record);
         if (!$file) {
-            $html = self::render_disabled_button();
-            $hook->add_html($html);
             return;
         }
 
