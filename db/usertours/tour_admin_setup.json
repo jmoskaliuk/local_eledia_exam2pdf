@@ -15,7 +15,8 @@
             "targettype": 2,
             "targetvalue": "",
             "placement": "bottom",
-            "ordering": 0
+            "sortorder": 0,
+            "configdata": "{}"
         },
         {
             "title": "When are PDFs generated?",
@@ -23,7 +24,8 @@
             "targettype": 1,
             "targetvalue": "#admin-pdfgeneration",
             "placement": "bottom",
-            "ordering": 1
+            "sortorder": 1,
+            "configdata": "{}"
         },
         {
             "title": "Which attempts get a PDF?",
@@ -31,7 +33,8 @@
             "targettype": 1,
             "targetvalue": "#admin-pdfscope",
             "placement": "bottom",
-            "ordering": 2
+            "sortorder": 2,
+            "configdata": "{}"
         },
         {
             "title": "How are PDFs delivered?",
@@ -39,7 +42,8 @@
             "targettype": 1,
             "targetvalue": "#admin-outputmode",
             "placement": "bottom",
-            "ordering": 3
+            "sortorder": 3,
+            "configdata": "{}"
         },
         {
             "title": "Retention &amp; Cleanup",
@@ -47,7 +51,8 @@
             "targettype": 1,
             "targetvalue": "#admin-retentiondays",
             "placement": "bottom",
-            "ordering": 4
+            "sortorder": 4,
+            "configdata": "{}"
         },
         {
             "title": "You're all set!",
@@ -55,7 +60,8 @@
             "targettype": 2,
             "targetvalue": "",
             "placement": "bottom",
-            "ordering": 5
+            "sortorder": 5,
+            "configdata": "{}"
         }
     ]
 }
