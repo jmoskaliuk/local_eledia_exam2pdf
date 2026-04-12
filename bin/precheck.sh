@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
-# precheck.sh — Lokaler Moodle-Plugin-QA-Check via docker exec
+# precheck.sh — Lokaler Moodle-Plugin-QA-Check via moodle-plugin-ci
 #
-# Läuft gegen den bestehenden moodle-docker-Container (demo-webserver-1 o.ä.)
-# und nutzt die dort installierte Moodle-Umgebung inkl. Vendor-Libraries.
+# Nutzt dieselben moodle-plugin-ci-Befehle wie .github/workflows/moodle-ci.yml,
+# ausgeführt per docker exec im Orb-Container. Damit sind lokale und remote
+# Checks identisch — "lokal grün" = "remote grün".
+#
+# Voraussetzung:
+#   1. deploy.sh wurde mindestens einmal erfolgreich ausgeführt
+#   2. bash bin/setup-plugin-ci.sh wurde einmalig ausgeführt
 #
 # Usage:
-#   ./bin/precheck.sh                  # phplint, phpcs, phpdoc, xmllint, savepoint, lang, phpunit
+#   ./bin/precheck.sh                  # Alle Checks (ohne Behat)
 #   ./bin/precheck.sh --with-behat     # Zusätzlich Behat-Feature-Tests
 #   ./bin/precheck.sh --only phpcs     # Nur einen einzelnen Check
 #   ./bin/precheck.sh --no-phpunit     # PHPUnit auslassen
 #   ./bin/precheck.sh --verbose        # Alle Check-Outputs zeigen
+#   ./bin/precheck.sh --legacy         # Fallback: raw vendor/bin (ohne moodle-plugin-ci)
 #
 # Exit: 0 bei PASS, 1 bei FAIL, 2 bei Config-Problem
-#
-# Voraussetzung: deploy.sh wurde mindestens einmal erfolgreich (auch --dry-run reicht)
-# ausgeführt, damit ~/.moodle-deploy.conf mit Container + Webroot gecacht ist.
 
 set -euo pipefail
 
@@ -29,6 +32,7 @@ WITH_BEHAT=false
 NO_PHPUNIT=false
 ONLY=""
 VERBOSE=false
+LEGACY=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -36,8 +40,9 @@ while [[ $# -gt 0 ]]; do
         --no-phpunit)  NO_PHPUNIT=true; shift ;;
         --only)        ONLY="$2"; shift 2 ;;
         --verbose)     VERBOSE=true; shift ;;
+        --legacy)      LEGACY=true; shift ;;
         -h|--help)
-            sed -n '3,17p' "$0"
+            sed -n '3,16p' "$0"
             exit 0 ;;
         *)
             echo "Unknown option: $1" >&2
@@ -49,7 +54,7 @@ done
 CONF="${HOME}/.moodle-deploy.conf"
 if [[ ! -f "$CONF" ]]; then
     echo "ERROR: ${CONF} nicht gefunden." >&2
-    echo "       Zuerst 'bash deploy.sh --dry-run' laufen lassen, damit Container + Webroot gecacht werden." >&2
+    echo "       Zuerst 'bash deploy.sh --dry-run' laufen lassen." >&2
     exit 2
 fi
 # shellcheck disable=SC1090
@@ -57,6 +62,18 @@ source "$CONF"
 
 CONTAINER="${SAVED_CONTAINER:?SAVED_CONTAINER fehlt in ${CONF}}"
 WEBROOT="${SAVED_WEBROOT:?SAVED_WEBROOT fehlt in ${CONF}}"
+
+# ---- moodle-plugin-ci Pfad ----
+CI_BIN="/opt/moodle-plugin-ci/bin/moodle-plugin-ci"
+
+if [[ "$LEGACY" == false ]]; then
+    if ! docker exec "$CONTAINER" test -x "$CI_BIN" 2>/dev/null; then
+        echo "ERROR: moodle-plugin-ci nicht gefunden unter ${CI_BIN}" >&2
+        echo "       Zuerst 'bash bin/setup-plugin-ci.sh' ausführen." >&2
+        echo "       Oder --legacy für den alten Modus nutzen." >&2
+        exit 2
+    fi
+fi
 
 # ---- Farben ----
 if [[ -t 1 ]]; then
@@ -68,6 +85,20 @@ fi
 
 PASS=0; WARN=0; FAIL=0; SKIP=0
 FAILED_CHECKS=()
+
+# ---- Helper: docker exec mit moodle-plugin-ci ----
+mpci() {
+    # Führt moodle-plugin-ci im Container aus, mit korrektem Moodle- und Plugin-Pfad.
+    docker exec -u www-data \
+        -e MOODLE_DIR="$WEBROOT" \
+        "$CONTAINER" \
+        "$CI_BIN" "$@" "$WEBROOT/$PLUGIN_REL_PATH"
+}
+
+# ---- Helper: docker exec raw (für Legacy-Modus) ----
+dexec() {
+    docker exec -u www-data "$CONTAINER" bash -c "cd '$WEBROOT' && $*"
+}
 
 run_check() {
     local name="$1"; shift
@@ -81,7 +112,7 @@ run_check() {
 
     local out rc
     set +e
-    out=$(docker exec -u www-data "$CONTAINER" bash -c "cd '$WEBROOT' && $cmd" 2>&1)
+    out=$(eval "$cmd" 2>&1)
     rc=$?
     set -e
 
@@ -98,7 +129,7 @@ run_check() {
             FAIL=$((FAIL + 1))
             FAILED_CHECKS+=("$name")
         fi
-        printf "${C_DIM}%s${C_RESET}\n" "$out" | head -n 20
+        printf "${C_DIM}%s${C_RESET}\n" "$out" | head -n 30
     fi
 }
 
@@ -113,131 +144,131 @@ skip_check() {
 }
 
 # ---- Header ----
-printf "${C_BLUE}▸ moodle-cicd precheck — %s${C_RESET}\n" "$PLUGIN_COMPONENT"
+if [[ "$LEGACY" == true ]]; then
+    printf "${C_BLUE}▸ precheck (legacy) — %s${C_RESET}\n" "$PLUGIN_COMPONENT"
+else
+    printf "${C_BLUE}▸ precheck (moodle-plugin-ci) — %s${C_RESET}\n" "$PLUGIN_COMPONENT"
+fi
 printf "  Container: %s\n" "$CONTAINER"
 printf "  Plugin:    %s\n\n" "$WEBROOT/$PLUGIN_REL_PATH"
 
 # ---- Preflight: Plugin im Container vorhanden? ----
 if ! docker exec "$CONTAINER" test -d "$WEBROOT/$PLUGIN_REL_PATH"; then
     printf "${C_RED}ERROR:${C_RESET} Plugin-Ordner nicht im Container: %s\n" "$WEBROOT/$PLUGIN_REL_PATH" >&2
-    echo "       Erst 'bash deploy.sh' ausführen, damit das Plugin im Container landet." >&2
+    echo "       Erst 'bash deploy.sh' ausführen." >&2
     exit 2
 fi
 
-# ---- Checks ----
+# ===========================================================================
+# CHECKS — moodle-plugin-ci Modus (identisch zu moodle-ci.yml)
+# ===========================================================================
+if [[ "$LEGACY" == false ]]; then
 
-# phplint — Syntax-Check über alle PHP-Dateien
-run_check "phplint" FAIL \
-    "find $PLUGIN_REL_PATH -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null"
+    # -- Statische Checks (brauchen kein initialisiertes Moodle) --
 
-# phpcs (Moodle Coding Standard)
-# -n  : warnings sichtbar, aber nicht blockierend (Errors bleiben hart-blocker).
-#       Strict-Mode bewusst per --strict aktivierbar.
-PHPCS_FLAGS="-n"
-if [[ "${PHPCS_STRICT:-0}" == "1" ]]; then
-    PHPCS_FLAGS=""
-fi
-if docker exec "$CONTAINER" test -f vendor/bin/phpcs; then
+    run_check "phplint" FAIL \
+        "mpci phplint"
+
+    run_check "phpmd" WARN \
+        "mpci phpmd"
+
+    # Identisch zu moodle-ci.yml Zeile 99
     run_check "phpcs" FAIL \
-        "vendor/bin/phpcs $PHPCS_FLAGS --standard=moodle --extensions=php $PLUGIN_REL_PATH"
-else
-    skip_check "phpcs" "vendor/bin/phpcs nicht installiert"
-fi
+        "mpci phpcs --max-warnings 0"
 
-# phpdoc — grep-based: jede PHP-Datei muss @package enthalten
-run_check "phpdoc" FAIL \
-    "test -z \"\$(find $PLUGIN_REL_PATH -name '*.php' -exec grep -L '@package' {} +)\""
+    # Identisch zu moodle-ci.yml Zeile 103
+    run_check "phpdoc" FAIL \
+        "mpci phpdoc --max-warnings 0"
 
-# xmllint install.xml — fällt zurück auf PHP DOMDocument, falls xmllint im Container fehlt.
-HAS_XMLLINT=true
-if ! docker exec "$CONTAINER" command -v xmllint >/dev/null 2>&1; then
-    HAS_XMLLINT=false
-fi
+    run_check "validate" FAIL \
+        "mpci validate"
 
-xml_check_cmd() {
-    local file="$1"
-    if [[ "$HAS_XMLLINT" == true ]]; then
-        echo "xmllint --noout $file"
+    run_check "savepoints" FAIL \
+        "mpci savepoints"
+
+    run_check "mustache" FAIL \
+        "mpci mustache"
+
+    run_check "grunt" WARN \
+        "mpci grunt --max-lint-warnings 0"
+
+    # -- PHPUnit --
+    if [[ "$NO_PHPUNIT" == false ]]; then
+        # Identisch zu moodle-ci.yml Zeile 123
+        run_check "phpunit" FAIL \
+            "mpci phpunit --fail-on-warning"
     else
-        # PHP-DOM Fallback: parsen + bei Fehler exit 1.
-        echo "php -r 'libxml_use_internal_errors(true); \$d=new DOMDocument(); if(!\$d->load(\"$file\")){foreach(libxml_get_errors() as \$e){fwrite(STDERR,\$e->message);} exit(1);}'"
+        skip_check "phpunit" "ausgeschlossen via --no-phpunit"
     fi
-}
 
-if docker exec "$CONTAINER" test -f "$PLUGIN_REL_PATH/db/install.xml"; then
-    run_check "xmllint-install" FAIL "$(xml_check_cmd "$PLUGIN_REL_PATH/db/install.xml")"
+    # -- Behat (opt-in) --
+    if [[ "$WITH_BEHAT" == true ]]; then
+        # Identisch zu moodle-ci.yml Zeile 127
+        # Profil "chrome" erfordert laufenden Selenium-Container (demo-selenium-1).
+        BEHAT_PROFILE="${BEHAT_PROFILE:-chrome}"
+        run_check "behat" FAIL \
+            "mpci behat --profile $BEHAT_PROFILE"
+    else
+        skip_check "behat" "opt-in via --with-behat"
+    fi
+
+# ===========================================================================
+# LEGACY CHECKS — raw vendor/bin (Fallback ohne moodle-plugin-ci)
+# ===========================================================================
 else
-    skip_check "xmllint-install" "keine db/install.xml"
-fi
 
-# xmllint thirdpartylibs.xml (optional)
-if docker exec "$CONTAINER" test -f "$PLUGIN_REL_PATH/thirdpartylibs.xml"; then
-    run_check "xmllint-tpl" FAIL "$(xml_check_cmd "$PLUGIN_REL_PATH/thirdpartylibs.xml")"
-else
-    skip_check "xmllint-tpl" "keine thirdpartylibs.xml"
-fi
+    run_check "phplint" FAIL \
+        "dexec 'find $PLUGIN_REL_PATH -name \"*.php\" -print0 | xargs -0 -n1 php -l >/dev/null'"
 
-# Savepoint-Konsistenz: letzte upgrade_plugin_savepoint == $plugin->version
-if docker exec "$CONTAINER" test -f "$PLUGIN_REL_PATH/db/upgrade.php"; then
-    run_check "savepoint" FAIL "
-        VERSION=\$(grep -oE '\\\$plugin->version[[:space:]]*=[[:space:]]*[0-9]+' $PLUGIN_REL_PATH/version.php | grep -oE '[0-9]+');
-        LAST=\$(grep -oE 'savepoint\\([^)]*[0-9]{10}' $PLUGIN_REL_PATH/db/upgrade.php | grep -oE '[0-9]{10}' | tail -1);
-        test \"\$VERSION\" = \"\$LAST\" || { echo \"version.php=\$VERSION  upgrade.php=\$LAST\" >&2; exit 1; }
-    "
-else
-    skip_check "savepoint" "keine db/upgrade.php (erste Version)"
-fi
+    PHPCS_FLAGS="-n"
+    if [[ "${PHPCS_STRICT:-0}" == "1" ]]; then
+        PHPCS_FLAGS=""
+    fi
+    if docker exec "$CONTAINER" test -f "$WEBROOT/vendor/bin/phpcs"; then
+        run_check "phpcs" FAIL \
+            "dexec 'vendor/bin/phpcs $PHPCS_FLAGS --standard=moodle --extensions=php $PLUGIN_REL_PATH'"
+    else
+        skip_check "phpcs" "vendor/bin/phpcs nicht installiert"
+    fi
 
-# lang — nur en/ im Release-relevanten Zustand (WARN, kein FAIL, Dev-Lang OK)
-run_check "lang-only-en" WARN "
-    LANGS=\$(ls $PLUGIN_REL_PATH/lang 2>/dev/null | tr '\\n' ' ');
-    test \"\$LANGS\" = \"en \" || { echo \"Zusätzliche lang-packs: \$LANGS\" >&2; exit 1; }
-"
+    run_check "phpdoc" FAIL \
+        "dexec 'test -z \"\$(find $PLUGIN_REL_PATH -name \"*.php\" -exec grep -L \"@package\" {} +)\"'"
 
-# PHPUnit
-if [[ "$NO_PHPUNIT" == false ]]; then
-    if docker exec "$CONTAINER" test -f vendor/bin/phpunit; then
-        if docker exec "$CONTAINER" test -d "$PLUGIN_REL_PATH/tests"; then
+    if docker exec "$CONTAINER" test -f "$WEBROOT/$PLUGIN_REL_PATH/db/install.xml"; then
+        run_check "xmllint" FAIL \
+            "dexec 'php -r \"libxml_use_internal_errors(true); \\\$d=new DOMDocument(); if(!\\\$d->load(\\\"$PLUGIN_REL_PATH/db/install.xml\\\")){foreach(libxml_get_errors() as \\\$e){fwrite(STDERR,\\\$e->message);} exit(1);}\"'"
+    else
+        skip_check "xmllint" "keine db/install.xml"
+    fi
+
+    if [[ "$NO_PHPUNIT" == false ]]; then
+        if docker exec "$CONTAINER" test -f "$WEBROOT/vendor/bin/phpunit"; then
             run_check "phpunit" FAIL \
-                "vendor/bin/phpunit --testsuite ${PLUGIN_COMPONENT}_testsuite --no-coverage"
+                "dexec 'vendor/bin/phpunit --testsuite ${PLUGIN_COMPONENT}_testsuite --no-coverage'"
         else
-            skip_check "phpunit" "kein tests/-Verzeichnis"
+            skip_check "phpunit" "vendor/bin/phpunit nicht installiert"
         fi
     else
-        skip_check "phpunit" "vendor/bin/phpunit nicht installiert"
+        skip_check "phpunit" "ausgeschlossen via --no-phpunit"
     fi
-fi
 
-# Behat (opt-in)
-# Profil konfigurierbar (Default: "default"). Mit "default" werden @javascript-
-# Szenarien automatisch ausgefiltert, weil ohne Selenium-Profil kein JS geht.
-# Wer ein chrome/firefox-Profil initialisiert hat (via MOODLE_BEHAT_SELENIUM_URL),
-# kann BEHAT_PROFILE=chrome bash bin/precheck.sh --with-behat setzen.
-if [[ "$WITH_BEHAT" == true ]]; then
-    if docker exec "$CONTAINER" test -f vendor/bin/behat; then
+    if [[ "$WITH_BEHAT" == true ]]; then
         BEHAT_PROFILE="${BEHAT_PROFILE:-default}"
         BEHAT_TAGS="@${PLUGIN_COMPONENT}"
         if [[ "$BEHAT_PROFILE" == "default" ]]; then
             BEHAT_TAGS="@${PLUGIN_COMPONENT}&&~@javascript"
         fi
-        # Moodle generiert behat.yml unter $CFG->behat_dataroot/behatrun/behat/.
-        # Ohne explizites -c fällt Behat auf seine interne Baseline zurück (nur
-        # implizites default-Profil, kein FeatureContext, keine Suites).
         BEHAT_CONFIG_PATH="${BEHAT_CONFIG_PATH:-/var/www/behatdata/behatrun/behat/behat.yml}"
         if ! docker exec "$CONTAINER" test -f "$BEHAT_CONFIG_PATH"; then
-            skip_check "behat" "behat.yml nicht gefunden unter $BEHAT_CONFIG_PATH — zuerst behat:init"
+            skip_check "behat" "behat.yml nicht gefunden — zuerst behat:init"
         else
-            # Gherkin-Cache kann von früheren root-Init-Läufen www-data gehören,
-            # wird dann als www-data nicht mehr beschreibbar. Einmal als root weg.
             docker exec -u root "$CONTAINER" rm -rf /tmp/behat_gherkin_cache >/dev/null 2>&1 || true
             run_check "behat" FAIL \
-                "vendor/bin/behat -c '$BEHAT_CONFIG_PATH' --profile=$BEHAT_PROFILE --tags='$BEHAT_TAGS'"
+                "dexec 'vendor/bin/behat -c \"$BEHAT_CONFIG_PATH\" --profile=$BEHAT_PROFILE --tags=\"$BEHAT_TAGS\"'"
         fi
     else
-        skip_check "behat" "vendor/bin/behat nicht installiert"
+        skip_check "behat" "opt-in via --with-behat"
     fi
-else
-    skip_check "behat" "opt-in via --with-behat"
 fi
 
 # ---- Summary ----

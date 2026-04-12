@@ -29,3 +29,6 @@ coverage/
 # Session-Notizen (lokal, nicht für Remote)
 RESUME.md
 CI_CD_KONZEPT.md
+
+# Debug-Logs
+.debug-*
