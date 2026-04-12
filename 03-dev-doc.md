@@ -1,25 +1,44 @@
-# Developer Documentation — local_eledia_exam2pdf
+# Developer Documentation — eLeDia | exam2pdf
 
 ## Architecture Overview
 
-Das Plugin ist ein `local_`-Plugin, das sich über Events und Hooks in den Moodle-Quiz-Ablauf einklinkt. Es hat keine eigene Aktivitätsseite, sondern ergänzt bestehende Quiz-Seiten.
+Das Plugin ist ein `local_`-Plugin, das sich über Events, Hooks und eine eigene Report-Seite in den Moodle-Quiz-Ablauf einklinkt.
 
 ```
-Quiz: attempt_submitted Event
-        ↓
-observer::on_attempt_submitted()
-        ↓
-   Bestanden?  ──Nein──→ Ende
-        ↓ Ja
-pdf\generator::generate()
-        ↓
-Moodle File API (speichern)
-        ↓
-DB: local_eledia_exam2pdf (Eintrag)
-        ↓
-Outputmode?
-  ├─ download: bereit zum Download (Hook zeigt Button)
-  └─ email: sofort senden via email_to_user()
+┌─────────────────────────────────────────────────────────┐
+│  TEACHER-PFAD (Hauptpfad)                               │
+│                                                         │
+│  Quiz → Results → "PDF-Reports" (Navigation-Link)       │
+│          ↓                                              │
+│  report.php (eigene Seite)                              │
+│  ├── Versuchs-Tabelle mit PDF-Spalte (per-TN-Button)   │
+│  ├── Bulk-Download-Button                               │
+│  └── Filter: "What to include"                          │
+│          ↓                                              │
+│  download.php / zip.php (Dateiauslieferung)             │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│  STUDENT-PFAD (optional, feat09)                        │
+│                                                         │
+│  Quiz → Review-Seite                                    │
+│          ↓                                              │
+│  hook: before_footer_html_generation                    │
+│  → quiz_page_callbacks::inject_download_button()        │
+│  → Prüft: studentdownload aktiv? + PDF-Scope? + PDF?   │
+│          ↓                                              │
+│  download.php (Dateiauslieferung)                       │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│  PDF-ERZEUGUNG                                          │
+│                                                         │
+│  Auto-Modus:                                            │
+│  attempt_submitted Event → observer → generator → File  │
+│                                                         │
+│  On-demand-Modus:                                       │
+│  Button-Klick (report.php/review) → generator → File    │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -29,30 +48,43 @@ Outputmode?
 ```
 local/eledia_exam2pdf/
 ├── classes/
-│   ├── helper.php              # Config-Merge, File-URL, Stored-File-Lookup
-│   ├── observer.php            # Event-Listener: attempt_submitted
+│   ├── helper.php                     # Config-Merge, File-URL, Scope-Check
+│   ├── observer.php                   # Event-Listener: attempt_submitted
 │   ├── hook/
-│   │   └── quiz_page_callbacks.php   # Hooks API: Download-Button injizieren
+│   │   └── quiz_page_callbacks.php    # Hooks API: Student-Download-Button
 │   ├── pdf/
-│   │   └── generator.php       # TCPDF-PDF-Erzeugung, Frage-Rendering
+│   │   └── generator.php             # TCPDF-Erzeugung, Frage-Rendering
 │   ├── privacy/
-│   │   └── provider.php        # GDPR Privacy API
+│   │   └── provider.php              # GDPR Privacy API
+│   ├── form/
+│   │   └── quizsettings.php          # Per-Quiz-Config-Formular
 │   └── task/
 │       └── cleanup_expired_pdfs.php  # Scheduled Task: Bereinigung
 ├── db/
-│   ├── access.php              # Capabilities
-│   ├── events.php              # Event-Observer-Registrierung
-│   ├── hooks.php               # Hooks API Callbacks (Moodle 4.3+)
-│   ├── install.xml             # XMLDB-Schema (2 Tabellen)
-│   └── tasks.php               # Scheduled Task Definition
+│   ├── access.php                    # Capabilities
+│   ├── events.php                    # Event-Observer-Registrierung
+│   ├── hooks.php                     # Hooks API Callbacks
+│   ├── install.xml                   # XMLDB-Schema (2 Tabellen)
+│   └── tasks.php                     # Scheduled Task Definition
 ├── lang/en/
 │   └── local_eledia_exam2pdf.php     # Alle Strings
-├── pix/icon.svg                # Plugin-Icon
-├── download.php                # File-Serve mit Capability-Check
-├── lib.php                     # pluginfile(), extend_settings_navigation()
-├── quizsettings.php            # Per-Quiz-Konfigurationsformular
-├── settings.php                # Globale Admin-Settings
-└── version.php                 # Plugin-Metadaten
+├── pix/icon.svg                      # Plugin-Icon
+├── tests/
+│   ├── behat/
+│   │   ├── behat_local_eledia_exam2pdf.php  # Custom Behat steps
+│   │   ├── admin_settings.feature
+│   │   └── download_button.feature
+│   ├── observer_test.php
+│   ├── helper_test.php
+│   ├── privacy/provider_test.php
+│   └── task/cleanup_expired_pdfs_test.php
+├── download.php                      # File-Serve (Einzel-PDF)
+├── zip.php                           # Bulk-Download (ZIP/zusammengefügt)
+├── report.php                        # Teacher Report-Seite (NEU, feat07)
+├── lib.php                           # pluginfile(), Navigation-Hooks
+├── quizsettings.php                  # Per-Quiz-Konfigurationsformular
+├── settings.php                      # Globale Admin-Settings
+└── version.php                       # Plugin-Metadaten
 ```
 
 ---
@@ -61,7 +93,7 @@ local/eledia_exam2pdf/
 
 ### `local_eledia_exam2pdf`
 | Feld | Typ | Beschreibung |
-|------|-----|-------------|
+|---|---|---|
 | id | INT PK | Auto-increment |
 | quizid | INT | Referenz auf `quiz.id` |
 | cmid | INT | Course Module ID des Quiz |
@@ -73,10 +105,10 @@ local/eledia_exam2pdf/
 
 ### `local_eledia_exam2pdf_cfg`
 | Feld | Typ | Beschreibung |
-|------|-----|-------------|
+|---|---|---|
 | id | INT PK | Auto-increment |
 | quizid | INT | Referenz auf `quiz.id` |
-| name | CHAR(100) | Config-Key (z.B. `outputmode`) |
+| name | CHAR(100) | Config-Key |
 | value | TEXT | Config-Wert |
 
 Unique Index auf `(quizid, name)`.
@@ -85,89 +117,77 @@ Unique Index auf `(quizid, name)`.
 
 ## Key Components
 
+### `report.php` (NEU — feat07)
+Teacher-Report-Seite, verlinkt aus der Quiz-Navigation:
+1. Capability-Check: `downloadall` erforderlich
+2. Lädt alle Versuche des Quiz (wie Grades-Tabelle)
+3. Filtert nach "What to include"-Optionen
+4. Rendert Tabelle mit: Name, E-Mail, Status, Started, Completed, Duration, Grade, **PDF-Button**
+5. PDF-Button: Link auf `download.php?attemptid=X` (bzw. On-demand-Generierung)
+6. Bulk-Button: Link auf `zip.php?quizid=X&format=zip|merged`
+
+Navigation-Hook in `lib.php`:
+```php
+// extend_settings_navigation() — fügt "PDF-Reports" unter Results ein
+$reportsnode->add(
+    get_string('report_title', 'local_eledia_exam2pdf'),
+    new moodle_url('/local/eledia_exam2pdf/report.php', ['id' => $cmid]),
+    navigation_node::TYPE_SETTING
+);
+```
+
 ### `observer.php`
-Reagiert auf `\mod_quiz\event\attempt_submitted`:
-1. Lädt Versuch + Quiz aus DB
-2. Prüft Bestandsstatus: `sumgrades / sumgrades * grade >= gradepass`
+Reagiert auf `\mod_quiz\event\attempt_submitted` (nur im Auto-Modus):
+1. Prüft Config: `pdfgeneration === 'auto'`
+2. Prüft Scope via `helper::is_in_pdf_scope()`
 3. Verhindert Duplikate via DB-Check
 4. Ruft `pdf\generator::generate()` auf
-5. Speichert Datei via Moodle File API (contextid = CM-Kontext)
-6. Schreibt DB-Eintrag in `local_eledia_exam2pdf`
-7. Bei E-Mail-Modus: `observer::send_email()` aufrufen
+5. Speichert Datei via Moodle File API
+6. Schreibt DB-Eintrag
+7. Bei E-Mail-Modus: `observer::send_email()`
 
 ### `pdf\generator.php`
 - Verwendet `\TCPDF` aus `$CFG->libdir . '/tcpdf/tcpdf.php'`
 - `generate(quiz_attempt, quiz, config)` → gibt PDF als String zurück
 - Kopfblock: Pflichtfelder + konfigurierbare Optionalfelder
 - Fragenblock: Iteration über `$quba->get_slots()`
-  - Antwort: `$qa->get_response_summary()`
-  - Korrektheit: `$qa->get_state()->is_correct()` etc.
-  - Korrekte Lösung: fragetyp-spezifisch via `get_correct_answer_text()`
-
-**Unterstützte Fragetypen für korrekte Antwort:**
-- `multichoice`: Antworten mit `fraction > 0`
-- `truefalse`: Antwort mit `fraction == 1.0`
-- `shortanswer`, `numerical`: beste Antwort nach `fraction`
-- Andere: Fallback auf `get_correct_response()`
 
 ### `helper.php`
-- `get_effective_config(quizid)`: Merged globale Moodle-Config mit per-Quiz-Overrides
-- `save_quiz_config(quizid, values)`: Schreibt/löscht Einträge in `local_eledia_exam2pdf_cfg`
+- `get_effective_config(quizid)`: Merged globale Config mit per-Quiz-Overrides
+- `is_in_pdf_scope(attempt, config)`: Zentrale Scope-Prüfung (bestanden/alle)
 - `get_download_url(record, filename)`: Erzeugt pluginfile.php-URL
 - `get_stored_file(record)`: Lookup der Datei im Moodle File System
 
 ### `hook/quiz_page_callbacks.php`
-Registriert via `db/hooks.php` für `\core\hook\output\before_footer_html_generation`:
+Student-Self-Service (feat09):
 - Prüft `$PAGE->pagetype === 'mod-quiz-review'`
-- Liest `attemptid` aus URL-Parameter
-- Sucht DB-Eintrag für aktuellen User
-- Rendert aktiven Download-Button oder deaktivierten Button
+- Prüft Config: `studentdownload === '1'`
+- Prüft Scope via `helper::is_in_pdf_scope()`
+- Rendert Download-Button oder deaktivierten Button
 
-### `task/cleanup_expired_pdfs.php`
-- Sucht alle Records mit `timeexpires > 0 AND timeexpires <= now()`
-- Löscht Moodle-Datei via `$fs->delete_area_files()`
-- Löscht DB-Eintrag
-
-### `lib.php — pluginfile()`
-Access-Control für `pluginfile.php`:
-- Filearea: `attempt_pdf`
-- Eigene Dateien: immer erlaubt
-- Fremde Dateien: nur mit `local/eledia_exam2pdf:manage`
+### `zip.php` (feat08)
+Bulk-Download-Endpoint:
+- Capability-Check: `downloadall`
+- Sammelt alle PDFs der gefilterten Versuche
+- Im On-demand-Modus: fehlende PDFs automatisch erzeugen
+- Format je nach Config: ZIP oder zusammengefügtes PDF via TCPDF
 
 ---
 
 ## Configuration System
 
-Zweistufig: globale Moodle-Plugin-Einstellungen + per-Quiz-Overrides.
+Zweistufig: globale Plugin-Einstellungen + per-Quiz-Overrides.
 
 ```php
-// Globale Config (admin settings)
-get_config('local_eledia_exam2pdf', 'outputmode')
+// Globale Config
+get_config('local_eledia_exam2pdf', 'pdfgeneration') // 'auto' | 'ondemand'
+get_config('local_eledia_exam2pdf', 'pdfscope')      // 'passed' | 'all'
+get_config('local_eledia_exam2pdf', 'studentdownload') // '1' | '0'
+get_config('local_eledia_exam2pdf', 'bulkformat')     // 'zip' | 'merged'
 
-// Per-Quiz Override (DB)
-$DB->get_records_menu('local_eledia_exam2pdf_cfg', ['quizid' => $quizid], '', 'name, value')
-
-// Merged (helper::get_effective_config)
+// Merged
 $config = helper::get_effective_config($quizid);
-// $config['outputmode'] = per-Quiz-Wert oder globaler Default
 ```
-
-Config-Keys: `outputmode`, `emailrecipients`, `emailsubject`, `retentiondays`, `showcorrectanswers`, `show_score`, `show_passgrade`, `show_percentage`, `show_timestamp`, `show_duration`, `show_attemptnumber`
-
----
-
-## File Storage
-
-```
-Component:  local_eledia_exam2pdf
-Filearea:   attempt_pdf
-Itemid:     $record->id (aus local_eledia_exam2pdf)
-Context:    \core\context\module::instance($cmid)
-Filepath:   /
-Filename:   quiz-{slug}-attempt-{n}-{Ymd}.pdf
-```
-
-Download-URL: via `\moodle_url::make_pluginfile_url()` mit `$forcedownload = true`
 
 ---
 
@@ -178,6 +198,7 @@ Download-URL: via `\moodle_url::make_pluginfile_url()` mit `$forcedownload = tru
 $observers = [[
     'eventname' => '\mod_quiz\event\attempt_submitted',
     'callback'  => '\local_eledia_exam2pdf\observer::on_attempt_submitted',
+    'internal'  => false,
 ]];
 
 // db/hooks.php (Moodle 4.3+)
@@ -194,18 +215,13 @@ $callbacks = [[
 
 Implementiert `\core_privacy\local\metadata\provider`, `plugin\provider`, `core_userlist_provider`.
 
-Personenbezogene Daten:
-- DB-Eintrag: userid, attemptid, quizid, timestamps
-- Datei: PDF mit Name und Quizantworten
-
-Methoden: `get_contexts_for_userid()`, `export_user_data()`, `delete_data_for_user()`, `delete_data_for_all_users_in_context()`, `delete_data_for_users()`
+Personenbezogene Daten: DB-Eintrag (userid, attemptid, quizid, timestamps) + PDF-Datei (Name, Quizantworten).
 
 ---
 
 ## Known Limitations & Open Items
 
-- Manager-Übersicht über alle PDFs eines Quiz fehlt noch (`manage.php`)
-- Keine konfigurierbaren E-Mail-Body-Templates
-- Keine konfigurierbaren PDF-Dateinamen
-- Behat- und PHPUnit-Tests noch nicht implementiert
-- Open Question: interne PDF für nicht bestandene Versuche (admin-only)?
+- E-Mail-Body nicht konfigurierbar (fest codiert)
+- PDF-Dateiname nicht konfigurierbar
+- Keine konfigurierbaren PDF-Templates / Branding
+- Bulk-Download bei sehr vielen TN (>500) ggf. Timeout → Async-Job als Backlog

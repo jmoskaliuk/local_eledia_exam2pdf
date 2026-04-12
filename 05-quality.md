@@ -1,129 +1,121 @@
-# Quality — local_eledia_exam2pdf
+# Quality — eLeDia | exam2pdf
 
 ## Meta
 
-Dieses Dokument verfolgt Bugs und Testergebnisse.
+Dieses Dokument verfolgt Bugs, Testergebnisse und CI-Status.
 
-Nur reproduzierbare Probleme und Testergebnisse gehören hierher — keine Ideen oder Tasks.
+---
+
+## CI-Status
+
+**GitHub Actions** — 4 Matrix-Zellen, alle grün (Stand 2026-04-12, Commit fbb77b5):
+
+| Moodle | PHP | DB | Status |
+|---|---|---|---|
+| 4.5 (MOODLE_405_STABLE) | 8.1 | PostgreSQL | ✅ |
+| 5.0 (MOODLE_500_STABLE) | 8.3 | PostgreSQL | ✅ |
+| 5.1 (MOODLE_501_STABLE) | 8.3 | PostgreSQL | ✅ |
+| 5.1 (MOODLE_501_STABLE) | 8.3 | MariaDB | ✅ |
+
+Checks pro Zelle: PHP Lint, PHPMD, PHPCS (CodeSniffer), PHPDoc, Validierung, Savepoints, Mustache Lint, Grunt, PHPUnit (--fail-on-warning), Behat (--profile chrome).
 
 ---
 
 ## 🐞 Bugs
 
-_(noch keine bekannten Bugs — Plugin im MVP-Scaffold-Stadium)_
+### bug01 $gradepass undefined in render_header()
+Status: fixed (2026-04-12, Commit 6824d9dd)
+Feature: feat01
+Beschreibung: `$gradepass` in `generate()` definiert aber nicht an `render_header()` übergeben → PHP Warning → ErrorException in Moodle Error Handler.
+Fix: `$gradepass` als 9. Parameter an `render_header()` übergeben.
+
+### bug02 BrowserKit kann admin_setting_configcheckbox nicht unchecken
+Status: fixed (2026-04-12, Commit cf76b1f)
+Feature: Behat-Tests
+Beschreibung: BrowserKit-Treiber kann Moodle-Admin-Checkboxen nicht deaktivieren.
+Fix: `@javascript`-Tag am betroffenen Szenario → WebDriver nutzen.
+
+### bug03 Behat-Generator feuert attempt_submitted Event nicht
+Status: fixed (2026-04-12, Commit cf76b1f)
+Feature: Behat-Tests
+Beschreibung: `user X has attempted Y with responses:` schreibt Attempt direkt in DB ohne Event.
+Fix: Custom Behat step `behat_local_eledia_exam2pdf` der den Observer manuell triggert.
+
+### bug04 submitterid fehlt im Event-other-Array
+Status: fixed (2026-04-12, Commit fbb77b5)
+Feature: Behat-Tests
+Beschreibung: `attempt_submitted::create()` erfordert `submitterid` im `other`-Array.
+Fix: `submitterid => $user->id` in der Behat-Kontextklasse ergänzt.
 
 ---
 
-## 🧪 Tests
+## 🧪 Tests — Automatisiert
+
+### PHPUnit (38 Tests, 93 Assertions)
+Status: ✅ grün auf allen 4 Zellen
+
+Testklassen:
+- `observer_test.php` — Event-Handling, PDF-Erzeugung, Duplikatschutz
+- `helper_test.php` — Config-Merge, Scope-Prüfung
+- `task/cleanup_expired_pdfs_test.php` — Bereinigung abgelaufener PDFs
+- `privacy/provider_test.php` — GDPR-Export und -Löschung
+
+### Behat (7 Szenarien)
+Status: ✅ grün auf allen 4 Zellen
+
+Features:
+- `admin_settings.feature` (4 Szenarien) — Settings-Seite, Persistenz, Checkbox-Toggle, Retention
+- `download_button.feature` (3 Szenarien) — Download bei bestanden, kein Download bei nicht bestanden, Link vorhanden
+
+---
+
+## 🧪 Tests — Manuell (Smoketest)
 
 ### test01 Smoketest: PDF-Erzeugung nach bestandenem Versuch
-
 Feature: feat01
-Status: pending (wartet auf lokales Deployment)
-
-**Schritte**
-1. Plugin in lokalem Moodle installieren (DB-Upgrade prüfen)
-2. Test-Quiz mit Bestehensgrenze (z.B. 50%) anlegen
-3. Als Lernender einloggen, Quiz starten und **bestehen**
-4. Quiz-Review-Seite öffnen
-
-**Erwartetes Ergebnis**
-- Download-Button sichtbar und aktiv auf Review-Seite
-- Klick auf Button → PDF wird heruntergeladen
-- PDF enthält: Name, Quiz-Name, Bestanden: Ja
-- DB-Eintrag in `local_eledia_exam2pdf` vorhanden
-- Datei im Moodle File System unter Quiz-CM-Kontext gespeichert
-
-**Tatsächliches Ergebnis**
-_(noch nicht durchgeführt)_
-
----
+Status: offen (wartet auf lokales Deployment mit aktuellem Code)
 
 ### test02 Negativtest: Nicht bestandener Versuch
-
 Feature: feat01, feat06
-Status: pending
-
-**Schritte**
-1. Als Lernender Quiz starten und **nicht bestehen**
-2. Quiz-Review-Seite öffnen
-
-**Erwartetes Ergebnis**
-- Download-Button deaktiviert (grau) mit Text „Zertifikat nicht verfügbar (Versuch nicht bestanden)"
-- Kein DB-Eintrag in `local_eledia_exam2pdf`
-- Kein PDF im File System
-
----
+Status: offen
 
 ### test03 E-Mail-Modus
-
 Feature: feat02
-Status: pending
-
-**Schritte**
-1. Outputmode auf „E-Mail" oder „Beides" stellen
-2. Quiz bestehen
-
-**Erwartetes Ergebnis**
-- E-Mail mit PDF-Anhang im Postfach des Lernenden
-- Betreff entspricht konfiguriertem Template
-- PDF-Datei als Anhang korrekt
-
----
+Status: offen
 
 ### test04 Mehrere bestandene Versuche
-
 Feature: feat01
-Status: pending
-
-**Schritte**
-1. Quiz dreimal bestehen (mit mehreren Versuchen erlauben)
-
-**Erwartetes Ergebnis**
-- 3 separate DB-Einträge in `local_eledia_exam2pdf`
-- 3 separate PDF-Dateien im File System
-- Für jeden Versuch eigener Download-Button auf der jeweiligen Review-Seite
-
----
+Status: offen
 
 ### test05 Cleanup Task
-
 Feature: feat05
-Status: pending
-
-**Schritte**
-1. Aufbewahrungsfrist auf 1 Tag setzen
-2. Quiz bestehen → PDF erzeugt
-3. DB: `timeexpires` auf Vergangenheit setzen (manuell für Test)
-4. Scheduled Task manuell ausführen: `php admin/cli/scheduled_task.php --execute='\local_eledia_exam2pdf\task\cleanup_expired_pdfs'`
-
-**Erwartetes Ergebnis**
-- DB-Eintrag gelöscht
-- Datei im File System gelöscht
-- Download-Button zeigt danach deaktivierten Zustand
-
----
+Status: offen
 
 ### test06 Per-Quiz-Config Override
-
 Feature: feat04
-Status: pending
+Status: offen
 
-**Schritte**
-1. Globaler Outputmode: „Download"
-2. Für spezifisches Quiz: Outputmode auf „E-Mail" stellen
-3. In diesem Quiz einen Versuch bestehen
+### test07 Teacher Report-Seite (NEU)
+Feature: feat07
+Status: offen (wartet auf Implementierung von task14)
 
-**Erwartetes Ergebnis**
-- Nur E-Mail wird versendet, kein Download-Button aktiv
-- Anderes Quiz: Download-Button erscheint wie global konfiguriert
+### test08 Bulk-Download (NEU)
+Feature: feat08
+Status: offen (wartet auf Implementierung von task15)
+
+### test09 Student-Download ein/aus (NEU)
+Feature: feat09
+Status: offen (wartet auf Implementierung von task16)
 
 ---
 
-## 📋 Qualitätsziele Sprint 2
+## 📋 Qualitätsziele
 
-- [ ] Alle 6 Tests oben durchgeführt und bestanden
-- [ ] PHPCS: 0 Fehler mit Moodle-Coding-Standards
-- [ ] PHPDoc: alle public methods dokumentiert
-- [ ] Behat: Happy Path (feat01, feat06) automatisiert
-- [ ] PHPUnit: generator.php und helper.php abgedeckt
+- [x] CI grün auf allen 4 Matrix-Zellen
+- [x] PHPCS: 0 Fehler mit Moodle-Coding-Standards
+- [x] PHPDoc: alle public methods dokumentiert
+- [x] Behat: Happy Path automatisiert
+- [x] PHPUnit: observer, helper, cleanup, privacy abgedeckt
+- [ ] Manuelle Smoketests (test01–test06) durchgeführt
+- [ ] Neue Features (test07–test09) getestet
+- [ ] Plugin Directory Precheck bestanden

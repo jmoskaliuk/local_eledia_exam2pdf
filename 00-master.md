@@ -3,9 +3,10 @@
 ## 1. Project Meta
 
 - **Name:** local_eledia_exam2pdf
-- **Goal:** PDF-Compliance-Nachweis für bestandene Moodle-Quizversuche
-- **Short Description:** Erzeugt nach jedem bestandenen Quizversuch automatisch ein PDF-Dokument mit Nachweisdaten, Fragen und Antworten des Lernenden. Download und E-Mail-Versand konfigurierbar.
-- **Tech Stack:** Moodle 4.3+ (PHP 8.1+), TCPDF, Moodle File API, Moodle Hooks API, Moodle Events API, Scheduled Tasks
+- **Display Name:** eLeDia | exam2pdf
+- **Goal:** Teacher-zentriertes PDF-Reporting für Moodle-Quizversuche mit integriertem Bulk-Download
+- **Short Description:** Erzeugt PDF-Prüfungsberichte für Quizversuche. Primär für Teacher/Manager: PDF-Spalte in der Quiz-Results-Tabelle, Bulk-Download aller Reports. Optional auch Student-Self-Service (Download auf Review-Seite). PDF-Erzeugung, Scope und Ausgabeformat konfigurierbar.
+- **Tech Stack:** Moodle 4.5+ (PHP 8.1+), TCPDF, Moodle File API, Moodle Hooks API, Moodle Events API, Scheduled Tasks
 
 ---
 
@@ -22,7 +23,7 @@
 ## 3. File System
 
 | File | Purpose |
-|------|--------|
+|------|----------|
 | 01-features.md | What we build and why (intended behavior) |
 | 02-user-doc.md | User perspective and usage |
 | 03-dev-doc.md | Technical implementation (actual state) |

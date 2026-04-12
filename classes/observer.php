@@ -41,6 +41,9 @@ class observer {
 
         $attemptid = $event->objectid;
 
+        // Load quiz locallib early — quiz_attempt class may depend on it.
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+
         // Load attempt.
         $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', IGNORE_MISSING);
         if (!$attempt || $attempt->state !== quiz_attempt::FINISHED) {
@@ -64,8 +67,6 @@ class observer {
         $config = helper::get_effective_config($quiz->id);
 
         // Generate the PDF binary.
-        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
-
         try {
             $attemptobj = quiz_attempt::create($attemptid);
             $pdfcontent = pdf\generator::generate($attemptobj, $quiz, $config);

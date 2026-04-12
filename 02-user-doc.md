@@ -1,60 +1,37 @@
-# User Documentation — local_eledia_exam2pdf
+# User Documentation — eLeDia | exam2pdf
 
 ## Für wen ist dieses Dokument?
 
-Dieses Dokument beschreibt das Plugin aus Nutzersicht — für Lernende, Trainer/innen und Administrator/innen.
+Dieses Dokument beschreibt das Plugin aus Nutzersicht — für Trainer/innen, Manager/innen, Lernende und Administrator/innen.
 
 ---
 
-## Lernende
+## Trainer/innen und Manager/innen (Hauptzielgruppe)
 
-### Wann erhalte ich ein PDF-Zertifikat?
+### PDF-Berichte über die Quiz-Ergebnisseite
 
-Ein PDF wird automatisch erzeugt, wenn du einen Quiz-Versuch **bestanden** hast. Du musst nichts tun — das Plugin arbeitet im Hintergrund.
+Das Plugin fügt eine eigene Report-Seite hinzu, erreichbar über **Quiz → Ergebnisse → PDF-Reports** (oder direkt über den Link in der Quiz-Navigation).
 
-Bei nicht bestandenen Versuchen wird kein PDF erzeugt oder freigegeben.
+Auf dieser Seite sehen Sie:
+- Eine Übersichtstabelle aller Quizversuche (wie die Grades-Ansicht)
+- Eine zusätzliche PDF-Spalte mit Download-Icon pro Versuch
+- Einen Bulk-Download-Button für alle angezeigten Reports
 
-### Wie komme ich an mein PDF?
+### Einzelne PDFs herunterladen
 
-Je nach Konfiguration durch deine/n Administrator/in:
+Klicken Sie auf das PDF-Icon neben einem Versuch, um den Bericht herunterzuladen. Je nach Konfiguration:
+- **Auto-Modus**: Das PDF wurde bereits bei Abgabe erzeugt → sofortiger Download
+- **On-demand-Modus**: Das PDF wird beim Klick erzeugt → kurze Wartezeit, dann Download
 
-**Download:**
-Nach Abschluss des Quiz siehst du auf der Ergebnisseite einen blauen Button **„PDF-Zertifikat herunterladen"**. Klicke darauf, um das PDF direkt herunterzuladen.
+### Bulk-Download
 
-Ist der Versuch nicht bestanden, ist der Button grau und deaktiviert mit dem Hinweis „Zertifikat nicht verfügbar (Versuch nicht bestanden)".
+Der Button **".pdf-Reports herunterladen"** sammelt alle PDFs der aktuell angezeigten (gefilterten) Versuche. Das Ergebnis ist je nach Admin-Einstellung:
+- Ein **ZIP-Archiv** mit einem PDF pro Versuch (Dateinamen enthalten TN-Name und Versuchsnummer)
+- Ein **zusammengefügtes PDF** mit allen Berichten hintereinander
 
-**E-Mail:**
-Du erhältst das PDF als Anhang an deine Moodle-E-Mail-Adresse — direkt nach Abschluss des Quiz.
+### Per-Quiz-Konfiguration
 
-### Was steht im PDF?
-
-Das PDF enthält immer:
-- Deinen Namen
-- Den Namen des Quiz
-- „Bestanden: Ja"
-
-Je nach Konfiguration zusätzlich:
-- Deine erreichten Punkte und die Gesamtpunktzahl
-- Die Bestehensgrenze
-- Die Prozentzahl
-- Datum und Uhrzeit des Versuchs
-- Die Dauer des Versuchs
-- Die Versuchsnummer
-
-Außerdem alle Fragen des Quiz mit deinen Antworten — und (falls aktiviert) die korrekte Lösung.
-
-### Kann ich mehrere PDFs haben?
-
-Ja. Für jeden **bestandenen** Versuch wird eine eigene PDF erzeugt. Hast du ein Quiz dreimal bestanden, hast du drei PDFs.
-
----
-
-## Trainer/innen
-
-### Wie aktiviere ich das Plugin für ein Quiz?
-
-Das Plugin ist global aktiv. Über **Quiz → Einstellungen → PDF Certificate settings** kannst du das Verhalten für ein einzelnes Quiz anpassen:
-
+Über **Quiz → Einstellungen → PDF Certificate settings** können Sie das Verhalten für ein einzelnes Quiz anpassen:
 - Ausgabemodus: Download / E-Mail / Beides
 - E-Mail-Empfänger (zusätzlich zum Lernenden)
 - E-Mail-Betreff
@@ -66,12 +43,36 @@ Leere Felder übernehmen den globalen Standard.
 
 ### Wer sieht welche PDFs?
 
-- Lernende sehen nur ihre eigenen PDFs (nur nach bestandenem Versuch)
-- Trainer/innen mit der Berechtigung „Manage" können alle PDFs eines Quiz sehen (Verwaltungsseite in Planung)
+- Trainer/innen und Manager/innen mit der Berechtigung `downloadall`: alle PDFs eines Quiz über die Report-Seite
+- Lernende: nur eigene PDFs, nur wenn "Student darf herunterladen" aktiviert ist (Admin-Einstellung)
 
-### Wie lange werden PDFs aufbewahrt?
+---
 
-Je nach Konfiguration (global oder pro Quiz). Standard: 365 Tage ab dem Datum des bestandenen Versuchs. Nach Ablauf wird die Datei automatisch gelöscht.
+## Lernende
+
+### Wann erhalte ich ein PDF?
+
+Ein PDF wird erzeugt, wenn Sie einen Quiz-Versuch abgeschlossen haben und der Versuch in den konfigurierten PDF-Scope fällt (z.B. nur bestandene Versuche oder alle abgeschlossenen).
+
+**Wichtig:** Der Student-Download ist eine optionale Funktion. Ihr/e Administrator/in kann diese deaktivieren — in dem Fall sind PDFs nur für Trainer/innen über die Report-Seite verfügbar.
+
+### Wie komme ich an mein PDF?
+
+Falls der Student-Download aktiviert ist:
+
+**Download:**
+Nach Abschluss des Quiz sehen Sie auf der Ergebnisseite einen blauen Button **„Download certificate"**. Klicken Sie darauf, um das PDF herunterzuladen.
+
+Fällt Ihr Versuch nicht in den PDF-Scope (z.B. nicht bestanden bei Scope "nur bestanden"), ist der Button grau und deaktiviert.
+
+**E-Mail:**
+Je nach Konfiguration erhalten Sie das PDF als Anhang an Ihre Moodle-E-Mail-Adresse.
+
+### Was steht im PDF?
+
+Das PDF enthält immer: Ihren Namen, den Quiz-Namen und ob Sie bestanden haben.
+
+Je nach Konfiguration zusätzlich: erreichte Punkte, Bestehensgrenze, Prozentzahl, Datum/Uhrzeit, Dauer, Versuchsnummer und alle Fragen mit Ihren Antworten.
 
 ---
 
@@ -79,14 +80,16 @@ Je nach Konfiguration (global oder pro Quiz). Standard: 365 Tage ab dem Datum de
 
 ### Globale Konfiguration
 
-**Website-Administration → Plugins → Lokale Plugins → Quiz PDF Certificate (eLeDia)**
+**Website-Administration → Plugins → Lokale Plugins → eLeDia | exam2pdf**
 
 | Einstellung | Beschreibung |
-|------------|-------------|
+|---|---|
+| PDF-Erzeugung | Bei Abgabe (automatisch) oder On-demand (bei Klick) |
+| PDF-Scope | Nur bestandene Versuche oder alle abgeschlossenen |
+| Student darf herunterladen | Download-Button auf der Student-Review-Seite anzeigen |
+| Bulk-Format | ZIP mit einzelnen PDFs oder ein zusammengefügtes PDF |
 | Ausgabemodus | Download, E-Mail oder Beides |
-| E-Mail-Empfänger | Kommagetrennte Adressen (zusätzlich zum Lernenden) |
-| E-Mail-Betreff | Unterstützt `{quizname}` und `{username}` |
-| Aufbewahrungsfrist | Tage ab bestandenem Versuch (0 = unbegrenzt) |
+| Aufbewahrungsfrist | Tage bis Auto-Löschung (0 = unbegrenzt) |
 | Optionale Felder | Welche Zusatzfelder im PDF erscheinen |
 | Korrekte Antworten | Im PDF anzeigen oder nicht |
 
@@ -102,7 +105,7 @@ Anschließend **Website-Administration → Benachrichtigungen** aufrufen.
 
 ### Scheduled Task
 
-Der Cleanup-Task läuft täglich um 02:30 Uhr und löscht alle PDFs, deren Aufbewahrungsfrist abgelaufen ist. Er kann auch manuell ausgeführt werden:
+Der Cleanup-Task läuft täglich um 02:30 Uhr und löscht alle PDFs, deren Aufbewahrungsfrist abgelaufen ist:
 
 ```bash
 php admin/cli/scheduled_task.php --execute='\local_eledia_exam2pdf\task\cleanup_expired_pdfs'
@@ -111,7 +114,8 @@ php admin/cli/scheduled_task.php --execute='\local_eledia_exam2pdf\task\cleanup_
 ### Berechtigungen
 
 | Capability | Beschreibung | Standard |
-|-----------|-------------|---------|
+|---|---|---|
 | `local/eledia_exam2pdf:downloadown` | Eigenes PDF herunterladen | Student, Teacher |
-| `local/eledia_exam2pdf:manage` | Alle PDFs verwalten | Editing Teacher, Manager |
+| `local/eledia_exam2pdf:downloadall` | Alle PDFs herunterladen (Report-Seite) | Editing Teacher, Manager |
+| `local/eledia_exam2pdf:generatepdf` | PDF (nach-)generieren | Editing Teacher, Manager |
 | `local/eledia_exam2pdf:configure` | Per-Quiz-Settings ändern | Editing Teacher, Manager |
