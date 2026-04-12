@@ -109,8 +109,10 @@ function local_eledia_exam2pdf_extend_settings_navigation(
         $quiznode    = $settingsnav->find('modulesettings', navigation_node::TYPE_SETTING);
 
         if ($quiznode) {
-            // PDF Certificates report — visible to teachers / managers with downloadall.
-            if (has_capability('local/eledia_exam2pdf:downloadall', $quizcontext)) {
+            // PDF Certificates report — visible to teachers / managers.
+            // Use :manage (legacy catch-all) so the link appears even before
+            // the :downloadall capability is explicitly assigned in the DB.
+            if (has_capability('local/eledia_exam2pdf:manage', $quizcontext)) {
                 $reporturl = new moodle_url(
                     '/local/eledia_exam2pdf/report.php',
                     ['cmid' => $PAGE->cm->id]
