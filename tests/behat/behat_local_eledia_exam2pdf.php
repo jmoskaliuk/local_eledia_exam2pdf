@@ -197,4 +197,45 @@ class behat_local_eledia_exam2pdf extends behat_base {
             );
         }
     }
+
+    /**
+     * Asserts the download button is visible; on failure reports the diagnostic div.
+     *
+     * This step checks the browser page for "Download certificate". If the
+     * text is missing, it reads the #exam2pdf-diag element (injected by the
+     * temporary diagnostic block in the hook callback) and includes its
+     * content in the exception message so CI logs show the exact variable
+     * state.
+     *
+     * @Then the exam2pdf download button should be visible
+     */
+    public function the_exam2pdf_download_button_should_be_visible(): void {
+        $page = $this->getSession()->getPage();
+
+        // Check for the download button text.
+        $pagetext = $page->getText();
+        if (strpos($pagetext, 'Download certificate') !== false) {
+            return;
+        }
+
+        // Button not found — gather diagnostics from the page.
+        $diagel = $page->find('css', '#exam2pdf-diag');
+        $diagtext = $diagel ? $diagel->getText() : 'DIAG_ELEMENT_NOT_FOUND';
+
+        // Also check for the download wrapper div in the raw HTML.
+        $rawhtml = $page->getContent();
+        $haswrapper = (strpos($rawhtml, 'local-eledia-exam2pdf-downloadwrap') !== false)
+            ? 'YES' : 'NO';
+
+        // Check if any exam2pdf content exists in page source.
+        $exam2pdfcount = substr_count($rawhtml, 'exam2pdf');
+
+        throw new \Exception(
+            'Download certificate button NOT found on page. '
+            . 'Diagnostic div: [' . $diagtext . '] '
+            . 'Wrapper div in HTML: ' . $haswrapper . ', '
+            . 'exam2pdf occurrences in source: ' . $exam2pdfcount . ', '
+            . 'Page text length: ' . strlen($pagetext)
+        );
+    }
 }

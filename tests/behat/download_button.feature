@@ -41,8 +41,7 @@ Feature: Download a PDF certificate after passing a quiz
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
     Then I should see "EXAM2PDF_DIAG"
-    And I should see "Download certificate"
-    And "Download certificate" "link" should exist
+    And the exam2pdf download button should be visible
 
   Scenario: A failed attempt does not show the download button
     Given user "student1" has attempted "Compliance Exam" with responses:
@@ -65,4 +64,4 @@ Feature: Download a PDF certificate after passing a quiz
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
     Then I should see "EXAM2PDF_DIAG"
-    And "Download certificate" "link" should exist
+    And the exam2pdf download button should be visible

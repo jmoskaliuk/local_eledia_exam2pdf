@@ -49,28 +49,36 @@ class quiz_page_callbacks {
             $diag[] = 'cm=' . (!empty($PAGE->cm) ? 'yes(inst=' . $PAGE->cm->instance . ')' : 'NO');
 
             if (!empty($PAGE->cm)) {
-                $config = \local_eledia_exam2pdf\helper::get_effective_config($PAGE->cm->instance);
-                $diag[] = 'sd=' . var_export($config['studentdownload'] ?? null, true);
+                $diagconfig = \local_eledia_exam2pdf\helper::get_effective_config(
+                    $PAGE->cm->instance
+                );
+                $diag[] = 'sd=' . var_export($diagconfig['studentdownload'] ?? null, true);
             }
 
-            $attemptid = optional_param('attempt', 0, PARAM_INT);
-            $diag[] = 'att=' . $attemptid;
+            $diagattemptid = optional_param('attempt', 0, PARAM_INT);
+            $diag[] = 'att=' . $diagattemptid;
             $diag[] = 'uid=' . ($USER->id ?? 0);
 
-            if ($attemptid > 0 && !empty($USER->id)) {
-                $rec = $DB->get_record('local_eledia_exam2pdf',
-                    ['attemptid' => $attemptid, 'userid' => $USER->id],
-                    'id, cmid', IGNORE_MISSING);
-                $diag[] = 'rec_uid=' . ($rec ? $rec->id : 'null');
+            if ($diagattemptid > 0 && !empty($USER->id)) {
+                $recrec = $DB->get_record(
+                    'local_eledia_exam2pdf',
+                    ['attemptid' => $diagattemptid, 'userid' => $USER->id],
+                    'id, cmid',
+                    IGNORE_MISSING
+                );
+                $diag[] = 'rec_uid=' . ($recrec ? $recrec->id : 'null');
 
-                $rec2 = $DB->get_record('local_eledia_exam2pdf',
-                    ['attemptid' => $attemptid],
-                    'id, userid', IGNORE_MISSING);
-                $diag[] = 'rec_any=' . ($rec2 ? 'id=' . $rec2->id . ',uid=' . $rec2->userid : 'null');
+                $recany = $DB->get_record(
+                    'local_eledia_exam2pdf',
+                    ['attemptid' => $diagattemptid],
+                    'id, userid',
+                    IGNORE_MISSING
+                );
+                $diag[] = 'rec_any=' . ($recany ? 'id=' . $recany->id . ',uid=' . $recany->userid : 'null');
 
-                if ($rec) {
-                    $file = \local_eledia_exam2pdf\helper::get_stored_file($rec);
-                    $diag[] = 'file=' . ($file ? 'ok(' . $file->get_filesize() . ')' : 'null');
+                if ($recrec) {
+                    $diagfile = \local_eledia_exam2pdf\helper::get_stored_file($recrec);
+                    $diag[] = 'file=' . ($diagfile ? 'ok(' . $diagfile->get_filesize() . ')' : 'null');
                 }
             }
 
