@@ -36,12 +36,11 @@ Feature: Download a PDF certificate after passing a quiz
       | slot | response |
       | 1    | True     |
     And the exam2pdf observer has processed the attempt for "student1" in "Compliance Exam"
-    And the exam2pdf PDF record for "student1" in "Compliance Exam" should exist
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
-    Then I should see "EXAM2PDF_DIAG"
-    And the exam2pdf download button should be visible
+    Then I should see "Download certificate"
+    And "Download certificate" "link" should exist
 
   Scenario: A failed attempt does not show the download button
     Given user "student1" has attempted "Compliance Exam" with responses:
@@ -51,17 +50,14 @@ Feature: Download a PDF certificate after passing a quiz
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
-    Then I should see "EXAM2PDF_DIAG"
-    And I should not see "Download certificate"
+    Then I should not see "Download certificate"
 
   Scenario: The certificate link points at the plugin download endpoint
     Given user "student1" has attempted "Compliance Exam" with responses:
       | slot | response |
       | 1    | True     |
     And the exam2pdf observer has processed the attempt for "student1" in "Compliance Exam"
-    And the exam2pdf PDF record for "student1" in "Compliance Exam" should exist
     When I log in as "student1"
     And I am on the "Compliance Exam" "quiz activity" page
     And I follow "Review"
-    Then I should see "EXAM2PDF_DIAG"
-    And the exam2pdf download button should be visible
+    Then "Download certificate" "link" should exist

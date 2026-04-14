@@ -29,6 +29,10 @@ use core\hook\output\before_footer_html_generation;
 /**
  * Provides HTML fragments that are injected into the quiz review and
  * quiz report pages via the before_footer_html_generation hook.
+ *
+ * NOTE: $PAGE->cm is NOT reliable during this hook's dispatch in
+ * Moodle 4.5+/5.x on mod-quiz-review pages. The callbacks below
+ * derive cmid/quizid from the PDF record in the database instead.
  */
 class quiz_page_callbacks {
     /**
@@ -40,56 +44,7 @@ class quiz_page_callbacks {
      * @return void
      */
     public static function inject_footer_html(before_footer_html_generation $hook): void {
-        global $PAGE, $USER, $DB;
-
-        // --- DIAGNOSTIC: temporary, remove after CI debugging ---
-        if ($PAGE->pagetype === 'mod-quiz-review') {
-            $diag = [];
-            $diag[] = 'pt=mod-quiz-review';
-            $diag[] = 'cm=' . (!empty($PAGE->cm) ? 'yes(inst=' . $PAGE->cm->instance . ')' : 'NO');
-
-            if (!empty($PAGE->cm)) {
-                $diagconfig = \local_eledia_exam2pdf\helper::get_effective_config(
-                    $PAGE->cm->instance
-                );
-                $diag[] = 'sd=' . var_export($diagconfig['studentdownload'] ?? null, true);
-            }
-
-            $diagattemptid = optional_param('attempt', 0, PARAM_INT);
-            $diag[] = 'att=' . $diagattemptid;
-            $diag[] = 'uid=' . ($USER->id ?? 0);
-
-            if ($diagattemptid > 0 && !empty($USER->id)) {
-                $recrec = $DB->get_record(
-                    'local_eledia_exam2pdf',
-                    ['attemptid' => $diagattemptid, 'userid' => $USER->id],
-                    'id, cmid',
-                    IGNORE_MISSING
-                );
-                $diag[] = 'rec_uid=' . ($recrec ? $recrec->id : 'null');
-
-                $recany = $DB->get_record(
-                    'local_eledia_exam2pdf',
-                    ['attemptid' => $diagattemptid],
-                    'id, userid',
-                    IGNORE_MISSING
-                );
-                $diag[] = 'rec_any=' . ($recany ? 'id=' . $recany->id . ',uid=' . $recany->userid : 'null');
-
-                if ($recrec) {
-                    $diagfile = \local_eledia_exam2pdf\helper::get_stored_file($recrec);
-                    $diag[] = 'file=' . ($diagfile ? 'ok(' . $diagfile->get_filesize() . ')' : 'null');
-                }
-            }
-
-            $hook->add_html(
-                '<div id="exam2pdf-diag" style="background:#ffe0e0;border:2px solid red;'
-                . 'padding:8px;margin:10px 0;">'
-                . 'EXAM2PDF_DIAG: ' . implode(', ', $diag)
-                . '</div>'
-            );
-        }
-        // --- END DIAGNOSTIC ---
+        global $PAGE;
 
         // Trainer/Manager: report overview page gets the bulk PDF section.
         if ($PAGE->pagetype === 'mod-quiz-report') {
@@ -104,44 +59,12 @@ class quiz_page_callbacks {
         }
 
         // Student: quiz review page gets the download button.
-        if ($PAGE->pagetype !== 'mod-quiz-review') {
-            return;
+        if ($PAGE->pagetype === 'mod-quiz-review') {
+            $html = self::get_download_button_html();
+            if ($html !== '') {
+                $hook->add_html($html);
+            }
         }
-
-        if (empty($PAGE->cm)) {
-            return;
-        }
-
-        $config = \local_eledia_exam2pdf\helper::get_effective_config($PAGE->cm->instance);
-        if (empty($config['studentdownload'])) {
-            return;
-        }
-
-        $attemptid = optional_param('attempt', 0, PARAM_INT);
-        if (!$attemptid) {
-            return;
-        }
-
-        // Look up the PDF record for the current user / attempt.
-        $record = $DB->get_record(
-            'local_eledia_exam2pdf',
-            ['attemptid' => $attemptid, 'userid' => $USER->id],
-            'id, cmid, timeexpires',
-            IGNORE_MISSING
-        );
-
-        if (!$record) {
-            return;
-        }
-
-        // Check the file still exists (not yet expired / deleted).
-        $file = \local_eledia_exam2pdf\helper::get_stored_file($record);
-        if (!$file) {
-            return;
-        }
-
-        $downloadurl = \local_eledia_exam2pdf\helper::get_download_url($record, $file->get_filename());
-        $hook->add_html(self::render_download_button($downloadurl->out(false)));
     }
 
     /**
@@ -174,34 +97,35 @@ class quiz_page_callbacks {
     /**
      * Returns the download-button HTML for the quiz review page.
      *
+     * Derives cmid/quizid from the PDF record, not from $PAGE->cm, because
+     * $PAGE->cm is unreliable during the before_footer hook dispatch.
+     *
      * @return string HTML or empty string.
      */
     private static function get_download_button_html(): string {
-        global $PAGE, $USER, $DB;
-
-        // Respect the studentdownload setting.
-        if (empty($PAGE->cm)) {
-            return '';
-        }
-        $config = \local_eledia_exam2pdf\helper::get_effective_config($PAGE->cm->instance);
-        if (empty($config['studentdownload'])) {
-            return '';
-        }
+        global $USER, $DB;
 
         $attemptid = optional_param('attempt', 0, PARAM_INT);
-        if (!$attemptid) {
+        if (!$attemptid || empty($USER->id)) {
             return '';
         }
 
-        // Look up the PDF record for the current user / attempt.
+        // Look up the PDF record for the current user / attempt. The record
+        // carries cmid + quizid so we don't need $PAGE->cm.
         $record = $DB->get_record(
             'local_eledia_exam2pdf',
             ['attemptid' => $attemptid, 'userid' => $USER->id],
-            'id, cmid, timeexpires',
+            'id, cmid, quizid, timeexpires',
             IGNORE_MISSING
         );
 
         if (!$record) {
+            return '';
+        }
+
+        // Respect the studentdownload setting (global + per-quiz override).
+        $config = \local_eledia_exam2pdf\helper::get_effective_config($record->quizid);
+        if (empty($config['studentdownload'])) {
             return '';
         }
 
@@ -224,6 +148,9 @@ class quiz_page_callbacks {
     private static function get_report_section_html(): string {
         global $PAGE;
 
+        // The report page DOES have $PAGE->cm set reliably because quiz
+        // report pages extend the quiz module context properly. If it's
+        // somehow missing, bail quietly.
         if (empty($PAGE->cm)) {
             return '';
         }

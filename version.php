@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_eledia_exam2pdf';
-$plugin->version   = 2026041208;
+$plugin->version   = 2026041209;
 $plugin->requires  = 2024100700; // Moodle 4.5.
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.4.2-diag';
+$plugin->release   = '0.4.1';
