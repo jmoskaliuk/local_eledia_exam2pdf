@@ -29,12 +29,63 @@
  * @return bool
  */
 function xmldb_local_eledia_exam2pdf_upgrade($oldversion) {
+    global $DB;
+
     if ($oldversion < 2026041202) {
         // Import bundled User Tours.
         require_once(__DIR__ . '/install.php');
         local_eledia_exam2pdf_import_tours();
 
         upgrade_plugin_savepoint(true, 2026041202, 'local', 'eledia_exam2pdf');
+    }
+
+    if ($oldversion < 2026041700) {
+        $table = new xmldb_table('local_eledia_exam2pdf');
+        $oldindex = new xmldb_index('idx_attemptid', XMLDB_INDEX_NOTUNIQUE, ['attemptid']);
+        $newindex = new xmldb_index('uniq_attemptid', XMLDB_INDEX_UNIQUE, ['attemptid']);
+        $dbman = $DB->get_manager();
+
+        // Clean up existing duplicate rows before adding a unique index.
+        $duplicates = $DB->get_records_sql(
+            'SELECT attemptid, MIN(id) AS keepid
+               FROM {local_eledia_exam2pdf}
+           GROUP BY attemptid
+             HAVING COUNT(1) > 1'
+        );
+        if (!empty($duplicates)) {
+            $fs = get_file_storage();
+            foreach ($duplicates as $duplicate) {
+                $redundant = $DB->get_records_select(
+                    'local_eledia_exam2pdf',
+                    'attemptid = :attemptid AND id <> :keepid',
+                    [
+                        'attemptid' => $duplicate->attemptid,
+                        'keepid' => $duplicate->keepid,
+                    ],
+                    'id ASC',
+                    'id, cmid'
+                );
+
+                foreach ($redundant as $record) {
+                    try {
+                        $context = \core\context\module::instance($record->cmid);
+                        $fs->delete_area_files($context->id, 'local_eledia_exam2pdf', 'attempt_pdf', $record->id);
+                    } catch (\Throwable $e) {
+                        // Best effort cleanup: still delete DB row below.
+                    }
+                    $DB->delete_records('local_eledia_exam2pdf', ['id' => $record->id]);
+                }
+            }
+        }
+
+        if ($dbman->index_exists($table, $oldindex)) {
+            $dbman->drop_index($table, $oldindex);
+        }
+        if (!$dbman->index_exists($table, $newindex)) {
+            $dbman->add_index($table, $newindex);
+        }
+
+        upgrade_plugin_savepoint(true, 2026041700, 'local', 'eledia_exam2pdf');
     }
 
     return true;

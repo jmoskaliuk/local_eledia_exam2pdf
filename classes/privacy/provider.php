@@ -81,15 +81,18 @@ class provider implements
         $sql = '
             SELECT ctx.id
               FROM {context} ctx
-              JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :ctxmodule
+              JOIN {course_modules} cm ON cm.id = ctx.instanceid
+              JOIN {modules} m ON m.id = cm.module AND m.name = :quizmod
               JOIN {quiz} q ON q.id = cm.instance
               JOIN {local_eledia_exam2pdf} r ON r.quizid = q.id
-             WHERE r.userid = :userid
+             WHERE ctx.contextlevel = :ctxmodule
+               AND r.userid = :userid
         ';
 
         $contextlist->add_from_sql($sql, [
             'userid'    => $userid,
             'ctxmodule' => CONTEXT_MODULE,
+            'quizmod'   => 'quiz',
         ]);
 
         return $contextlist;
@@ -113,10 +116,11 @@ class provider implements
               FROM {local_eledia_exam2pdf} r
               JOIN {quiz} q ON q.id = r.quizid
               JOIN {course_modules} cm ON cm.instance = q.id
+              JOIN {modules} m ON m.id = cm.module AND m.name = :quizmod
              WHERE cm.id = :cmid
         ';
 
-        $userlist->add_from_sql('userid', $sql, ['cmid' => $context->instanceid]);
+        $userlist->add_from_sql('userid', $sql, ['cmid' => $context->instanceid, 'quizmod' => 'quiz']);
     }
 
     /**
@@ -140,8 +144,9 @@ class provider implements
                    FROM {local_eledia_exam2pdf} r
                    JOIN {quiz} q ON q.id = r.quizid
                    JOIN {course_modules} cm ON cm.instance = q.id
+                   JOIN {modules} m ON m.id = cm.module AND m.name = :quizmod
                   WHERE cm.id = :cmid AND r.userid = :userid',
-                ['cmid' => $context->instanceid, 'userid' => $userid]
+                ['cmid' => $context->instanceid, 'userid' => $userid, 'quizmod' => 'quiz']
             );
 
             if (empty($records)) {

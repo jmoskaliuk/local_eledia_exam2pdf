@@ -17,7 +17,9 @@
 /**
  * PDF certificate download page.
  *
- * URL: /local/eledia_exam2pdf/download.php?id=<record_id>
+ * URL:
+ * - /local/eledia_exam2pdf/download.php?id=<record_id>
+ * - /local/eledia_exam2pdf/download.php?attemptid=<attempt_id> (on-demand mode)
  *
  * @package    local_eledia_exam2pdf
  * @copyright  2025 eLeDia GmbH
@@ -27,20 +29,75 @@
 require_once('../../config.php');
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
-$id = required_param('id', PARAM_INT);
+$id = optional_param('id', 0, PARAM_INT);
+$attemptid = optional_param('attemptid', 0, PARAM_INT);
 
-$record = $DB->get_record('local_eledia_exam2pdf', ['id' => $id], '*', MUST_EXIST);
+if (empty($id) && empty($attemptid)) {
+    throw new \invalid_parameter_exception('Missing required parameter: id or attemptid.');
+}
 
-// Determine context from the CM ID stored with the record.
-$cm      = get_coursemodule_from_id('quiz', $record->cmid, 0, false, MUST_EXIST);
+// Resolve record and attempt.
+$record = null;
+if ($id) {
+    $record = $DB->get_record('local_eledia_exam2pdf', ['id' => $id], '*', MUST_EXIST);
+    $attemptid = (int) $record->attemptid;
+}
+
+$attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', MUST_EXIST);
+$quiz = $DB->get_record('quiz', ['id' => $attempt->quiz], '*', MUST_EXIST);
+
+if (!$record) {
+    $record = $DB->get_record(
+        'local_eledia_exam2pdf',
+        ['attemptid' => $attemptid],
+        '*',
+        IGNORE_MISSING
+    );
+}
+
+$cm      = get_coursemodule_from_instance('quiz', $quiz->id, 0, false, MUST_EXIST);
 $context = \core\context\module::instance($cm->id);
-$course  = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
+$course  = get_course($cm->course);
 
 require_login($course, false, $cm);
 
-// Access check: own record OR manage capability.
-$canmanage = has_capability('local/eledia_exam2pdf:manage', $context);
-if (!$canmanage && $record->userid != $USER->id) {
+$config = \local_eledia_exam2pdf\helper::get_effective_config((int) $quiz->id);
+$candownloadall = \local_eledia_exam2pdf\helper::has_downloadall_capability($context);
+$candownloadown = \local_eledia_exam2pdf\helper::has_downloadown_capability($context);
+$isownerattempt = ((int) $attempt->userid === (int) $USER->id);
+
+// Enforce owner/downloadown + studentdownload for learner self-service.
+if (!$candownloadall) {
+    if (!$isownerattempt || !$candownloadown) {
+        notice(get_string('download_nopermission', 'local_eledia_exam2pdf'));
+    }
+    if (empty($config['studentdownload'])) {
+        notice(get_string('download_nopermission', 'local_eledia_exam2pdf'));
+    }
+}
+
+// On-demand fallback: create missing PDF on click (if enabled).
+if (!$record) {
+    $mode = $config['pdfgeneration'] ?? 'auto';
+    $cangenerate = \local_eledia_exam2pdf\helper::has_generatepdf_capability($context)
+        || ($isownerattempt && $candownloadown);
+
+    if ($mode !== 'ondemand' || !$cangenerate) {
+        notice(get_string('download_notavailable', 'local_eledia_exam2pdf'));
+    }
+
+    if (!\local_eledia_exam2pdf\helper::is_in_pdf_scope($attempt, $quiz, $config)) {
+        notice(get_string('download_button_notpassed', 'local_eledia_exam2pdf'));
+    }
+
+    $record = \local_eledia_exam2pdf\observer::ensure_pdf_for_attempt((int) $attempt->id, true);
+    if (!$record) {
+        notice(get_string('download_notavailable', 'local_eledia_exam2pdf'));
+    }
+}
+
+// Final ownership guard for record-based downloads.
+if (!$candownloadall && (int) $record->userid !== (int) $USER->id) {
     notice(get_string('download_nopermission', 'local_eledia_exam2pdf'));
 }
 

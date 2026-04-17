@@ -98,6 +98,7 @@ $string['report_col_duration'] = 'Duration';
 $string['report_col_grade'] = 'Grade';
 $string['report_col_started'] = 'Started';
 $string['report_download_one'] = 'Download PDF';
+$string['report_download_merged'] = 'Download all as merged PDF';
 $string['report_download_zip'] = 'Download all as ZIP';
 $string['report_heading'] = 'PDF Certificates';
 $string['report_nav_link'] = 'PDF Certificates';

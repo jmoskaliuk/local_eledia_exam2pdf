@@ -41,10 +41,90 @@ class generator {
      * @return string Raw PDF bytes.
      */
     public static function generate(quiz_attempt $attemptobj, \stdClass $quiz, array $config): string {
-        global $CFG, $DB;
+        global $CFG;
 
         require_once($CFG->libdir . '/tcpdf/tcpdf.php');
         require_once($CFG->libdir . '/gradelib.php');
+
+        $pdf = self::create_pdf_document($quiz);
+        $pdf->AddPage();
+
+        $html = self::render_attempt_document($attemptobj, $quiz, $config);
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        // Return as string.
+        return $pdf->Output('', 'S');
+    }
+
+    /**
+     * Generates one merged PDF for multiple attempts of the same quiz.
+     *
+     * @param int[] $attemptids List of quiz_attempt IDs.
+     * @param \stdClass $quiz The quiz DB record.
+     * @param array $config Effective config (global + per-quiz overrides).
+     * @return string Raw PDF bytes.
+     */
+    public static function generate_merged(array $attemptids, \stdClass $quiz, array $config): string {
+        global $CFG;
+
+        require_once($CFG->libdir . '/tcpdf/tcpdf.php');
+        require_once($CFG->libdir . '/gradelib.php');
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+
+        $attemptids = array_values(array_unique(array_map('intval', $attemptids)));
+        if (empty($attemptids)) {
+            return '';
+        }
+
+        $pdf = self::create_pdf_document($quiz);
+
+        foreach ($attemptids as $attemptid) {
+            $attemptobj = \mod_quiz\quiz_attempt::create($attemptid);
+            $pdf->AddPage();
+            $html = self::render_attempt_document($attemptobj, $quiz, $config);
+            $pdf->writeHTML($html, true, false, true, false, '');
+        }
+
+        return $pdf->Output('', 'S');
+    }
+
+    // Private render helpers.
+
+    /**
+     * Creates a configured TCPDF document instance.
+     *
+     * @param \stdClass $quiz The quiz record.
+     * @return \TCPDF
+     */
+    private static function create_pdf_document(\stdClass $quiz): \TCPDF {
+        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetCreator('Moodle / eLeDia exam2pdf');
+        $pdf->SetAuthor('eLeDia GmbH');
+        $pdf->SetTitle(get_string('pdf_title', 'local_eledia_exam2pdf'));
+        $pdf->SetSubject($quiz->name);
+        $pdf->SetMargins(20, 28, 20);
+        $pdf->SetHeaderMargin(5);
+        $pdf->SetFooterMargin(10);
+        $pdf->setHeaderFont(['helvetica', 'B', 12]);
+        $pdf->setFooterFont(['helvetica', '', 9]);
+        $pdf->SetDefaultMonospacedFont('courier');
+        $pdf->SetAutoPageBreak(true, 20);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(true);
+        return $pdf;
+    }
+
+    /**
+     * Renders one full attempt document (logo + header + questions).
+     *
+     * @param quiz_attempt $attemptobj Fully initialised quiz_attempt object.
+     * @param \stdClass $quiz The quiz DB record.
+     * @param array $config Effective config values.
+     * @return string
+     */
+    private static function render_attempt_document(quiz_attempt $attemptobj, \stdClass $quiz, array $config): string {
+        global $DB;
 
         $attempt = $attemptobj->get_attempt();
         $learner = $DB->get_record('user', ['id' => $attempt->userid], '*', MUST_EXIST);
@@ -73,36 +153,11 @@ class generator {
             $duration = gmdate('H:i:s', $secs);
         }
 
-        // Set up TCPDF.
-        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-        $pdf->SetCreator('Moodle / eLeDia exam2pdf');
-        $pdf->SetAuthor('eLeDia GmbH');
-        $pdf->SetTitle(get_string('pdf_title', 'local_eledia_exam2pdf'));
-        $pdf->SetSubject($quiz->name);
-        $pdf->SetMargins(20, 28, 20);
-        $pdf->SetHeaderMargin(5);
-        $pdf->SetFooterMargin(10);
-        $pdf->setHeaderFont(['helvetica', 'B', 12]);
-        $pdf->setFooterFont(['helvetica', '', 9]);
-        $pdf->SetDefaultMonospacedFont('courier');
-        $pdf->SetAutoPageBreak(true, 20);
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(true);
-        $pdf->AddPage();
-
-        // Build HTML content.
         $html  = self::get_logo_html();
         $html .= self::render_header($learner, $quiz, $passed, $attempt, $grade, $percentage, $duration, $config, $gradepass);
         $html .= self::render_questions($attemptobj, $config);
-
-        $pdf->writeHTML($html, true, false, true, false, '');
-
-        // Return as string.
-        return $pdf->Output('', 'S');
+        return $html;
     }
-
-    // Private render helpers.
 
     /**
      * Fetches the site logo from the Moodle file storage and returns an HTML

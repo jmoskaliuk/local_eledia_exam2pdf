@@ -99,6 +99,7 @@ $string['report_col_grade'] = 'Bewertung';
 $string['report_col_started'] = 'Gestartet';
 $string['report_download_button'] = 'PDFs herunterladen';
 $string['report_download_one'] = 'PDF herunterladen';
+$string['report_download_merged'] = 'Alle als zusammengeführtes PDF herunterladen';
 $string['report_download_zip'] = 'Alle als ZIP herunterladen';
 $string['report_heading'] = 'exam2pdf';
 $string['report_nav_link'] = 'exam2pdf';

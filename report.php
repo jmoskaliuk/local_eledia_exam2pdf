@@ -23,8 +23,7 @@
  * pagination, A-Z name initials filter, sortable columns, and per-row
  * download actions.
  *
- * Requires the local/eledia_exam2pdf:manage capability (editing teacher,
- * manager). Students are directed to the quiz review page instead.
+ * Requires download-all access (downloadall/manage capability fallback).
  *
  * @package    local_eledia_exam2pdf
  * @copyright  2026 eLeDia GmbH
@@ -43,7 +42,14 @@ $quiz    = $DB->get_record('quiz', ['id' => $cm->instance], '*', MUST_EXIST);
 $context = \core\context\module::instance($cm->id);
 
 require_login($course, false, $cm);
-require_capability('local/eledia_exam2pdf:manage', $context);
+if (!\local_eledia_exam2pdf\helper::has_downloadall_capability($context)) {
+    throw new required_capability_exception(
+        $context,
+        'local/eledia_exam2pdf:downloadall',
+        'nopermissions',
+        ''
+    );
+}
 
 $baseurl = new moodle_url('/local/eledia_exam2pdf/report.php', ['cmid' => $cmid]);
 
@@ -67,14 +73,16 @@ if (!$table->is_downloading()) {
     echo html_writer::tag('p', format_string($quiz->name), ['class' => 'lead']);
 }
 
-// Populate and render the table.
-$table->query_db($pagesize);
+// Render the table (out() handles setup + query).
 $table->out($pagesize, true);
 
 if (!$table->is_downloading()) {
     // Bulk ZIP download button below the table.
     $zipurl   = new moodle_url('/local/eledia_exam2pdf/zip.php', ['cmid' => $cmid]);
-    $ziplabel = get_string('report_download_zip', 'local_eledia_exam2pdf');
+    $config = \local_eledia_exam2pdf\helper::get_effective_config((int) $quiz->id);
+    $ziplabel = (($config['bulkformat'] ?? 'zip') === 'merged')
+        ? get_string('report_download_merged', 'local_eledia_exam2pdf')
+        : get_string('report_download_zip', 'local_eledia_exam2pdf');
     echo html_writer::div(
         html_writer::link($zipurl, $ziplabel, ['class' => 'btn btn-primary']),
         'mt-3'
