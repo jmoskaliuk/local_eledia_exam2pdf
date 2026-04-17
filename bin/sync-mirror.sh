@@ -35,6 +35,7 @@ mkdir -p "$MIRROR"
 
 # Files & dirs to ship in the mirror. Anything not in this list stays out.
 INCLUDES=(
+    amd
     classes
     db
     lang
@@ -42,6 +43,7 @@ INCLUDES=(
     tests
     bin
     download.php
+    regenerate.php
     report.php
     zip.php
     lib.php
