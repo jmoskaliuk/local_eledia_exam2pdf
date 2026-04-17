@@ -14,8 +14,8 @@ Automatically generates a PDF document after each passed quiz attempt as a compl
 - **Configurable header fields**: mandatory fields + optional fields (score, percentage, pass grade, timestamp, duration, attempt number)
 - **Per-quiz overrides** — all global settings can be overridden directly in the quiz edit form ("exam2pdf Settings" section)
 - **Student self-service** — optional download button on the quiz review page, controllable per quiz
-- **Report page** — sortable, paginated table of all generated PDFs for a quiz (initials bar, profile links)
-- **"Download PDFs" button** on the standard quiz results page for quick access to the report
+- **Native quiz overview integration** — actions column in `mod/quiz/report.php?mode=overview` with per-attempt download/regenerate
+- **Bulk download button** on the quiz results page (ZIP or merged PDF)
 - **Bulk download** — download all certificates as a ZIP archive
 - **Automatic cleanup** of expired PDFs via scheduled task (nightly at 02:30)
 - **Custom PDF layout** — site logo in header, Moodle URL in footer, consistent table styling
@@ -99,7 +99,7 @@ PDFs are stored in the Moodle file system:
 | Capability | Description | Default roles |
 |-----------|-------------|---------------|
 | `local/eledia_exam2pdf:downloadown` | Download own PDF certificate | Student, Teacher |
-| `local/eledia_exam2pdf:downloadall` | Download all PDFs for a quiz (report page) | Editing Teacher, Manager |
+| `local/eledia_exam2pdf:downloadall` | Download all PDFs for a quiz | Editing Teacher, Manager |
 | `local/eledia_exam2pdf:manage` | Manage all PDFs for a quiz | Editing Teacher, Manager |
 | `local/eledia_exam2pdf:configure` | Configure per-quiz PDF settings | Editing Teacher, Manager |
 | `local/eledia_exam2pdf:generatepdf` | Generate or regenerate PDF certificates | Editing Teacher, Manager |
@@ -115,16 +115,22 @@ local/eledia_exam2pdf/
 │   │   └── quizsettings.php           # Per-quiz settings form (standalone fallback)
 │   ├── helper.php                     # Config merge, file URL generation
 │   ├── hook/
-│   │   └── quiz_page_callbacks.php    # Download button + report button via Hooks API
+│   │   └── quiz_page_callbacks.php    # Review button + overview actions/bulk button via Hooks API
 │   ├── observer.php                   # Event listener: attempt_submitted
 │   ├── pdf/
 │   │   └── generator.php              # TCPDF-based PDF generation with logo + footer
 │   ├── privacy/
 │   │   └── provider.php               # GDPR Privacy API
-│   ├── table/
-│   │   └── pdf_table.php              # Sortable report table (table_sql)
 │   └── task/
 │       └── cleanup_expired_pdfs.php   # Scheduled task
+├── docs/
+│   ├── 00-master.md
+│   ├── 01-features.md
+│   ├── 02-user-doc.md
+│   ├── 03-dev-doc.md
+│   ├── 04-tasks.md
+│   ├── 05-quality.md
+│   └── dev-workflow.md
 ├── db/
 │   ├── access.php                     # Capabilities
 │   ├── events.php                     # Event observer registration
@@ -136,9 +142,9 @@ local/eledia_exam2pdf/
 │   └── en/local_eledia_exam2pdf.php   # English strings (base)
 ├── pix/icon.svg
 ├── download.php                       # File serve with access checks
+├── regenerate.php                     # Explicit regenerate endpoint
 ├── lib.php                            # Moodle callbacks (pluginfile, navigation, coursemodule form)
 ├── quizsettings.php                   # Per-quiz config page (standalone fallback)
-├── report.php                         # PDF certificates report (sortable table)
 ├── settings.php                       # Global admin settings
 ├── version.php
 └── zip.php                            # Bulk ZIP download
@@ -148,7 +154,7 @@ local/eledia_exam2pdf/
 
 ## Development
 
-See [dev-workflow.md](dev-workflow.md) for the full development workflow including CI/CD, deployment, and testing.
+See [docs/dev-workflow.md](docs/dev-workflow.md) for the full development workflow including CI/CD, deployment, and testing.
 
 ### Quick iteration loop
 

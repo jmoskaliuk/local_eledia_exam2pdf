@@ -184,48 +184,32 @@ Rollenbasierter Zugriff auf PDF-Erzeugung und -Download.
 
 ---
 
-### feat07 Quiz-Results-Integration (NEU — Hauptfeature v2)
+### feat07 Quiz-Results-Integration (Hauptfeature)
 
 **Goal**
-Teacher und Manager sollen in der Quiz-Results/Grades-Tabelle direkt PDF-Reports pro Teilnehmer sehen und herunterladen können.
+Teacher und Manager sollen in der Standard-Quiz-Übersicht (`mod/quiz/report.php?mode=overview`) direkt PDF-Aktionen pro Versuch sehen und ausführen können.
 
 **Behavior**
 
-*"What to include"-Sektion:*
-- Neue Checkbox-Option "PDF-Reports anzeigen" im Filter-Bereich der Grades-Seite
-- Wenn aktiviert: zusätzliche Spalte ".pdf" in der Ergebnistabelle
-
-*Per-TN-Button in der Tabelle:*
-- Jede Zeile (= ein Versuch) bekommt ein PDF-Icon/Button
-- Icon-Varianten:
-  - PDF vorhanden → Download-Icon (aktiv, Klick = sofortiger Download)
-  - PDF nicht vorhanden + Auto-Modus → Kein Icon (PDF noch nicht generiert, z.B. nicht bestanden bei Scope "nur bestanden")
-  - PDF nicht vorhanden + On-demand-Modus → Generierungs-Icon (Klick = PDF erzeugen + downloaden)
-- Nur sichtbar mit Capability `downloadall`
-
-*Technische Integration (Entscheidung: Option C):*
-- Eigene Report-Seite `/local/eledia_exam2pdf/report.php`
-- Verlinkt aus der Quiz-Navigation via `extend_settings_navigation()` (neben "Grades")
-- Zeigt dieselben Versuchsdaten wie die Grades-Tabelle, plus PDF-Spalte und Bulk-Button
-- Volle Kontrolle über Tabelle und UI, keine Abhängigkeit von internen Quiz-Hooks
-- Kompatibel mit Moodle 4.5 LTS bis 5.1
-
-*Verworfene Optionen:*
-- Option A (Quiz-Report-Subplugin): Braucht ein separates Plugin, kann nicht in `local_` leben
-- Option B (Hook in Grades-Tabelle): JS-basierte Spalteninjektion zu fragil bei Moodle-Upgrades
+- Zusätzliche Spalte **Actions** direkt nach der Gesamtnote.
+- Pro Versuch stehen zwei Aktionen zur Verfügung:
+  - **Download** (wenn PDF existiert oder on-demand erzeugbar ist)
+  - **Regenerieren** (für Rollen mit `generatepdf`)
+- Spalte wird nur für Rollen mit `downloadall` eingeblendet.
+- Die Integration erfolgt per Hook + JS-Injektion in die vorhandene Moodle-Tabelle.
 
 ---
 
-### feat08 Bulk-Download (NEU)
+### feat08 Bulk-Download
 
 **Goal**
-Teacher soll alle PDF-Reports der aktuellen Ansicht mit einem Klick herunterladen können.
+Teacher soll alle vorhandenen/erzeugbaren Auswertungen eines Quiz mit einem Klick herunterladen können.
 
 **Behavior**
 
 *Button-Platzierung:*
-- Neben dem bestehenden "Download"-Button (CSV) auf der Grades-Seite
-- Button-Label: ".pdf-Reports herunterladen"
+- Im Quiz-Overview-Report als zusätzlicher exam2pdf-Button
+- Positionierung bei den Report-Aktionen (neben `Regrade attempts`, falls vorhanden)
 - Nur sichtbar mit Capability `downloadall`
 
 *Bulk-Format (konfigurierbar):*
@@ -234,15 +218,15 @@ Teacher soll alle PDF-Reports der aktuellen Ansicht mit einem Klick herunterlade
 - Admin-Setting: `bulkformat` — "ZIP mit einzelnen PDFs" | "Ein zusammengefügtes PDF"
 
 *Scope:*
-- Generiert/sammelt nur die aktuell angezeigten (gefilterten) Versuche
-- Im On-demand-Modus: fehlende PDFs werden bei Bulk-Download automatisch erzeugt
+- Verarbeitet alle Quiz-PDF-Einträge für das aktuelle Quizmodul
+- Im On-demand-Modus werden fehlende PDFs bei Bedarf erzeugt
 
 **Non-goals**
 - Kein asynchroner Hintergrund-Job (synchrone Erzeugung, ggf. mit Progress-Bar)
 
 ---
 
-### feat09 Student-Self-Service (NEU — aus v1 übernommen, jetzt optional)
+### feat09 Student-Self-Service (optional)
 
 **Goal**
 Studenten können optional ihr eigenes PDF auf der Quiz-Review-Seite herunterladen.
@@ -250,8 +234,8 @@ Studenten können optional ihr eigenes PDF auf der Quiz-Review-Seite herunterlad
 **Behavior**
 - Admin-Setting: `studentdownload` — Checkbox "Student darf herunterladen" (Default: Ja)
 - Wenn aktiviert UND Versuch im PDF-Scope (feat10):
-  - Download-Button "Download certificate" auf der Quiz-Review-Seite
-  - Hook: `before_footer_html_generation` (wie bisher implementiert)
+  - Download-Button auf der Quiz-Review-Seite
+  - Platzierung im Header/bei den Review-Aktionen über Hook `before_footer_html_generation`
 - Wenn deaktiviert: kein Button auf der Review-Seite
 - Wenn Versuch nicht im PDF-Scope: deaktivierter Button mit Hinweis
 
