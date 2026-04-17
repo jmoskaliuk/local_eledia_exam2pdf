@@ -88,20 +88,6 @@ function local_eledia_exam2pdf_pluginfile(
 }
 
 /**
- * Inject the PDF download button on the quiz review page and the bulk
- * PDF section on the quiz report overview page.
- *
- * This is a legacy before_footer callback called from
- * core_renderer::footer() via the before_footer_html_generation hook's
- * process_legacy_callbacks() mechanism.
- *
- * @return string HTML to inject before the page footer, or empty string.
- */
-function local_eledia_exam2pdf_before_footer(): string {
-    return \local_eledia_exam2pdf\hook\quiz_page_callbacks::get_footer_html();
-}
-
-/**
  * Extend the quiz module's secondary navigation with exam2pdf links.
  *
  * In Moodle 4+, items added here appear in the activity's secondary

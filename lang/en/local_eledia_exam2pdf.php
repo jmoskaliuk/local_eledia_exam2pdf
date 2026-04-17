@@ -59,9 +59,9 @@ $string['pdf_attemptnumber'] = 'Attempt number';
 $string['pdf_correctanswer'] = 'Correct answer';
 $string['pdf_duration'] = 'Duration';
 $string['pdf_name'] = 'Learner';
+$string['pdf_navigation_heading'] = 'Overview';
 $string['pdf_noanswer'] = '(no answer given)';
 $string['pdf_nocorrectanswer'] = '(no correct answer defined)';
-$string['pdf_navigation_heading'] = 'Overview';
 $string['pdf_passed'] = 'Passed';
 $string['pdf_passgrade'] = 'Pass threshold';
 $string['pdf_percentage'] = 'Percentage';
@@ -106,10 +106,10 @@ $string['report_col_started'] = 'Started';
 $string['report_download_merged'] = 'Download all as merged PDF';
 $string['report_download_one'] = 'Download PDF';
 $string['report_download_zip'] = 'Download all as ZIP';
+$string['report_heading'] = 'exam2pdf';
 $string['report_regenerate_failed'] = 'PDF could not be regenerated.';
 $string['report_regenerate_one'] = 'Regenerate PDF';
 $string['report_regenerate_success'] = 'PDF regenerated successfully.';
-$string['report_heading'] = 'exam2pdf';
 $string['report_section_heading'] = 'exam2pdf';
 $string['report_section_intro'] = 'Download evaluations as .zip';
 $string['report_zip_filename'] = 'certificates_{quizname}_{date}.zip';
@@ -140,15 +140,15 @@ $string['setting_pdffootertext_desc'] = 'Optional text printed in the footer are
     . 'Can be overridden per quiz.';
 $string['setting_pdffootertext_help'] = 'Optional footer text shown on every page of generated PDFs. '
     . 'Leave empty to inherit the global default on quiz level.';
+$string['setting_pdfgeneration'] = 'PDF generation mode';
+$string['setting_pdfgeneration_desc'] = 'When to generate the PDF certificate. '
+    . '"On submission" creates it automatically when a quiz attempt is submitted. '
+    . '"On demand" only creates it when a teacher clicks the download button.';
 $string['setting_pdflanguage'] = 'PDF language';
 $string['setting_pdflanguage_desc'] = 'Language used for generated PDF texts and labels. Can be overridden per quiz.';
 $string['setting_pdflanguage_help'] = 'Choose which language is used in generated PDFs. '
     . 'Only language packs installed in Moodle are available here.';
 $string['setting_pdflanguage_site'] = 'Use site default language';
-$string['setting_pdfgeneration'] = 'PDF generation mode';
-$string['setting_pdfgeneration_desc'] = 'When to generate the PDF certificate. '
-    . '"On submission" creates it automatically when a quiz attempt is submitted. '
-    . '"On demand" only creates it when a teacher clicks the download button.';
 $string['setting_pdfscope'] = 'PDF scope';
 $string['setting_pdfscope_desc'] = 'Which attempts are eligible for PDF generation. '
     . '"Passed only" requires the attempt to meet the pass grade. '

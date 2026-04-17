@@ -29,6 +29,26 @@ namespace local_eledia_exam2pdf;
  */
 class helper {
     /**
+     * Boolean settings exposed in the per-quiz form as advcheckbox fields.
+     *
+     * The `save_quiz_config_with_inheritance()` method compares each of these
+     * against the current global default and only persists an override when
+     * they differ. This prevents a plain "Save" click from silently freezing
+     * the current global default as a permanent per-quiz override.
+     *
+     * @var string[]
+     */
+    public const BOOL_KEYS = [
+        'showcorrectanswers',
+        'show_score',
+        'show_passgrade',
+        'show_percentage',
+        'show_timestamp',
+        'show_duration',
+        'show_attemptnumber',
+    ];
+
+    /**
      * Reads a boolean plugin setting and applies a default when unset.
      *
      * `get_config()` returns boolean false for unset settings, which must be
@@ -232,6 +252,60 @@ class helper {
     public static function has_downloadown_capability(\context_module $context): bool {
         return has_capability('local/eledia_exam2pdf:downloadown', $context)
             || self::has_downloadall_capability($context);
+    }
+
+    /**
+     * Returns the current effective global default for a boolean advcheckbox key.
+     *
+     * All keys in {@see self::BOOL_KEYS} default to true in the plugin
+     * install; admins can flip them via the global settings page. This helper
+     * asks get_config() for the current persisted value and falls back to the
+     * documented default when the setting has never been saved.
+     *
+     * @param string $name Setting name (must be one of BOOL_KEYS).
+     * @return bool Current global default.
+     */
+    private static function get_bool_default(string $name): bool {
+        // All current advcheckbox keys default to `true` in the plugin defaults.
+        return self::get_bool_setting($name, true);
+    }
+
+    /**
+     * Saves per-quiz configuration overrides with inheritance semantics for
+     * advcheckbox fields.
+     *
+     * For each key listed in {@see self::BOOL_KEYS}, compares the submitted
+     * value against the current global default. When both match, the override
+     * is removed (null) so the per-quiz form inherits future changes to the
+     * global default. When they differ, the explicit '1'/'0' override is
+     * persisted. All other keys are forwarded unchanged to save_quiz_config().
+     *
+     * This prevents the "freeze at current default" pitfall where a plain
+     * "Save" click on the per-quiz form would capture the currently-visible
+     * global default as a permanent override and silently break the
+     * inheritance chain when the admin later flips the global setting.
+     *
+     * @param int   $quizid The quiz ID whose overrides should be updated.
+     * @param array $values Associative array of name => value.
+     * @return void
+     */
+    public static function save_quiz_config_with_inheritance(int $quizid, array $values): void {
+        foreach ($values as $name => $value) {
+            if (!in_array($name, self::BOOL_KEYS, true)) {
+                continue;
+            }
+            // Submitted value as bool — advcheckbox sends '0'/'1'.
+            $submitted = (bool) (int) $value;
+            $globaldefault = self::get_bool_default($name);
+            if ($submitted === $globaldefault) {
+                // Match the global default → remove any existing override.
+                $values[$name] = null;
+            } else {
+                // Differs → persist explicit override.
+                $values[$name] = $submitted ? '1' : '0';
+            }
+        }
+        self::save_quiz_config($quizid, $values);
     }
 
     /**

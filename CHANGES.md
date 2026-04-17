@@ -6,17 +6,69 @@ Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-17
+
+Submission-Readiness-Release: räumt die letzten Plugin-Directory-Blocker auf
+(Inline-JS → AMD, FontAwesome-4 → `pix_icon`, Legacy-`before_footer`-Callback
+entfernt) und erzwingt Inherit-Semantik für die Advcheckbox-Felder der
+Quiz-Einstellungen.
+
 ### Added
+- AMD-Module `local_eledia_exam2pdf/quiz_overview_actions`,
+  `local_eledia_exam2pdf/review_download_button` und
+  `local_eledia_exam2pdf/report_section_button` — lösen den Inline-JS per
+  `$PAGE->requires->js_init_code()` komplett ab. `amd/src/` enthält die
+  ES6-Quellen, `amd/build/` die AMD-`define()`-Builds. Das
+  `quiz_overview_actions`-Modul injiziert zusätzlich `<style>`-Regeln, die die
+  vertikale Zentrierung der Grade-Zelle und der Icon-only-Buttons auch nach
+  mod_quiz-Redraws erhalten.
+- `helper::save_quiz_config_with_inheritance()` + `helper::BOOL_KEYS` — neue
+  Save-Path für die Per-Quiz-Einstellungen. Vergleicht jeden Advcheckbox-Wert
+  gegen den globalen Default und legt nur dann eine Override-Zeile an, wenn
+  sich beide unterscheiden. Verhindert, dass ein schlichter "Speichern"-Klick
+  den aktuellen globalen Default als permanenten Per-Quiz-Override einfriert
+  und die Vererbungskette später stillschweigend kippt.
+- Unit-Tests für die drei Cap-Helper und den Inheritance-Save
+  (15 neue Testfälle in `tests/helper_test.php`) — inkl. Regression-Guard
+  "Manager mit `:manage`, aber ohne `:downloadall`, darf trotzdem `:downloadown`"
+  und Test für "Global-Default-Flip nach Match-Save greift sofort".
 - CI/CD-Pipeline aus `moodle-cicd`-Skill-Baseline: GitHub Actions Matrix
   (`MOODLE_405_STABLE` × pgsql, `MOODLE_500_STABLE` × pgsql, `MOODLE_501_STABLE`
-  × pgsql, `MOODLE_501_STABLE` × mariadb)
-- Lokaler Precheck `bin/precheck.sh` via `docker exec` gegen moodle-docker-Container
+  × pgsql, `MOODLE_501_STABLE` × mariadb).
+- Lokaler Precheck `bin/precheck.sh` via `docker exec` gegen
+  moodle-docker-Container.
 - Release-Pipeline `bin/release.sh` + `.github/workflows/release.yml` für
-  Tag-getriggerte GitHub-Releases
-- `.gitattributes` mit `export-ignore`-Liste für saubere Release-ZIPs
+  Tag-getriggerte GitHub-Releases.
+- `.gitattributes` mit `export-ignore`-Liste für saubere Release-ZIPs.
 
 ### Changed
-- Minimale Moodle-Version von 4.3 auf 4.5 angehoben (`$plugin->requires = 2024100700`)
+- **Maturity auf `MATURITY_BETA` gehoben**, Release-Kennzeichnung auf `0.5.0`.
+  Plugin-Directory-Uploads akzeptieren ab dieser Stufe; `MATURITY_ALPHA` war
+  vorher ein harter Ablehnungsgrund.
+- Minimale Moodle-Version von 4.3 auf 4.5 angehoben
+  (`$plugin->requires = 2024100700`).
+- Icons im Download-Button und in der Bulk-ZIP-Sektion werden jetzt über
+  `$OUTPUT->pix_icon()` mit Moodle-Core-Keys (`f/pdf`, `f/archive`,
+  `t/download`, `i/reload`) gerendert statt FontAwesome-4-Klassen mit
+  `-o`-Suffix (`fa-file-pdf-o`, `fa-file-archive-o`, `fa-refresh`). Die Icons
+  sind damit in Moodle 4.5 (FA4) und 5.x (FA6) identisch sichtbar.
+- Inline `style="..."`-Attribute in `render_download_button()` und
+  `render_report_section()` durch Bootstrap-Utility-Klassen (`my-4`,
+  `text-center`, `mt-1`) ersetzt.
+- `quizsettings.php` ruft beim Save jetzt
+  `helper::save_quiz_config_with_inheritance()` statt `save_quiz_config()` —
+  Dirty-Tracking wird damit zur Pflichtschicht der Per-Quiz-Form.
+
+### Removed
+- Legacy-Callback `local_eledia_exam2pdf_before_footer()` in `lib.php`
+  entfernt. Die Hooks-API ist seit Moodle 4.3 stabil, `$plugin->requires`
+  verlangt 4.5+, der Legacy-Pfad war reine Duplikat-Quelle (Report-Section
+  wurde auf Moodle 4.5+ zweimal untereinander gerendert).
+- Statische Duplikat-Guards (`$overviewactionsinjected`,
+  `$reviewdownloadinjected`) in `quiz_page_callbacks` entfernt — ohne den
+  Legacy-Callback überflüssig.
+- `quiz_page_callbacks::get_footer_html()` entfernt — wurde nur vom
+  gelöschten Legacy-Callback aufgerufen.
 
 ## [0.1.0] - 2026-04-09
 

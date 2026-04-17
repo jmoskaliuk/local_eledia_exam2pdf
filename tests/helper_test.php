@@ -431,4 +431,244 @@ final class helper_test extends \advanced_testcase {
         $this->assertSame('attempt_pdf', $file->get_filearea());
         $this->assertSame((int) $record->id, (int) $file->get_itemid());
     }
+
+    // Shared fixtures for capability helper tests.
+
+    /**
+     * Creates a fresh quiz and returns its module context.
+     *
+     * @return \context_module
+     */
+    private function make_quiz_context(): \context_module {
+        $course = $this->getDataGenerator()->create_course();
+        $quiz   = $this->getDataGenerator()->create_module('quiz', ['course' => $course->id]);
+        return \context_module::instance($quiz->cmid);
+    }
+
+    /**
+     * Creates a fresh user, assigns them a role with only the given caps in
+     * the given context, logs them in, and clears the access-lib cache.
+     *
+     * @param \context_module $context The quiz module context to grant caps in.
+     * @param string[] $caps Capability shortnames (e.g. 'local/eledia_exam2pdf:manage').
+     * @return \stdClass The user record.
+     */
+    private function make_user_with_caps(\context_module $context, array $caps): \stdClass {
+        $user = $this->getDataGenerator()->create_user();
+        $roleid = $this->getDataGenerator()->create_role();
+        foreach ($caps as $cap) {
+            assign_capability($cap, CAP_ALLOW, $roleid, $context->id, true);
+        }
+        role_assign($roleid, $user->id, $context->id);
+        accesslib_clear_all_caches_for_unit_testing();
+        $this->setUser($user);
+        return $user;
+    }
+
+    // Tests for has_downloadall_capability.
+
+    /**
+     * User with the explicit downloadall cap passes the check.
+     */
+    public function test_has_downloadall_with_explicit_cap(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:downloadall']);
+
+        $this->assertTrue(helper::has_downloadall_capability($context));
+    }
+
+    /**
+     * User with legacy :manage passes has_downloadall via BC fallback.
+     */
+    public function test_has_downloadall_with_manage_bc_fallback(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:manage']);
+
+        $this->assertTrue(helper::has_downloadall_capability($context));
+    }
+
+    /**
+     * User with both caps passes (no AND short-circuit breakage).
+     */
+    public function test_has_downloadall_with_both_caps(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, [
+            'local/eledia_exam2pdf:downloadall',
+            'local/eledia_exam2pdf:manage',
+        ]);
+
+        $this->assertTrue(helper::has_downloadall_capability($context));
+    }
+
+    /**
+     * User without downloadall and without manage fails the check.
+     */
+    public function test_has_downloadall_without_any_cap_fails(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:downloadown']);
+
+        $this->assertFalse(helper::has_downloadall_capability($context));
+    }
+
+    // Tests for has_generatepdf_capability.
+
+    /**
+     * User with the explicit generatepdf cap passes the check.
+     */
+    public function test_has_generatepdf_with_explicit_cap(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:generatepdf']);
+
+        $this->assertTrue(helper::has_generatepdf_capability($context));
+    }
+
+    /**
+     * User with legacy :manage passes has_generatepdf via BC fallback.
+     */
+    public function test_has_generatepdf_with_manage_bc_fallback(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:manage']);
+
+        $this->assertTrue(helper::has_generatepdf_capability($context));
+    }
+
+    /**
+     * User with both caps passes.
+     */
+    public function test_has_generatepdf_with_both_caps(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, [
+            'local/eledia_exam2pdf:generatepdf',
+            'local/eledia_exam2pdf:manage',
+        ]);
+
+        $this->assertTrue(helper::has_generatepdf_capability($context));
+    }
+
+    /**
+     * User without generatepdf and without manage fails the check.
+     *
+     * A user holding only :downloadall must NOT be able to regenerate — that
+     * is the point of splitting the capabilities.
+     */
+    public function test_has_generatepdf_without_any_cap_fails(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:downloadall']);
+
+        $this->assertFalse(helper::has_generatepdf_capability($context));
+    }
+
+    // Tests for has_downloadown_capability.
+
+    /**
+     * User with the explicit downloadown cap passes the check.
+     */
+    public function test_has_downloadown_with_explicit_cap(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:downloadown']);
+
+        $this->assertTrue(helper::has_downloadown_capability($context));
+    }
+
+    /**
+     * User with only :downloadall also passes has_downloadown (cascades down).
+     */
+    public function test_has_downloadown_cascades_from_downloadall(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:downloadall']);
+
+        $this->assertTrue(helper::has_downloadown_capability($context));
+    }
+
+    /**
+     * Regression guard: a manager that has :manage but neither :downloadown nor
+     * :downloadall must still pass has_downloadown via the BC fallback chain
+     * (:manage → has_downloadall → has_downloadown). Without this, freshly
+     * upgraded installations would lock managers out of their own download.
+     */
+    public function test_has_downloadown_manage_only_via_bc_chain(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:manage']);
+
+        $this->assertFalse(
+            has_capability('local/eledia_exam2pdf:downloadall', $context),
+            'Pre-condition: this test exercises the manage-only path.'
+        );
+        $this->assertTrue(helper::has_downloadown_capability($context));
+    }
+
+    /**
+     * User without any download cap fails the check.
+     */
+    public function test_has_downloadown_without_any_cap_fails(): void {
+        $context = $this->make_quiz_context();
+        $this->make_user_with_caps($context, ['local/eledia_exam2pdf:configure']);
+
+        $this->assertFalse(helper::has_downloadown_capability($context));
+    }
+
+    // Tests for save_quiz_config_with_inheritance.
+
+    /**
+     * Value matching the current global default is NOT persisted as override —
+     * the row stays absent so the quiz inherits future changes to the global.
+     */
+    public function test_inheritance_save_skips_matching_default(): void {
+        global $DB;
+
+        // Global default for showcorrectanswers is true (1).
+        set_config('showcorrectanswers', '1', 'local_eledia_exam2pdf');
+
+        helper::save_quiz_config_with_inheritance(42, [
+            'showcorrectanswers' => '1',
+        ]);
+
+        $this->assertFalse(
+            $DB->record_exists('local_eledia_exam2pdf_cfg', [
+                'quizid' => 42,
+                'name'   => 'showcorrectanswers',
+            ])
+        );
+    }
+
+    /**
+     * Value differing from the current global default IS persisted as an
+     * explicit override.
+     */
+    public function test_inheritance_save_persists_differing_value(): void {
+        global $DB;
+
+        // Global default for show_score is true (1).
+        set_config('show_score', '1', 'local_eledia_exam2pdf');
+
+        helper::save_quiz_config_with_inheritance(42, [
+            'show_score' => '0',
+        ]);
+
+        $row = $DB->get_record('local_eledia_exam2pdf_cfg', [
+            'quizid' => 42,
+            'name'   => 'show_score',
+        ]);
+        $this->assertNotFalse($row);
+        $this->assertSame('0', $row->value);
+    }
+
+    /**
+     * Flipping the global default after a matching-value save correctly
+     * inherits — the per-quiz override was never created, so the new global
+     * takes effect immediately.
+     */
+    public function test_inheritance_save_honours_later_global_flip(): void {
+        // Initial global: true. Save matches → no override.
+        set_config('show_passgrade', '1', 'local_eledia_exam2pdf');
+        helper::save_quiz_config_with_inheritance(42, [
+            'show_passgrade' => '1',
+        ]);
+
+        // Admin flips global to false later.
+        set_config('show_passgrade', '0', 'local_eledia_exam2pdf');
+
+        $config = helper::get_effective_config(42);
+        $this->assertFalse($config['show_passgrade']);
+    }
 }

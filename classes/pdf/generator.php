@@ -108,7 +108,7 @@ class generator {
      * @return \TCPDF
      */
     private static function create_pdf_document(\stdClass $quiz, array $config): \TCPDF {
-        $pdf = new class('P', 'mm', 'A4', true, 'UTF-8', false) extends \TCPDF {
+        $pdf = new class ('P', 'mm', 'A4', true, 'UTF-8', false) extends \TCPDF {
             /** @var string Footer text rendered on each page. */
             protected string $customfootertext = '';
 
@@ -125,7 +125,12 @@ class generator {
             /**
              * Renders page footer.
              *
+             * TCPDF requires this method to be named "Footer" (PascalCase) — it is
+             * an internal TCPDF callback, not a Moodle API method. The Moodle
+             * naming rule does not apply here; suppress the sniff accordingly.
+             *
              * @return void
+             * phpcs:disable moodle.NamingConventions.ValidFunctionName.LowercaseMethod
              */
             public function Footer(): void {
                 if ($this->customfootertext === '') {
@@ -139,6 +144,7 @@ class generator {
                 $this->Cell(0, 0, $this->customfootertext, 0, 0, 'C');
                 $this->Cell(0, 0, $this->getAliasNumPage() . '/' . $this->getAliasNbPages(), 0, 0, 'R');
             }
+            // phpcs:enable moodle.NamingConventions.ValidFunctionName.LowercaseMethod
         };
         $pdf->SetCreator('Moodle / eLeDia exam2pdf');
         $pdf->SetAuthor('eLeDia GmbH');
@@ -251,7 +257,18 @@ class generator {
         }
 
         $logohtml = self::get_logo_html();
-        $html  = self::render_header($logohtml, $learner, $quiz, $passed, $attempt, $grade, $percentage, $duration, $config, $gradepass);
+        $html  = self::render_header(
+            $logohtml,
+            $learner,
+            $quiz,
+            $passed,
+            $attempt,
+            $grade,
+            $percentage,
+            $duration,
+            $config,
+            $gradepass
+        );
         $html .= self::render_navigation($attemptobj);
         $html .= self::render_questions($attemptobj, $config);
         return $html;

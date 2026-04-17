@@ -56,7 +56,7 @@
         },
         {
             "title": "You're all set!",
-            "content": "<p>Save these settings and you're ready to go. Teachers can fine-tune settings per quiz via <strong>Quiz &rarr; Settings &rarr; PDF Certificate settings</strong>.</p>",
+            "content": "<p>Save these settings and you're ready to go. Teachers can fine-tune settings per quiz via <strong>Quiz &rarr; Settings &rarr; exam2pdf settings</strong>.</p>",
             "targettype": 2,
             "targetvalue": "",
             "placement": "bottom",

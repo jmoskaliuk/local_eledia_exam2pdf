@@ -38,7 +38,7 @@
         },
         {
             "title": "Customize Settings",
-            "content": "<p>Want to change what appears in the PDFs or who can download them? Go to <strong>Quiz &rarr; More &rarr; PDF Certificate settings</strong> to override the defaults for this quiz.</p>",
+            "content": "<p>Want to change what appears in the PDFs or who can download them? Go to <strong>Quiz &rarr; More &rarr; exam2pdf settings</strong> to override the defaults for this quiz.</p>",
             "targettype": 2,
             "targetvalue": "",
             "placement": "bottom",

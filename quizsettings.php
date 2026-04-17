@@ -159,7 +159,7 @@ if ($form->is_cancelled()) {
         $tosave[$key] = ($val === '') ? null : $val;
     }
 
-    \local_eledia_exam2pdf\helper::save_quiz_config($quiz->id, $tosave);
+    \local_eledia_exam2pdf\helper::save_quiz_config_with_inheritance($quiz->id, $tosave);
 
     redirect(
         new moodle_url('/local/eledia_exam2pdf/quizsettings.php', ['cmid' => $cmid]),
