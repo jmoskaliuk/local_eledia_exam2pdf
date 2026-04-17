@@ -6,6 +6,37 @@ Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-04-17
+
+Dritter und letzter CI-Fix-Patch für die `amd/build`-Artefakte: 0.5.1/0.5.2
+versuchten die minifizierten Module aus einer externen Terser-Pipeline zu
+erzeugen, konnten aber Moodles kanonische Grunt-Ausgabe nie byte-genau
+reproduzieren — der `git diff --exit-code`-Check im `moodle-plugin-ci grunt`-
+Step blieb rot, weil sowohl `.min.js`-Bytes abwichen als auch die von
+Moodles Rollup-Pipeline generierten `.min.js.map`-Sourcemaps fehlten.
+0.5.3 committet den Output aus Moodles echter Grunt-Pipeline (Rollup +
+Babel + Terser + Sourcemaps), aus dem lokalen Orb-Container extrahiert
+via `bin/regenerate-amd-build.sh`.
+
+### Added
+- `amd/build/*.min.js.map` — Sourcemap-Dateien für alle drei AMD-Module,
+  von Moodles Rollup-Plugin generiert. Ohne diese schlug `moodle-plugin-ci
+  grunt` auf der CI fehl mit "File is newly generated and needs to be added".
+- `bin/regenerate-amd-build.sh` — Helper-Script für die lokale Regeneration
+  im Orb-Container. Umgeht den `public/local/codechecker/vendor`-ENOENT-
+  Abbruch der `ignorefiles`-Task durch `grunt amd --force` und kopiert das
+  Ergebnis zurück ins Repo. Für reproduzierbare Releases: vor jedem Tag
+  einmal ausführen.
+
+### Changed
+- `amd/build/*.min.js` — durch Moodles kanonischen Grunt-Rollup-Output
+  ersetzt (Rollup ESM-Format, Babel preset-env mit Moodles Ziel-Browsern,
+  `transform-es2015-modules-amd-lazy`, Moodles custom `add-module-to-
+  define`-Plugin, Terser `mangle: false`, Sourcemaps inline referenced).
+  Funktional identisch zu 0.5.2, aber byte-genau reproduzierbar durch
+  `npx grunt amd --root=public/local/eledia_exam2pdf --force` im
+  Moodle-Root.
+
 ## [0.5.2] - 2026-04-17
 
 Zweiter CI-Fix-Patch für die `amd/build`-Artefakte: 0.5.1 committete zwar
