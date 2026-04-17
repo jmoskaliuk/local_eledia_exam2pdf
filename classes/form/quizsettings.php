@@ -45,6 +45,7 @@ class quizsettings extends \moodleform {
         $mform = $this->_form;
 
         $mform->addElement('header', 'general', get_string('quizsettings_heading', 'local_eledia_exam2pdf'));
+        $mform->addHelpButton('general', 'quizsettings_info', 'local_eledia_exam2pdf');
 
         // Output mode.
         $mform->addElement(

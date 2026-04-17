@@ -53,8 +53,10 @@ $bulkformat = $config['bulkformat'] ?? 'zip';
 $entries = \local_eledia_exam2pdf\helper::get_quiz_pdfs($cm->id);
 
 // In on-demand mode, generate any missing PDFs on bulk-download click.
-if (($config['pdfgeneration'] ?? 'auto') === 'ondemand'
-    && \local_eledia_exam2pdf\helper::has_generatepdf_capability($context)) {
+if (
+    ($config['pdfgeneration'] ?? 'auto') === 'ondemand'
+    && \local_eledia_exam2pdf\helper::has_generatepdf_capability($context)
+) {
     $attempts = $DB->get_records_sql(
         'SELECT * FROM {quiz_attempts}
           WHERE quiz = :quizid

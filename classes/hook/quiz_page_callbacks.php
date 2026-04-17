@@ -48,6 +48,11 @@ class quiz_page_callbacks {
 
         // Trainer/Manager: report overview page gets the bulk PDF section.
         if ($PAGE->pagetype === 'mod-quiz-report') {
+            $quicklinkhtml = self::get_report_selector_button_html();
+            if ($quicklinkhtml !== '') {
+                $hook->add_html($quicklinkhtml);
+            }
+
             $mode = optional_param('mode', '', PARAM_ALPHA);
             if ($mode === 'overview' || $mode === '') {
                 $html = self::get_report_section_html();
@@ -79,11 +84,12 @@ class quiz_page_callbacks {
 
         // Trainer/Manager: report overview page gets the bulk PDF section.
         if ($PAGE->pagetype === 'mod-quiz-report') {
+            $html = self::get_report_selector_button_html();
             $mode = optional_param('mode', '', PARAM_ALPHA);
             if ($mode === 'overview' || $mode === '') {
-                return self::get_report_section_html();
+                $html .= self::get_report_section_html();
             }
-            return '';
+            return $html;
         }
 
         // Student: quiz review page gets the download button.
@@ -151,8 +157,10 @@ class quiz_page_callbacks {
         }
 
         // On-demand mode: show the button even before a PDF exists.
-        if (($config['pdfgeneration'] ?? 'auto') === 'ondemand'
-            && \local_eledia_exam2pdf\helper::is_in_pdf_scope($attempt, $quiz, $config)) {
+        if (
+            ($config['pdfgeneration'] ?? 'auto') === 'ondemand'
+            && \local_eledia_exam2pdf\helper::is_in_pdf_scope($attempt, $quiz, $config)
+        ) {
             $downloadurl = new \moodle_url('/local/eledia_exam2pdf/download.php', ['attemptid' => $attemptid]);
             return self::render_download_button($downloadurl->out(false));
         }
@@ -185,6 +193,26 @@ class quiz_page_callbacks {
         return self::render_report_section($PAGE->cm->id, $entries, (string) ($config['bulkformat'] ?? 'zip'));
     }
 
+    /**
+     * Returns HTML for a quick-link button near the quiz report selector.
+     *
+     * @return string HTML or empty string.
+     */
+    private static function get_report_selector_button_html(): string {
+        global $PAGE;
+
+        if (empty($PAGE->cm)) {
+            return '';
+        }
+
+        $context = \core\context\module::instance($PAGE->cm->id);
+        if (!\local_eledia_exam2pdf\helper::has_downloadall_capability($context)) {
+            return '';
+        }
+
+        return self::render_report_selector_button((int) $PAGE->cm->id);
+    }
+
     // Private HTML renderers.
 
     /**
@@ -203,6 +231,54 @@ class quiz_page_callbacks {
             . '<i class="fa fa-file-pdf-o" aria-hidden="true"></i>&nbsp;' . $label
             . '</a>'
             . '</div>';
+    }
+
+    /**
+     * Returns the HTML for a quick-link button in quiz report pages.
+     *
+     * The button is injected near the report selector ("Grades" dropdown).
+     * If the selector cannot be found, it is prepended to #region-main.
+     *
+     * @param int $cmid Course module ID.
+     * @return string HTML.
+     */
+    private static function render_report_selector_button(int $cmid): string {
+        $url = (new \moodle_url('/local/eledia_exam2pdf/report.php', ['cmid' => $cmid]))->out(false);
+        $label = s(get_string('report_nav_link', 'local_eledia_exam2pdf'));
+        $holderid = 'local-eledia-exam2pdf-reportquicklink';
+
+        $html = '<div id="' . $holderid . '" style="display:none;">'
+            . '<a href="' . $url . '" class="btn btn-outline-primary btn-sm" style="margin-left:.5rem;">'
+            . '<i class="fa fa-file-pdf-o" aria-hidden="true"></i>&nbsp;' . $label
+            . '</a>'
+            . '</div>';
+
+        $html .= '<script>'
+            . '(function() {'
+            . 'var holder = document.getElementById("' . $holderid . '");'
+            . 'if (!holder) { return; }'
+            . 'var selectors = ["form.singleselect", ".singleselect", ".urlselect", "#region-main select"];'
+            . 'var target = null;'
+            . 'for (var i = 0; i < selectors.length; i++) {'
+            . 'target = document.querySelector(selectors[i]);'
+            . 'if (target) { break; }'
+            . '}'
+            . 'if (target) {'
+            . 'var anchor = target.closest("form") || target;'
+            . 'holder.style.display = "inline-block";'
+            . 'anchor.insertAdjacentElement("afterend", holder);'
+            . 'return;'
+            . '}'
+            . 'var region = document.querySelector("#region-main .region-content") || document.querySelector("#region-main");'
+            . 'if (region) {'
+            . 'holder.style.display = "block";'
+            . 'holder.style.margin = "0 0 1rem 0";'
+            . 'region.insertAdjacentElement("afterbegin", holder);'
+            . '}'
+            . '})();'
+            . '</script>';
+
+        return $html;
     }
 
     /**
