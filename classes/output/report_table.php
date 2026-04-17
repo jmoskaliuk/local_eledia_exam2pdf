@@ -167,10 +167,13 @@ class report_table extends \table_sql {
     /**
      * Renders the full name column.
      *
-     * @param \stdClass $row The data row.
+     * Must keep the argument untyped to remain compatible with
+     * core_table\flexible_table::col_fullname($row).
+     *
+     * @param mixed $row The data row.
      * @return string HTML.
      */
-    public function col_fullname(\stdClass $row): string {
+    public function col_fullname($row): string {
         return s(fullname($row));
     }
 
