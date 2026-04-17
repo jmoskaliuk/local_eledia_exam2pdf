@@ -6,6 +6,29 @@ Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-04-17
+
+CI-Fix-Patch für 0.5.0: committed die bisher nie gepushten AMD-`build`-
+Artefakte und richtet die Behat-Features wieder am umbenannten
+Download-Button-String aus. Keine funktionalen Änderungen für Endnutzer.
+
+### Fixed
+- `amd/build/*.min.js` — die kompilierten AMD-Module (`quiz_overview_actions`,
+  `review_download_button`, `report_section_button`) waren in 0.5.0 nur als
+  ES6-Quellen unter `amd/src/` committed. Moodles Grunt-Amd-Task kompiliert
+  `src/` → `build/` und prüft anschließend per `git diff`, dass der Baum
+  clean ist — fehlende Build-Artefakte ließen darum alle vier Matrix-Zellen
+  am Grunt-Step scheitern. Runtime-Effekt war identisch: im Dev-Moodle
+  (`$CFG->cachejs = false`) konnten RequireJS die ES6-Quellen nicht laden
+  (`No define call for …/quiz_overview_actions`), wodurch die Actions-Spalte
+  im Report-View, der ZIP-Bulk-Button und der neu positionierte
+  Download-Button auf der Review-Seite unsichtbar blieben.
+- `tests/behat/download_button.feature` — nach dem Rename von
+  `$string['download_button']` auf `'Download evaluation'` (in 0.4.x) wurden
+  drei Szenarien mit veralteter Asserting-Text `"Download certificate"`
+  fällig. Die Assertions `I should see`, `I should not see`, und
+  `"…" "link" should exist` auf den neuen String angepasst.
+
 ## [0.5.0] - 2026-04-17
 
 Submission-Readiness-Release: räumt die letzten Plugin-Directory-Blocker auf
