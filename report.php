@@ -73,8 +73,7 @@ if (!$table->is_downloading()) {
     echo html_writer::tag('p', format_string($quiz->name), ['class' => 'lead']);
 }
 
-// Populate and render the table.
-$table->query_db($pagesize);
+// Render the table (out() handles setup + query).
 $table->out($pagesize, true);
 
 if (!$table->is_downloading()) {
