@@ -46,14 +46,19 @@ class generator {
         require_once($CFG->libdir . '/tcpdf/tcpdf.php');
         require_once($CFG->libdir . '/gradelib.php');
 
-        $pdf = self::create_pdf_document($quiz);
-        $pdf->AddPage();
+        $originallanguage = self::force_pdf_language($config);
+        try {
+            $pdf = self::create_pdf_document($quiz, $config);
+            $pdf->AddPage();
 
-        $html = self::render_attempt_document($attemptobj, $quiz, $config);
-        $pdf->writeHTML($html, true, false, true, false, '');
+            $html = self::render_attempt_document($attemptobj, $quiz, $config);
+            $pdf->writeHTML($html, true, false, true, false, '');
 
-        // Return as string.
-        return $pdf->Output('', 'S');
+            // Return as string.
+            return $pdf->Output('', 'S');
+        } finally {
+            self::restore_forced_language($originallanguage);
+        }
     }
 
     /**
@@ -76,16 +81,21 @@ class generator {
             return '';
         }
 
-        $pdf = self::create_pdf_document($quiz);
+        $originallanguage = self::force_pdf_language($config);
+        try {
+            $pdf = self::create_pdf_document($quiz, $config);
 
-        foreach ($attemptids as $attemptid) {
-            $attemptobj = \mod_quiz\quiz_attempt::create($attemptid);
-            $pdf->AddPage();
-            $html = self::render_attempt_document($attemptobj, $quiz, $config);
-            $pdf->writeHTML($html, true, false, true, false, '');
+            foreach ($attemptids as $attemptid) {
+                $attemptobj = \mod_quiz\quiz_attempt::create($attemptid);
+                $pdf->AddPage();
+                $html = self::render_attempt_document($attemptobj, $quiz, $config);
+                $pdf->writeHTML($html, true, false, true, false, '');
+            }
+
+            return $pdf->Output('', 'S');
+        } finally {
+            self::restore_forced_language($originallanguage);
         }
-
-        return $pdf->Output('', 'S');
     }
 
     // Private render helpers.
@@ -94,10 +104,42 @@ class generator {
      * Creates a configured TCPDF document instance.
      *
      * @param \stdClass $quiz The quiz record.
+     * @param array $config Effective plugin config.
      * @return \TCPDF
      */
-    private static function create_pdf_document(\stdClass $quiz): \TCPDF {
-        $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+    private static function create_pdf_document(\stdClass $quiz, array $config): \TCPDF {
+        $pdf = new class('P', 'mm', 'A4', true, 'UTF-8', false) extends \TCPDF {
+            /** @var string Footer text rendered on each page. */
+            protected string $customfootertext = '';
+
+            /**
+             * Sets footer text.
+             *
+             * @param string $text Footer text.
+             * @return void
+             */
+            public function set_custom_footer_text(string $text): void {
+                $this->customfootertext = trim(strip_tags($text));
+            }
+
+            /**
+             * Renders page footer.
+             *
+             * @return void
+             */
+            public function Footer(): void {
+                if ($this->customfootertext === '') {
+                    parent::Footer();
+                    return;
+                }
+
+                $this->SetY(-12);
+                $this->SetFont('helvetica', '', 8);
+                $this->setTextColor(100, 100, 100);
+                $this->Cell(0, 0, $this->customfootertext, 0, 0, 'C');
+                $this->Cell(0, 0, $this->getAliasNumPage() . '/' . $this->getAliasNbPages(), 0, 0, 'R');
+            }
+        };
         $pdf->SetCreator('Moodle / eLeDia exam2pdf');
         $pdf->SetAuthor('eLeDia GmbH');
         $pdf->SetTitle(get_string('pdf_title', 'local_eledia_exam2pdf'));
@@ -112,7 +154,62 @@ class generator {
         $pdf->SetFont('helvetica', '', 10);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(true);
+        $pdf->set_custom_footer_text((string) ($config['pdffootertext'] ?? ''));
         return $pdf;
+    }
+
+    /**
+     * Resolves and applies the configured PDF language.
+     *
+     * @param array $config Effective plugin config.
+     * @return string|null Original language to restore, or null when no switch was needed.
+     */
+    private static function force_pdf_language(array $config): ?string {
+        $targetlanguage = self::resolve_pdf_language($config);
+        $currentlanguage = current_language();
+        if ($targetlanguage === '' || $targetlanguage === $currentlanguage) {
+            return null;
+        }
+
+        force_current_language($targetlanguage);
+        return $currentlanguage;
+    }
+
+    /**
+     * Restores a previously forced language.
+     *
+     * @param string|null $originallanguage Language code returned by force_pdf_language().
+     * @return void
+     */
+    private static function restore_forced_language(?string $originallanguage): void {
+        if ($originallanguage !== null && $originallanguage !== '') {
+            force_current_language($originallanguage);
+        }
+    }
+
+    /**
+     * Resolves effective PDF language from config.
+     *
+     * @param array $config Effective plugin config.
+     * @return string Moodle language code.
+     */
+    private static function resolve_pdf_language(array $config): string {
+        $installedlanguages = get_string_manager()->get_list_of_translations();
+        $selectedlanguage = (string) ($config['pdflanguage'] ?? 'site');
+
+        if ($selectedlanguage === '' || $selectedlanguage === 'site') {
+            $sitelanguage = (string) (get_config('core', 'lang') ?: '');
+            if ($sitelanguage !== '' && array_key_exists($sitelanguage, $installedlanguages)) {
+                return $sitelanguage;
+            }
+            return current_language();
+        }
+
+        if (array_key_exists($selectedlanguage, $installedlanguages)) {
+            return $selectedlanguage;
+        }
+
+        return current_language();
     }
 
     /**
@@ -153,8 +250,9 @@ class generator {
             $duration = gmdate('H:i:s', $secs);
         }
 
-        $html  = self::get_logo_html();
-        $html .= self::render_header($learner, $quiz, $passed, $attempt, $grade, $percentage, $duration, $config, $gradepass);
+        $logohtml = self::get_logo_html();
+        $html  = self::render_header($logohtml, $learner, $quiz, $passed, $attempt, $grade, $percentage, $duration, $config, $gradepass);
+        $html .= self::render_navigation($attemptobj);
         $html .= self::render_questions($attemptobj, $config);
         return $html;
     }
@@ -167,7 +265,7 @@ class generator {
      * Administration -> Appearance -> Logos). Falls back to an empty string
      * when no logo has been uploaded — PDF generation is never aborted.
      *
-     * @return string HTML <div> containing the logo <img>, or empty string.
+     * @return string HTML <img>, or empty string.
      */
     private static function get_logo_html(): string {
         try {
@@ -188,8 +286,7 @@ class generator {
                     $mime = $file->get_mimetype();
                     $data = base64_encode($file->get_content());
                     $src  = 'data:' . $mime . ';base64,' . $data;
-                    return '<div style="text-align:center; margin-bottom:10px;">' .
-                           '<img src="' . $src . '" style="max-height:40px;" /></div>';
+                    return '<img src="' . $src . '" style="height:24px; width:auto; margin-top:-4px;" />';
                 }
             }
         } catch (\Throwable $e) {
@@ -202,6 +299,7 @@ class generator {
     /**
      * Renders the PDF header block (mandatory + optional fields).
      *
+     * @param string    $logohtml   Optional logo image HTML.
      * @param \stdClass $learner    The learner's user row.
      * @param \stdClass $quiz       The quiz row.
      * @param bool      $passed     Whether the attempt was passed.
@@ -214,6 +312,7 @@ class generator {
      * @return string HTML markup.
      */
     private static function render_header(
+        string $logohtml,
         \stdClass $learner,
         \stdClass $quiz,
         bool $passed,
@@ -229,14 +328,38 @@ class generator {
             : get_string('no');
         $passedcolor = $passed ? '#1a7a2e' : '#c0392b';
 
-        $html  = '<h1 style="color:#1a3a5c; font-size:18pt; text-align:center;' .
-                 ' background-color:#e8f2fc; padding:8px 12px;' .
-                 ' border-bottom:2px solid #1a3a5c;">';
-        $html .= get_string('pdf_title', 'local_eledia_exam2pdf');
-        $html .= '</h1>';
+        $html = '';
+        if ($logohtml !== '') {
+            $html .= '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 2px 0;">'
+                . '<tr>'
+                . '<td width="72%" style="padding:0;">&nbsp;</td>'
+                . '<td width="28%" align="right" style="text-align:right; vertical-align:top; padding:0;">'
+                . $logohtml
+                . '</td>'
+                . '</tr>'
+                . '</table>';
+        }
+
+        // Use a table container for the title because TCPDF does not reliably
+        // apply width/margin styles on heading tags like <h1>.
+        $html .= '<table cellpadding="0" cellspacing="0"'
+            . ' style="width:100%; margin:0 0 6px 0; border:1px solid #c6d8ec;">'
+            . '<tr>'
+            . '<td style="color:#1a3a5c; font-size:17pt; font-weight:bold; text-align:center;'
+            . ' background-color:#e8f2fc; padding:8px 12px;">'
+            . get_string('pdf_title', 'local_eledia_exam2pdf')
+            . '</td>'
+            . '</tr>'
+            . '</table>';
 
         // Mandatory fields table.
-        $html .= '<table cellpadding="4" style="width:100%; border:1px solid #ccc; margin-top:8px;">';
+        $html .= '<table cellpadding="5" cellspacing="0"'
+            . ' style="width:100%; border:1px solid #cfd8e3; border-collapse:collapse;'
+            . ' table-layout:fixed; margin:0;">'
+            . '<colgroup>'
+            . '<col style="width:36%;" />'
+            . '<col style="width:64%;" />'
+            . '</colgroup>';
 
         $html .= self::header_row(
             get_string('pdf_name', 'local_eledia_exam2pdf'),
@@ -247,9 +370,10 @@ class generator {
             s($quiz->name)
         );
         $html .= '<tr>' .
-            '<td style="font-weight:bold; width:40%; background:#f5f5f5;">' .
+            '<td style="font-weight:bold; background:#f5f7fa; border:1px solid #e1e6ed;">' .
             get_string('pdf_passed', 'local_eledia_exam2pdf') . '</td>' .
-            '<td style="color:' . $passedcolor . '; font-weight:bold;">' . $passedlabel . '</td>' .
+            '<td style="color:' . $passedcolor . '; font-weight:bold; border:1px solid #e1e6ed;">'
+            . $passedlabel . '</td>' .
             '</tr>';
 
         // Optional fields.
@@ -291,9 +415,186 @@ class generator {
         }
 
         $html .= '</table>';
-        $html .= '<br/>';
+        $html .= '<br />';
 
         return $html;
+    }
+
+    /**
+     * Renders a quiz navigation summary grouped by page and section heading.
+     *
+     * @param quiz_attempt $attemptobj The fully initialised quiz_attempt object.
+     * @return string HTML markup.
+     */
+    private static function render_navigation(quiz_attempt $attemptobj): string {
+        $numpages = (int) $attemptobj->get_num_pages();
+        if ($numpages <= 0) {
+            return '';
+        }
+
+        $html  = '<h2 style="color:#1a3a5c; font-size:13pt;">';
+        $html .= get_string('pdf_navigation_heading', 'local_eledia_exam2pdf');
+        $html .= '</h2>';
+        $html .= '<table cellpadding="4" cellspacing="0"'
+            . ' style="width:100%; border:1px solid #d9e0e8; border-collapse:collapse; margin:0 0 8px 0;">';
+
+        for ($page = 0; $page < $numpages; $page++) {
+            $slots = $attemptobj->get_slots($page);
+            if (empty($slots)) {
+                continue;
+            }
+
+            $pagelabel = get_string('page') . ' ' . ($page + 1);
+            $html .= '<tr>'
+                . '<td style="width:18%; font-weight:bold; background:#f5f7fa; border:1px solid #e1e6ed;">'
+                . s($pagelabel)
+                . '</td>'
+                . '<td style="width:82%; border:1px solid #e1e6ed;">'
+                . self::render_navigation_page_slots($attemptobj, $slots)
+                . '</td>'
+                . '</tr>';
+        }
+
+        $html .= '</table>';
+        $html .= '<br />';
+
+        return $html;
+    }
+
+    /**
+     * Renders all slot badges for one page, grouped by section heading.
+     *
+     * @param quiz_attempt $attemptobj The fully initialised quiz_attempt object.
+     * @param int[] $slots Slot numbers for one quiz page.
+     * @return string HTML markup.
+     */
+    private static function render_navigation_page_slots(quiz_attempt $attemptobj, array $slots): string {
+        $groups = self::group_navigation_slots_by_area($attemptobj, $slots);
+        if (empty($groups)) {
+            return '';
+        }
+
+        $defaultarealabel = get_string('section') . ' 1';
+        $showarealabels = (count($groups) > 1) || (array_key_first($groups) !== $defaultarealabel);
+        $html = '';
+
+        foreach ($groups as $arealabel => $areaslots) {
+            if ($showarealabels) {
+                $html .= '<div style="font-weight:bold; color:#4f5d73; margin:0 0 2px 0;">' . s($arealabel) . '</div>';
+            }
+            $html .= self::render_navigation_slot_badges($attemptobj, $areaslots);
+            if ($showarealabels) {
+                $html .= '<div style="height:2px;"></div>';
+            }
+        }
+
+        return $html;
+    }
+
+    /**
+     * Groups slots by section heading while preserving slot order.
+     *
+     * @param quiz_attempt $attemptobj The fully initialised quiz_attempt object.
+     * @param int[] $slots Slot numbers for one quiz page.
+     * @return array<string, int[]> Ordered area label => slots map.
+     */
+    private static function group_navigation_slots_by_area(quiz_attempt $attemptobj, array $slots): array {
+        $groups = [];
+        $currentarealabel = get_string('section') . ' 1';
+
+        foreach ($slots as $slot) {
+            $heading = trim(strip_tags((string) $attemptobj->get_heading_before_slot($slot)));
+            if ($heading !== '') {
+                $currentarealabel = $heading;
+            }
+
+            if (!array_key_exists($currentarealabel, $groups)) {
+                $groups[$currentarealabel] = [];
+            }
+            $groups[$currentarealabel][] = (int) $slot;
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Renders navigation badges for a list of slot numbers.
+     *
+     * @param quiz_attempt $attemptobj The fully initialised quiz_attempt object.
+     * @param int[] $slots Slot numbers.
+     * @return string HTML markup.
+     */
+    private static function render_navigation_slot_badges(quiz_attempt $attemptobj, array $slots): string {
+        $html = '<table cellpadding="2" cellspacing="2" style="border-collapse:separate;">'
+            . '<tr>';
+
+        foreach ($slots as $slot) {
+            [$bgcolor, $bordercolor, $textcolor, $symbol] = self::resolve_navigation_badge_style(
+                $attemptobj->get_question_state($slot)
+            );
+            $displaynumber = $attemptobj->get_question_number($slot);
+
+            $html .= '<td style="width:24px; border:1px solid ' . $bordercolor . '; background-color:' . $bgcolor
+                . '; text-align:center; vertical-align:middle;">'
+                . '<span style="font-size:9pt; font-weight:bold; color:' . $textcolor . ';">' . s($displaynumber) . '</span>'
+                . '<br />' . self::render_navigation_symbol_html($symbol, $textcolor)
+                . '</td>';
+        }
+
+        $html .= '</tr></table>';
+        return $html;
+    }
+
+    /**
+     * Resolves badge colors and symbol for one question state.
+     *
+     * @param \question_state $state Question state object.
+     * @return string[] [background color, border color, text color, symbol type].
+     */
+    private static function resolve_navigation_badge_style(\question_state $state): array {
+        if ($state->get_summary_state() === 'needsgrading') {
+            return ['#fff6e8', '#d89b3b', '#9a6412', 'question'];
+        }
+
+        if ($state->is_correct()) {
+            return ['#eaf7ea', '#4f9b59', '#1f6d2c', 'check'];
+        } else if ($state->is_partially_correct()) {
+            return ['#fff6e8', '#d89b3b', '#9a6412', '~'];
+        } else if ($state->is_incorrect()) {
+            return ['#fdecec', '#d06767', '#9f2f2f', 'cross'];
+        } else if ($state->is_finished()) {
+            return ['#f0f4f8', '#a8b7c7', '#546277', '•'];
+        }
+
+        return ['#ffffff', '#c4cfdb', '#667788', '•'];
+    }
+
+    /**
+     * Renders the status symbol for one navigation badge.
+     *
+     * Uses built-in ZapfDingbats glyphs for check/cross to avoid dependency on
+     * optional Unicode TTF font files in TCPDF deployments.
+     *
+     * @param string $symbol Symbol type from resolve_navigation_badge_style().
+     * @param string $color  Text/icon color.
+     * @return string HTML markup.
+     */
+    private static function render_navigation_symbol_html(string $symbol, string $color): string {
+        if ($symbol === 'check') {
+            // ZapfDingbats "3" = check mark.
+            return '<span style="font-size:8pt; color:' . $color . '; font-family:zapfdingbats;">3</span>';
+        }
+        if ($symbol === 'cross') {
+            // ZapfDingbats "7" = cross mark.
+            return '<span style="font-size:8pt; color:' . $color . '; font-family:zapfdingbats;">7</span>';
+        }
+        if ($symbol === 'question') {
+            return '<span style="display:inline-block; width:9px; height:9px; line-height:9px;'
+                . ' border:1px solid ' . $color . '; border-radius:50%; text-align:center;'
+                . ' font-size:6pt; font-weight:bold; color:' . $color . ';">?</span>';
+        }
+
+        return '<span style="font-size:8pt; color:' . $color . ';">' . s($symbol) . '</span>';
     }
 
     /**
@@ -332,7 +633,7 @@ class generator {
                 ' ' . $num . ':</strong> ' . s($qtext) . '</td>' .
                 '</tr>';
 
-            // Student answer.
+            // Learner answer.
             $response    = $qa->get_response_summary();
             $stateobject = $qa->get_state();
             $statelabel  = '';
@@ -371,6 +672,24 @@ class generator {
                     '<td style="font-weight:bold;">' . get_string('pdf_correctanswer', 'local_eledia_exam2pdf') . '</td>' .
                     '<td>' . ($correct ?: get_string('pdf_nocorrectanswer', 'local_eledia_exam2pdf')) . '</td>' .
                     '</tr>';
+            }
+
+            // Question score.
+            $mark = $qa->get_mark();
+            $maxmark = $qa->get_max_mark();
+            $html .= '<tr style="background:#fafafa;">' .
+                '<td style="font-weight:bold;">' . get_string('pdf_question_score', 'local_eledia_exam2pdf') . '</td>' .
+                '<td>' . self::format_question_mark($mark) . ' / ' . self::format_question_mark($maxmark) . '</td>' .
+                '</tr>';
+
+            if (!empty($config['showquestioncomments'])) {
+                $manualcomment = self::get_manual_comment_text($qa);
+                if ($manualcomment !== '') {
+                    $html .= '<tr style="background:#fafafa;">' .
+                        '<td style="font-weight:bold;">' . get_string('pdf_question_comment', 'local_eledia_exam2pdf') . '</td>' .
+                        '<td>' . s($manualcomment) . '</td>' .
+                        '</tr>';
+                }
             }
 
             $html .= '</table>';
@@ -440,6 +759,43 @@ class generator {
     }
 
     /**
+     * Formats a question mark value for compact "x / y" display.
+     *
+     * @param float|null $mark Mark value from question attempt.
+     * @return string
+     */
+    private static function format_question_mark(?float $mark): string {
+        if ($mark === null) {
+            return '0';
+        }
+
+        if (abs($mark - round($mark)) < 0.00001) {
+            return (string) ((int) round($mark));
+        }
+
+        return rtrim(rtrim(number_format($mark, 2, '.', ''), '0'), '.');
+    }
+
+    /**
+     * Returns the newest manual grading comment for one question attempt.
+     *
+     * @param \question_attempt $qa Question attempt.
+     * @return string
+     */
+    private static function get_manual_comment_text(\question_attempt $qa): string {
+        if (!method_exists($qa, 'has_manual_comment') || !$qa->has_manual_comment()) {
+            return '';
+        }
+
+        [$comment] = $qa->get_manual_comment();
+        if ($comment === null) {
+            return '';
+        }
+
+        return trim((string) strip_tags((string) $comment));
+    }
+
+    /**
      * Helper: renders one two-column header table row.
      *
      * @param string $label The row label (left column).
@@ -448,8 +804,9 @@ class generator {
      */
     private static function header_row(string $label, $value): string {
         return '<tr>' .
-            '<td style="font-weight:bold; width:40%; background:#f5f5f5;">' . s($label) . '</td>' .
-            '<td>' . s((string) $value) . '</td>' .
+            '<td style="font-weight:bold; background:#f5f7fa; border:1px solid #e1e6ed;">'
+            . s($label) . '</td>' .
+            '<td style="border:1px solid #e1e6ed;">' . s((string) $value) . '</td>' .
             '</tr>';
     }
 }

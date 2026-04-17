@@ -32,4 +32,11 @@ $observers = [
         'internal'    => false,
         'priority'    => 200,
     ],
+    [
+        'eventname'   => 'mod_quiz\event\question_manually_graded',
+        'callback'    => 'local_eledia_exam2pdf\observer::on_question_manually_graded',
+        'includefile' => null,
+        'internal'    => false,
+        'priority'    => 200,
+    ],
 ];

@@ -26,7 +26,16 @@
 
 require_once('../../config.php');
 
-$cmid = required_param('cmid', PARAM_INT);
+$cmid = optional_param('cmid', 0, PARAM_INT);
+if ($cmid <= 0) {
+    $cmid = optional_param('id', 0, PARAM_INT);
+}
+if ($cmid <= 0 && !empty($_POST['cmid'])) {
+    $cmid = clean_param($_POST['cmid'], PARAM_INT);
+}
+if ($cmid <= 0) {
+    throw new \moodle_exception('missingparam', '', '', 'cmid');
+}
 
 $cm      = get_coursemodule_from_id('quiz', $cmid, 0, false, MUST_EXIST);
 $context = \core\context\module::instance($cm->id);
@@ -53,7 +62,8 @@ $rawoverrides = $DB->get_records_menu(
     'name, value'
 );
 
-$form = new \local_eledia_exam2pdf\form\quizsettings(null, null, 'post', '', null, true, ['cmid' => $cmid]);
+$formaction = new moodle_url('/local/eledia_exam2pdf/quizsettings.php', ['cmid' => $cmid]);
+$form = new \local_eledia_exam2pdf\form\quizsettings($formaction, null, 'post', '', null, true, ['cmid' => $cmid]);
 
 // Pre-populate form with current effective config.
 $formdefaults         = (array) $currentconfig;
@@ -63,19 +73,33 @@ $formdefaults['cmid'] = $cmid;
 // rather than the resolved effective boolean so teachers can tell whether an
 // override is active and can reset it to the global default.
 $formdefaults['outputmode']      = $rawoverrides['outputmode'] ?? '';
+$formdefaults['pdflanguage']     = $rawoverrides['pdflanguage'] ?? '';
+$formdefaults['pdffootertext']   = $rawoverrides['pdffootertext'] ?? '';
 $formdefaults['studentdownload'] = isset($rawoverrides['studentdownload'])
     ? $rawoverrides['studentdownload']
     : '';
-
-$form->set_data($formdefaults);
+$formdefaults['studentemail'] = isset($rawoverrides['studentemail'])
+    ? $rawoverrides['studentemail']
+    : '';
+$formdefaults['showquestioncomments'] = isset($rawoverrides['showquestioncomments'])
+    ? $rawoverrides['showquestioncomments']
+    : '';
 
 if ($form->is_cancelled()) {
     redirect(new moodle_url('/mod/quiz/view.php', ['id' => $cmid]));
-} else if ($data = $form->get_data()) {
-    $tosave = [];
+} else if (($submitted = data_submitted()) && confirm_sesskey()) {
+    // Prefer validated moodleform data, but fall back to raw POST values for
+    // environments where get_data() may return null on language-switched URLs.
+    $data = $form->get_data();
+    $submittedarray = (array) $submitted;
+
     $keys = [
         'outputmode',
+        'pdflanguage',
+        'pdffootertext',
         'studentdownload',
+        'studentemail',
+        'showquestioncomments',
         'emailrecipients',
         'emailsubject',
         'retentiondays',
@@ -87,8 +111,48 @@ if ($form->is_cancelled()) {
         'show_duration',
         'show_attemptnumber',
     ];
+    $checkboxkeys = [
+        'showcorrectanswers',
+        'show_score',
+        'show_passgrade',
+        'show_percentage',
+        'show_timestamp',
+        'show_duration',
+        'show_attemptnumber',
+    ];
+    $types = [
+        'outputmode' => PARAM_ALPHA,
+        'pdflanguage' => PARAM_ALPHANUMEXT,
+        'pdffootertext' => PARAM_TEXT,
+        'studentdownload' => PARAM_INT,
+        'studentemail' => PARAM_INT,
+        'showquestioncomments' => PARAM_INT,
+        'emailrecipients' => PARAM_TEXT,
+        'emailsubject' => PARAM_TEXT,
+        'retentiondays' => PARAM_INT,
+        'showcorrectanswers' => PARAM_INT,
+        'show_score' => PARAM_INT,
+        'show_passgrade' => PARAM_INT,
+        'show_percentage' => PARAM_INT,
+        'show_timestamp' => PARAM_INT,
+        'show_duration' => PARAM_INT,
+        'show_attemptnumber' => PARAM_INT,
+    ];
+
+    $tosave = [];
     foreach ($keys as $key) {
-        $val = $data->$key ?? null;
+        if ($data && property_exists($data, $key)) {
+            $val = $data->$key;
+        } else if (array_key_exists($key, $submittedarray)) {
+            $raw = (string) $submittedarray[$key];
+            $val = ($raw === '') ? '' : clean_param($raw, $types[$key] ?? PARAM_RAW_TRIMMED);
+        } else if (in_array($key, $checkboxkeys, true)) {
+            // Unchecked checkboxes are not submitted by browsers.
+            $val = 0;
+        } else {
+            $val = null;
+        }
+
         // Store null to signal "inherit global default" (removes override).
         // Note: '0' must NOT be treated as empty — it is a valid explicit
         // value meaning "disabled". Only the empty string or null means inherit.
@@ -107,5 +171,6 @@ if ($form->is_cancelled()) {
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('quizsettings_heading', 'local_eledia_exam2pdf'));
+$form->set_data($formdefaults);
 $form->display();
 echo $OUTPUT->footer();

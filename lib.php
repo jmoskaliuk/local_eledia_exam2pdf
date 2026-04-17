@@ -125,21 +125,6 @@ function local_eledia_exam2pdf_extend_navigation_module(
 
     $context = \core\context\module::instance($cm->id);
 
-    // PDF Certificates report — visible to roles with download-all access.
-    if (\local_eledia_exam2pdf\helper::has_downloadall_capability($context)) {
-        $reporturl = new moodle_url(
-            '/local/eledia_exam2pdf/report.php',
-            ['cmid' => $cm->id]
-        );
-        $navref->add(
-            get_string('report_nav_link', 'local_eledia_exam2pdf'),
-            $reporturl,
-            navigation_node::TYPE_CUSTOM,
-            null,
-            'exam2pdf_report'
-        );
-    }
-
     // Per-quiz PDF settings — visible to users with the configure capability.
     if (has_capability('local/eledia_exam2pdf:configure', $context)) {
         $settingsurl = new moodle_url(
@@ -176,21 +161,6 @@ function local_eledia_exam2pdf_extend_settings_navigation(
         $quiznode    = $settingsnav->find('modulesettings', navigation_node::TYPE_SETTING);
 
         if ($quiznode) {
-            // PDF Certificates report — visible to roles with download-all access.
-            if (\local_eledia_exam2pdf\helper::has_downloadall_capability($quizcontext)) {
-                $reporturl = new moodle_url(
-                    '/local/eledia_exam2pdf/report.php',
-                    ['cmid' => $PAGE->cm->id]
-                );
-                $quiznode->add(
-                    get_string('report_nav_link', 'local_eledia_exam2pdf'),
-                    $reporturl,
-                    navigation_node::TYPE_SETTING,
-                    null,
-                    'exam2pdf_report'
-                );
-            }
-
             // Per-quiz PDF settings — visible to teachers / managers with configure.
             if (has_capability('local/eledia_exam2pdf:configure', $quizcontext)) {
                 $settingsurl = new moodle_url(

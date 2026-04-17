@@ -72,6 +72,7 @@ function xmldb_local_eledia_exam2pdf_upgrade($oldversion) {
                         $fs->delete_area_files($context->id, 'local_eledia_exam2pdf', 'attempt_pdf', $record->id);
                     } catch (\Throwable $e) {
                         // Best effort cleanup: still delete DB row below.
+                        unset($e);
                     }
                     $DB->delete_records('local_eledia_exam2pdf', ['id' => $record->id]);
                 }
