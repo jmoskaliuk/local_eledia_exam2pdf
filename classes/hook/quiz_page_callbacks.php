@@ -110,34 +110,54 @@ class quiz_page_callbacks {
             return '';
         }
 
-        // Look up the PDF record for the current user / attempt. The record
-        // carries cmid + quizid so we don't need $PAGE->cm.
+        // Only expose the download button for the owner of this attempt.
+        $attempt = $DB->get_record(
+            'quiz_attempts',
+            ['id' => $attemptid, 'userid' => $USER->id],
+            '*',
+            IGNORE_MISSING
+        );
+        if (!$attempt) {
+            return '';
+        }
+
+        $quiz = $DB->get_record('quiz', ['id' => $attempt->quiz], '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('quiz', $quiz->id, 0, false, MUST_EXIST);
+        $context = \core\context\module::instance($cm->id);
+
+        if (!\local_eledia_exam2pdf\helper::has_downloadown_capability($context)) {
+            return '';
+        }
+
+        // Respect the studentdownload setting (global + per-quiz override).
+        $config = \local_eledia_exam2pdf\helper::get_effective_config((int) $quiz->id);
+        if (empty($config['studentdownload'])) {
+            return '';
+        }
+
+        // Prefer existing generated file when available.
         $record = $DB->get_record(
             'local_eledia_exam2pdf',
             ['attemptid' => $attemptid, 'userid' => $USER->id],
             'id, cmid, quizid, timeexpires',
             IGNORE_MISSING
         );
-
-        if (!$record) {
-            return '';
+        if ($record) {
+            $file = \local_eledia_exam2pdf\helper::get_stored_file($record);
+            if ($file) {
+                $downloadurl = \local_eledia_exam2pdf\helper::get_download_url($record, $file->get_filename());
+                return self::render_download_button($downloadurl->out(false));
+            }
         }
 
-        // Respect the studentdownload setting (global + per-quiz override).
-        $config = \local_eledia_exam2pdf\helper::get_effective_config($record->quizid);
-        if (empty($config['studentdownload'])) {
-            return '';
+        // On-demand mode: show the button even before a PDF exists.
+        if (($config['pdfgeneration'] ?? 'auto') === 'ondemand'
+            && \local_eledia_exam2pdf\helper::is_in_pdf_scope($attempt, $quiz, $config)) {
+            $downloadurl = new \moodle_url('/local/eledia_exam2pdf/download.php', ['attemptid' => $attemptid]);
+            return self::render_download_button($downloadurl->out(false));
         }
 
-        // Check the file still exists (not yet expired / deleted).
-        $file = \local_eledia_exam2pdf\helper::get_stored_file($record);
-        if (!$file) {
-            return '';
-        }
-
-        $downloadurl = \local_eledia_exam2pdf\helper::get_download_url($record, $file->get_filename());
-
-        return self::render_download_button($downloadurl->out(false));
+        return '';
     }
 
     /**
@@ -156,13 +176,13 @@ class quiz_page_callbacks {
         }
 
         $context = \core\context\module::instance($PAGE->cm->id);
-        if (!has_capability('local/eledia_exam2pdf:manage', $context)) {
+        if (!\local_eledia_exam2pdf\helper::has_downloadall_capability($context)) {
             return '';
         }
 
         $entries = \local_eledia_exam2pdf\helper::get_quiz_pdfs($PAGE->cm->id);
-
-        return self::render_report_section($PAGE->cm->id, $entries);
+        $config = \local_eledia_exam2pdf\helper::get_effective_config((int) $PAGE->cm->instance);
+        return self::render_report_section($PAGE->cm->id, $entries, (string) ($config['bulkformat'] ?? 'zip'));
     }
 
     // Private HTML renderers.
@@ -190,9 +210,10 @@ class quiz_page_callbacks {
      *
      * @param int   $cmid    Course module ID.
      * @param array $entries Result of helper::get_quiz_pdfs().
+     * @param string $bulkformat Configured bulk download format.
      * @return string HTML.
      */
-    private static function render_report_section(int $cmid, array $entries): string {
+    private static function render_report_section(int $cmid, array $entries, string $bulkformat = 'zip'): string {
         $heading = get_string('report_section_heading', 'local_eledia_exam2pdf');
         $intro   = get_string('report_section_intro', 'local_eledia_exam2pdf');
         $colname = get_string('manage_col_learner', 'local_eledia_exam2pdf');
@@ -228,7 +249,9 @@ class quiz_page_callbacks {
         }
 
         $zipurl   = (new \moodle_url('/local/eledia_exam2pdf/zip.php', ['cmid' => $cmid]))->out(false);
-        $ziplabel = get_string('report_download_zip', 'local_eledia_exam2pdf');
+        $ziplabel = ($bulkformat === 'merged')
+            ? get_string('report_download_merged', 'local_eledia_exam2pdf')
+            : get_string('report_download_zip', 'local_eledia_exam2pdf');
 
         return '<section class="local-eledia-exam2pdf-reportwrap" style="margin:2em 0;">'
             . '<h3>' . $heading . '</h3>'

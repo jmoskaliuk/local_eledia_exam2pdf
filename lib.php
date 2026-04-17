@@ -58,16 +58,23 @@ function local_eledia_exam2pdf_pluginfile(
         return false;
     }
 
-    // Access control: learners may only download their own PDFs.
-    // Trainers / admins with the manage capability may download any PDF.
     $quizcontext = \core\context\module::instance($cm->id);
-    $canmanage   = has_capability('local/eledia_exam2pdf:manage', $quizcontext);
-
-    if (!$canmanage && $record->userid != $USER->id) {
-        return false;
-    }
+    $candownloadall = \local_eledia_exam2pdf\helper::has_downloadall_capability($quizcontext);
+    $candownloadown = \local_eledia_exam2pdf\helper::has_downloadown_capability($quizcontext);
 
     require_login($course, false, $cm);
+
+    // Access control: learners may only download their own PDFs and only when
+    // student self-service is enabled for this quiz.
+    if (!$candownloadall) {
+        if (!$candownloadown || (int) $record->userid !== (int) $USER->id) {
+            return false;
+        }
+        $config = \local_eledia_exam2pdf\helper::get_effective_config((int) $record->quizid);
+        if (empty($config['studentdownload'])) {
+            return false;
+        }
+    }
 
     $fs   = get_file_storage();
     $file = $fs->get_file($context->id, 'local_eledia_exam2pdf', 'attempt_pdf', $recordid, '/', $filename);
@@ -118,8 +125,8 @@ function local_eledia_exam2pdf_extend_navigation_module(
 
     $context = \core\context\module::instance($cm->id);
 
-    // PDF Certificates report — visible to teachers / managers.
-    if (has_capability('local/eledia_exam2pdf:manage', $context)) {
+    // PDF Certificates report — visible to roles with download-all access.
+    if (\local_eledia_exam2pdf\helper::has_downloadall_capability($context)) {
         $reporturl = new moodle_url(
             '/local/eledia_exam2pdf/report.php',
             ['cmid' => $cm->id]
@@ -169,8 +176,8 @@ function local_eledia_exam2pdf_extend_settings_navigation(
         $quiznode    = $settingsnav->find('modulesettings', navigation_node::TYPE_SETTING);
 
         if ($quiznode) {
-            // PDF Certificates report — visible to teachers / managers.
-            if (has_capability('local/eledia_exam2pdf:manage', $quizcontext)) {
+            // PDF Certificates report — visible to roles with download-all access.
+            if (\local_eledia_exam2pdf\helper::has_downloadall_capability($quizcontext)) {
                 $reporturl = new moodle_url(
                     '/local/eledia_exam2pdf/report.php',
                     ['cmid' => $PAGE->cm->id]

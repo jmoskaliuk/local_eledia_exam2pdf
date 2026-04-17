@@ -35,45 +35,10 @@ class observer {
      * @param \mod_quiz\event\attempt_submitted $event The fired event.
      */
     public static function on_attempt_submitted(\mod_quiz\event\attempt_submitted $event): void {
-        global $DB, $CFG;
-
-        $attemptid = $event->objectid;
-
-        // Load attempt — use string 'finished' directly to avoid class-loading
-        // issues with \mod_quiz\quiz_attempt during event dispatch.
-        $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', IGNORE_MISSING);
-        if (!$attempt || $attempt->state !== 'finished') {
-            return;
-        }
-
-        // Load quiz.
-        $quiz = $DB->get_record('quiz', ['id' => $attempt->quiz], '*', MUST_EXIST);
-
-        // Get effective config (global defaults merged with per-quiz overrides).
-        $config = helper::get_effective_config($quiz->id);
-
-        // Only generate automatically in 'auto' mode; in 'ondemand' mode the
-        // observer does nothing — PDFs are created on teacher/student click.
-        if (($config['pdfgeneration'] ?? 'auto') !== 'auto') {
-            return;
-        }
-
-        // Check if the attempt is in scope (passed-only or all finished).
-        if (!helper::is_in_pdf_scope($attempt, $quiz, $config)) {
-            return;
-        }
-
-        // Avoid duplicate: if a PDF record already exists for this attempt, skip.
-        if ($DB->record_exists('local_eledia_exam2pdf', ['attemptid' => $attemptid])) {
-            return;
-        }
-
-        // Generate the PDF binary.
         try {
-            require_once($CFG->dirroot . '/mod/quiz/locallib.php');
-            $attemptobj = \mod_quiz\quiz_attempt::create($attemptid);
-            $pdfcontent = pdf\generator::generate($attemptobj, $quiz, $config);
+            self::ensure_pdf_for_attempt((int) $event->objectid, false);
         } catch (\Throwable $e) {
+            $attemptid = (int) $event->objectid;
             // In test environments, swallowing exceptions makes real bugs invisible.
             // Re-throw so tests surface the actual problem instead of silently
             // asserting "0 PDFs" as a symptom.
@@ -88,14 +53,68 @@ class observer {
                     . $attemptid . ': ' . $e->getMessage(),
                 DEBUG_DEVELOPER
             );
-            return;
+        }
+    }
+
+    /**
+     * Ensures a PDF record exists for an attempt and returns that record.
+     *
+     * In automatic mode this is used by the event observer. In on-demand mode
+     * callers can pass `$allowondemand = true` to generate on click.
+     *
+     * @param int $attemptid Quiz attempt ID.
+     * @param bool $allowondemand Whether on-demand generation is allowed.
+     * @return \stdClass|null Generated/existing DB record, or null when attempt is out of scope.
+     */
+    public static function ensure_pdf_for_attempt(int $attemptid, bool $allowondemand = false): ?\stdClass {
+        global $DB, $CFG;
+
+        // Load attempt — use string 'finished' directly to avoid class-loading
+        // issues with \mod_quiz\quiz_attempt during event dispatch.
+        $attempt = $DB->get_record('quiz_attempts', ['id' => $attemptid], '*', IGNORE_MISSING);
+        if (!$attempt || $attempt->state !== 'finished') {
+            return null;
         }
 
-        // Store the PDF in the Moodle file system.
-        $cm      = get_coursemodule_from_instance('quiz', $quiz->id, 0, false, MUST_EXIST);
-        $context = \core\context\module::instance($cm->id);
+        // Load quiz and effective config.
+        $quiz = $DB->get_record('quiz', ['id' => $attempt->quiz], '*', MUST_EXIST);
+        $config = helper::get_effective_config($quiz->id);
+
+        // In automatic mode we only generate when explicitly configured.
+        if (($config['pdfgeneration'] ?? 'auto') !== 'auto' && !$allowondemand) {
+            return null;
+        }
+
+        // Scope check (passed/all).
+        if (!helper::is_in_pdf_scope($attempt, $quiz, $config)) {
+            return null;
+        }
+
+        // Reuse existing record when file is still present.
+        $existing = $DB->get_record(
+            'local_eledia_exam2pdf',
+            ['attemptid' => $attemptid],
+            '*',
+            IGNORE_MISSING
+        );
+        if ($existing) {
+            if (helper::get_stored_file($existing)) {
+                return $existing;
+            }
+            // Cleanup orphaned row and regenerate.
+            $DB->delete_records('local_eledia_exam2pdf', ['id' => $existing->id]);
+        }
+
+        // Generate the PDF binary.
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        $attemptobj = \mod_quiz\quiz_attempt::create($attemptid);
+        $pdfcontent = pdf\generator::generate($attemptobj, $quiz, $config);
 
         $filename = self::build_filename($attempt, $quiz);
+
+        // Store the PDF in Moodle's file system.
+        $cm      = get_coursemodule_from_instance('quiz', $quiz->id, 0, false, MUST_EXIST);
+        $context = \core\context\module::instance($cm->id);
 
         // Calculate expiry timestamp.
         $retentiondays = (int) ($config['retentiondays'] ?? 365);
@@ -110,7 +129,21 @@ class observer {
         $record->timecreated = time();
         $record->timeexpires = $timeexpires;
         $record->contenthash = '';
-        $record->id          = $DB->insert_record('local_eledia_exam2pdf', $record);
+        try {
+            $record->id = $DB->insert_record('local_eledia_exam2pdf', $record);
+        } catch (\dml_write_exception $e) {
+            // Handle race: another process inserted the same attempt first.
+            $existing = $DB->get_record(
+                'local_eledia_exam2pdf',
+                ['attemptid' => $attemptid],
+                '*',
+                IGNORE_MISSING
+            );
+            if ($existing) {
+                return $existing;
+            }
+            throw $e;
+        }
 
         // Save to file system.
         $fs        = get_file_storage();
@@ -131,7 +164,12 @@ class observer {
             $record->id
         );
 
-        $storedfile = $fs->create_file_from_string($fileinfo, $pdfcontent);
+        try {
+            $storedfile = $fs->create_file_from_string($fileinfo, $pdfcontent);
+        } catch (\Throwable $e) {
+            $DB->delete_records('local_eledia_exam2pdf', ['id' => $record->id]);
+            throw $e;
+        }
 
         // Update content hash in DB record.
         $DB->set_field(
@@ -140,6 +178,7 @@ class observer {
             $storedfile->get_contenthash(),
             ['id' => $record->id]
         );
+        $record->contenthash = $storedfile->get_contenthash();
 
         // Handle output: email and/or prepare for download.
         $outputmode = $config['outputmode'] ?? 'download';
@@ -147,6 +186,8 @@ class observer {
         if (in_array($outputmode, ['email', 'both'], true)) {
             self::send_email($attempt, $quiz, $config, $storedfile, $filename);
         }
+
+        return $record;
     }
 
     // Private helpers.

@@ -21,7 +21,7 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="idx_quizid"    UNIQUE="false" FIELDS="quizid"/>
-        <INDEX NAME="idx_attemptid" UNIQUE="false" FIELDS="attemptid"/>
+        <INDEX NAME="uniq_attemptid" UNIQUE="true" FIELDS="attemptid"/>
         <INDEX NAME="idx_userid"    UNIQUE="false" FIELDS="userid"/>
       </INDEXES>
     </TABLE>

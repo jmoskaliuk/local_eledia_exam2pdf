@@ -50,18 +50,18 @@ final class helper_test extends \advanced_testcase {
 
         $this->assertSame('auto', $config['pdfgeneration']);
         $this->assertSame('passed', $config['pdfscope']);
-        $this->assertIsBool($config['studentdownload']);
+        $this->assertTrue($config['studentdownload']);
         $this->assertSame('zip', $config['bulkformat']);
         $this->assertSame('download', $config['outputmode']);
         $this->assertSame('', $config['emailrecipients']);
         $this->assertSame(365, $config['retentiondays']);
-        $this->assertIsBool($config['showcorrectanswers']);
-        $this->assertIsBool($config['show_score']);
-        $this->assertIsBool($config['show_passgrade']);
-        $this->assertIsBool($config['show_percentage']);
-        $this->assertIsBool($config['show_timestamp']);
-        $this->assertIsBool($config['show_duration']);
-        $this->assertIsBool($config['show_attemptnumber']);
+        $this->assertTrue($config['showcorrectanswers']);
+        $this->assertTrue($config['show_score']);
+        $this->assertTrue($config['show_passgrade']);
+        $this->assertTrue($config['show_percentage']);
+        $this->assertTrue($config['show_timestamp']);
+        $this->assertTrue($config['show_duration']);
+        $this->assertTrue($config['show_attemptnumber']);
     }
 
     /**

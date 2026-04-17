@@ -274,6 +274,33 @@ final class observer_test extends \advanced_testcase {
         $this->assertSame(1, $count, 'Observer must be idempotent per attempt.');
     }
 
+    /**
+     * On-demand mode skips event-time generation but allows explicit generation.
+     */
+    public function test_ondemand_mode_generates_on_explicit_request(): void {
+        global $DB;
+
+        set_config('pdfgeneration', 'ondemand', 'local_eledia_exam2pdf');
+
+        $this->setAdminUser();
+        $quiz    = $this->create_quiz_with_question(['sumgrades' => 10, 'grade' => 10, 'gradepass' => 5]);
+        $attempt = $this->create_finished_attempt($quiz, 9.0);
+
+        // Event observer must not auto-generate in on-demand mode.
+        $this->trigger_attempt_submitted($attempt, $quiz);
+        $this->assertFalse(
+            $DB->record_exists('local_eledia_exam2pdf', ['attemptid' => $attempt->id]),
+            'On-demand mode should not auto-generate at event time.'
+        );
+
+        // Explicit request should generate the PDF record.
+        observer::ensure_pdf_for_attempt((int) $attempt->id, true);
+        $this->assertTrue(
+            $DB->record_exists('local_eledia_exam2pdf', ['attemptid' => $attempt->id]),
+            'Explicit generation should create the PDF in on-demand mode.'
+        );
+    }
+
     // Email output mode.
 
     /**

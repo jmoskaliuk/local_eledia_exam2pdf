@@ -29,6 +29,21 @@ namespace local_eledia_exam2pdf;
  */
 class helper {
     /**
+     * Reads a boolean plugin setting and applies a default when unset.
+     *
+     * `get_config()` returns boolean false for unset settings, which must be
+     * distinguished from an explicit "0" value.
+     *
+     * @param string $name Setting name.
+     * @param bool $default Default value when setting is unset.
+     * @return bool
+     */
+    private static function get_bool_setting(string $name, bool $default): bool {
+        $raw = get_config('local_eledia_exam2pdf', $name);
+        return ($raw === false) ? $default : (bool) $raw;
+    }
+
+    /**
      * Returns the effective configuration for a given quiz.
      *
      * Global admin settings are used as defaults; per-quiz overrides from
@@ -39,6 +54,26 @@ class helper {
      */
     public static function get_effective_config(int $quizid): array {
         global $DB;
+
+        $pdfgeneration = get_config('local_eledia_exam2pdf', 'pdfgeneration');
+        if (!in_array($pdfgeneration, ['auto', 'ondemand'], true)) {
+            $pdfgeneration = 'auto';
+        }
+
+        $pdfscope = get_config('local_eledia_exam2pdf', 'pdfscope');
+        if (!in_array($pdfscope, ['passed', 'all'], true)) {
+            $pdfscope = 'passed';
+        }
+
+        $bulkformat = get_config('local_eledia_exam2pdf', 'bulkformat');
+        if (!in_array($bulkformat, ['zip', 'merged'], true)) {
+            $bulkformat = 'zip';
+        }
+
+        $outputmode = get_config('local_eledia_exam2pdf', 'outputmode');
+        if (!in_array($outputmode, ['download', 'email', 'both'], true)) {
+            $outputmode = 'download';
+        }
 
         // Start with global defaults.
         // NOTE: retentiondays intentionally does NOT use the short-ternary `?:` fallback
@@ -52,24 +87,24 @@ class helper {
         $sdraw = get_config('local_eledia_exam2pdf', 'studentdownload');
 
         $config = [
-            'pdfgeneration'       => get_config('local_eledia_exam2pdf', 'pdfgeneration') ?: 'auto',
-            'pdfscope'            => get_config('local_eledia_exam2pdf', 'pdfscope') ?: 'passed',
+            'pdfgeneration'       => $pdfgeneration,
+            'pdfscope'            => $pdfscope,
             'studentdownload'     => ($sdraw === false) ? true : (bool) $sdraw,
-            'bulkformat'          => get_config('local_eledia_exam2pdf', 'bulkformat') ?: 'zip',
-            'outputmode'          => get_config('local_eledia_exam2pdf', 'outputmode') ?: 'download',
+            'bulkformat'          => $bulkformat,
+            'outputmode'          => $outputmode,
             'emailrecipients'     => get_config('local_eledia_exam2pdf', 'emailrecipients') ?: '',
             'emailsubject'        => get_config('local_eledia_exam2pdf', 'emailsubject')
                                         ?: get_string('email_subject_default', 'local_eledia_exam2pdf'),
             'retentiondays'       => ($retentionraw === false || $retentionraw === '' || $retentionraw === null)
                                         ? 365
                                         : (int) $retentionraw,
-            'showcorrectanswers'  => (bool) get_config('local_eledia_exam2pdf', 'showcorrectanswers'),
-            'show_score'          => (bool) get_config('local_eledia_exam2pdf', 'show_score'),
-            'show_passgrade'      => (bool) get_config('local_eledia_exam2pdf', 'show_passgrade'),
-            'show_percentage'     => (bool) get_config('local_eledia_exam2pdf', 'show_percentage'),
-            'show_timestamp'      => (bool) get_config('local_eledia_exam2pdf', 'show_timestamp'),
-            'show_duration'       => (bool) get_config('local_eledia_exam2pdf', 'show_duration'),
-            'show_attemptnumber'  => (bool) get_config('local_eledia_exam2pdf', 'show_attemptnumber'),
+            'showcorrectanswers'  => self::get_bool_setting('showcorrectanswers', true),
+            'show_score'          => self::get_bool_setting('show_score', true),
+            'show_passgrade'      => self::get_bool_setting('show_passgrade', true),
+            'show_percentage'     => self::get_bool_setting('show_percentage', true),
+            'show_timestamp'      => self::get_bool_setting('show_timestamp', true),
+            'show_duration'       => self::get_bool_setting('show_duration', true),
+            'show_attemptnumber'  => self::get_bool_setting('show_attemptnumber', true),
         ];
 
         // Apply per-quiz overrides.
@@ -104,6 +139,45 @@ class helper {
         }
 
         return $config;
+    }
+
+    /**
+     * Returns true when the user may download all quiz PDFs in this context.
+     *
+     * Keeps the legacy `manage` capability as backward-compatible fallback.
+     *
+     * @param \context_module $context Quiz module context.
+     * @return bool
+     */
+    public static function has_downloadall_capability(\context_module $context): bool {
+        return has_capability('local/eledia_exam2pdf:downloadall', $context)
+            || has_capability('local/eledia_exam2pdf:manage', $context);
+    }
+
+    /**
+     * Returns true when the user may generate/regenerate PDFs in this context.
+     *
+     * Keeps the legacy `manage` capability as backward-compatible fallback.
+     *
+     * @param \context_module $context Quiz module context.
+     * @return bool
+     */
+    public static function has_generatepdf_capability(\context_module $context): bool {
+        return has_capability('local/eledia_exam2pdf:generatepdf', $context)
+            || has_capability('local/eledia_exam2pdf:manage', $context);
+    }
+
+    /**
+     * Returns true when the user may download their own quiz PDF.
+     *
+     * Users with "download all" are implicitly allowed.
+     *
+     * @param \context_module $context Quiz module context.
+     * @return bool
+     */
+    public static function has_downloadown_capability(\context_module $context): bool {
+        return has_capability('local/eledia_exam2pdf:downloadown', $context)
+            || self::has_downloadall_capability($context);
     }
 
     /**
