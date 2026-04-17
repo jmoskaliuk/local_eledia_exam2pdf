@@ -59,6 +59,31 @@ class quizsettings extends \moodleform {
                 'both'     => get_string('outputmode_both', 'local_eledia_exam2pdf'),
             ]
         );
+        $mform->addHelpButton('outputmode', 'setting_outputmode', 'local_eledia_exam2pdf');
+
+        // PDF language — 3-state: inherit global / site default / explicit language pack.
+        $pdflanguageoptions = [
+            '' => get_string('quizsettings_inherit', 'local_eledia_exam2pdf'),
+            'site' => get_string('setting_pdflanguage_site', 'local_eledia_exam2pdf'),
+        ] + get_string_manager()->get_list_of_translations();
+        $mform->addElement(
+            'select',
+            'pdflanguage',
+            get_string('setting_pdflanguage', 'local_eledia_exam2pdf'),
+            $pdflanguageoptions
+        );
+        $mform->addHelpButton('pdflanguage', 'setting_pdflanguage', 'local_eledia_exam2pdf');
+        $mform->setType('pdflanguage', PARAM_ALPHANUMEXT);
+
+        // PDF footer text.
+        $mform->addElement(
+            'textarea',
+            'pdffootertext',
+            get_string('setting_pdffootertext', 'local_eledia_exam2pdf'),
+            ['rows' => 3, 'cols' => 60]
+        );
+        $mform->addHelpButton('pdffootertext', 'setting_pdffootertext', 'local_eledia_exam2pdf');
+        $mform->setType('pdffootertext', PARAM_TEXT);
 
         // Student may download — 3-state: inherit global / yes / no.
         $mform->addElement(
@@ -71,6 +96,33 @@ class quizsettings extends \moodleform {
                 '0' => get_string('no'),
             ]
         );
+        $mform->addHelpButton('studentdownload', 'setting_studentdownload', 'local_eledia_exam2pdf');
+
+        // Student receives evaluation by e-mail — 3-state: inherit global / yes / no.
+        $mform->addElement(
+            'select',
+            'studentemail',
+            get_string('setting_studentemail', 'local_eledia_exam2pdf'),
+            [
+                ''  => get_string('quizsettings_inherit', 'local_eledia_exam2pdf'),
+                '1' => get_string('yes'),
+                '0' => get_string('no'),
+            ]
+        );
+        $mform->addHelpButton('studentemail', 'setting_studentemail', 'local_eledia_exam2pdf');
+
+        // Include grading comments per question in PDF — 3-state override.
+        $mform->addElement(
+            'select',
+            'showquestioncomments',
+            get_string('setting_showquestioncomments', 'local_eledia_exam2pdf'),
+            [
+                ''  => get_string('quizsettings_inherit', 'local_eledia_exam2pdf'),
+                '1' => get_string('yes'),
+                '0' => get_string('no'),
+            ]
+        );
+        $mform->addHelpButton('showquestioncomments', 'setting_showquestioncomments', 'local_eledia_exam2pdf');
 
         // Email recipients.
         $mform->addElement(
@@ -79,6 +131,7 @@ class quizsettings extends \moodleform {
             get_string('setting_emailrecipients', 'local_eledia_exam2pdf'),
             ['size' => 60]
         );
+        $mform->addHelpButton('emailrecipients', 'setting_emailrecipients', 'local_eledia_exam2pdf');
         $mform->setType('emailrecipients', PARAM_TEXT);
 
         // Email subject.
@@ -88,6 +141,7 @@ class quizsettings extends \moodleform {
             get_string('setting_emailsubject', 'local_eledia_exam2pdf'),
             ['size' => 60]
         );
+        $mform->addHelpButton('emailsubject', 'setting_emailsubject', 'local_eledia_exam2pdf');
         $mform->setType('emailsubject', PARAM_TEXT);
 
         // Retention days.
@@ -97,6 +151,7 @@ class quizsettings extends \moodleform {
             get_string('setting_retentiondays', 'local_eledia_exam2pdf'),
             ['size' => 6]
         );
+        $mform->addHelpButton('retentiondays', 'setting_retentiondays', 'local_eledia_exam2pdf');
         $mform->setType('retentiondays', PARAM_INT);
 
         // Show correct answers.

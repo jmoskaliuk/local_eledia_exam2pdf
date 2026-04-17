@@ -71,6 +71,14 @@ if ($hassiteconfig) {
         1
     ));
 
+    // Student receives evaluation by e-mail.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_eledia_exam2pdf/studentemail',
+        get_string('setting_studentemail', 'local_eledia_exam2pdf'),
+        get_string('setting_studentemail_desc', 'local_eledia_exam2pdf'),
+        1
+    ));
+
     // Bulk download format.
     $settings->add(new admin_setting_configselect(
         'local_eledia_exam2pdf/bulkformat',
@@ -94,6 +102,26 @@ if ($hassiteconfig) {
             'email'    => get_string('outputmode_email', 'local_eledia_exam2pdf'),
             'both'     => get_string('outputmode_both', 'local_eledia_exam2pdf'),
         ]
+    ));
+
+    // PDF language.
+    $pdflanguageoptions = ['site' => get_string('setting_pdflanguage_site', 'local_eledia_exam2pdf')]
+        + get_string_manager()->get_list_of_translations();
+    $settings->add(new admin_setting_configselect(
+        'local_eledia_exam2pdf/pdflanguage',
+        get_string('setting_pdflanguage', 'local_eledia_exam2pdf'),
+        get_string('setting_pdflanguage_desc', 'local_eledia_exam2pdf'),
+        'site',
+        $pdflanguageoptions
+    ));
+
+    // PDF footer text.
+    $settings->add(new admin_setting_configtextarea(
+        'local_eledia_exam2pdf/pdffootertext',
+        get_string('setting_pdffootertext', 'local_eledia_exam2pdf'),
+        get_string('setting_pdffootertext_desc', 'local_eledia_exam2pdf'),
+        '',
+        PARAM_TEXT
     ));
 
     // Default email recipients (comma-separated).
@@ -145,5 +173,13 @@ if ($hassiteconfig) {
         get_string('setting_showcorrectanswers', 'local_eledia_exam2pdf'),
         get_string('setting_showcorrectanswers_desc', 'local_eledia_exam2pdf'),
         1
+    ));
+
+    // Include manual grading comments in PDF.
+    $settings->add(new admin_setting_configcheckbox(
+        'local_eledia_exam2pdf/showquestioncomments',
+        get_string('setting_showquestioncomments', 'local_eledia_exam2pdf'),
+        get_string('setting_showquestioncomments_desc', 'local_eledia_exam2pdf'),
+        0
     ));
 }

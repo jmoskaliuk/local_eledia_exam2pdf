@@ -57,6 +57,51 @@ class observer {
     }
 
     /**
+     * Handles \mod_quiz\event\question_manually_graded.
+     *
+     * Regenerates the attempt PDF once no question in the attempt remains in
+     * "needs grading" state.
+     *
+     * @param \mod_quiz\event\question_manually_graded $event The fired event.
+     */
+    public static function on_question_manually_graded(\mod_quiz\event\question_manually_graded $event): void {
+        global $DB;
+
+        $attemptid = (int) ($event->other['attemptid'] ?? 0);
+        if ($attemptid <= 0) {
+            return;
+        }
+
+        try {
+            // Keep the currently generated PDF while the attempt still has
+            // pending manual grading.
+            if (self::attempt_has_pending_manual_grading($attemptid)) {
+                return;
+            }
+
+            // Respect on-demand mode: only allow implicit regeneration there
+            // when a PDF for this attempt already exists.
+            $allowondemand = $DB->record_exists('local_eledia_exam2pdf', ['attemptid' => $attemptid]);
+            self::ensure_pdf_for_attempt($attemptid, $allowondemand, true);
+        } catch (\Throwable $e) {
+            // In test environments, swallowing exceptions makes real bugs invisible.
+            // Re-throw so tests surface the actual problem instead of silently
+            // asserting stale PDF data as a symptom.
+            if (
+                (defined('PHPUNIT_TEST') && PHPUNIT_TEST) ||
+                (defined('BEHAT_SITE_RUNNING') && BEHAT_SITE_RUNNING)
+            ) {
+                throw $e;
+            }
+            debugging(
+                'local_eledia_exam2pdf: PDF regeneration after manual grading failed for attempt '
+                    . $attemptid . ': ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
+        }
+    }
+
+    /**
      * Ensures a PDF record exists for an attempt and returns that record.
      *
      * In automatic mode this is used by the event observer. In on-demand mode
@@ -64,9 +109,14 @@ class observer {
      *
      * @param int $attemptid Quiz attempt ID.
      * @param bool $allowondemand Whether on-demand generation is allowed.
+     * @param bool $forceregenerate Whether an existing PDF should be discarded and regenerated.
      * @return \stdClass|null Generated/existing DB record, or null when attempt is out of scope.
      */
-    public static function ensure_pdf_for_attempt(int $attemptid, bool $allowondemand = false): ?\stdClass {
+    public static function ensure_pdf_for_attempt(
+        int $attemptid,
+        bool $allowondemand = false,
+        bool $forceregenerate = false
+    ): ?\stdClass {
         global $DB, $CFG;
 
         // Load attempt — use string 'finished' directly to avoid class-loading
@@ -90,19 +140,20 @@ class observer {
             return null;
         }
 
-        // Reuse existing record when file is still present.
-        $existing = $DB->get_record(
-            'local_eledia_exam2pdf',
-            ['attemptid' => $attemptid],
-            '*',
-            IGNORE_MISSING
-        );
-        if ($existing) {
+        // Reuse existing record when file is still present, unless this is an explicit
+        // force-regeneration request.
+        $existing = $DB->get_record('local_eledia_exam2pdf', ['attemptid' => $attemptid], '*', IGNORE_MISSING);
+        if ($existing && !$forceregenerate) {
             if (helper::get_stored_file($existing)) {
                 return $existing;
             }
             // Cleanup orphaned row and regenerate.
-            $DB->delete_records('local_eledia_exam2pdf', ['id' => $existing->id]);
+            self::delete_pdf_record_and_file($existing);
+        } else if ($forceregenerate) {
+            $allrecords = $DB->get_records('local_eledia_exam2pdf', ['attemptid' => $attemptid]);
+            foreach ($allrecords as $oldrecord) {
+                self::delete_pdf_record_and_file($oldrecord);
+            }
         }
 
         // Generate the PDF binary.
@@ -182,12 +233,57 @@ class observer {
 
         // Handle output: email and/or prepare for download.
         $outputmode = $config['outputmode'] ?? 'download';
-
-        if (in_array($outputmode, ['email', 'both'], true)) {
+        $sendemail = in_array($outputmode, ['email', 'both'], true) || !empty($config['studentemail']);
+        if ($sendemail) {
             self::send_email($attempt, $quiz, $config, $storedfile, $filename);
         }
 
         return $record;
+    }
+
+    /**
+     * Deletes one PDF DB row and its stored file area.
+     *
+     * @param \stdClass $record Row from local_eledia_exam2pdf.
+     * @return void
+     */
+    private static function delete_pdf_record_and_file(\stdClass $record): void {
+        global $DB;
+
+        $context = \core\context\module::instance((int) $record->cmid, IGNORE_MISSING);
+        if ($context) {
+            $fs = get_file_storage();
+            $fs->delete_area_files(
+                $context->id,
+                'local_eledia_exam2pdf',
+                'attempt_pdf',
+                (int) $record->id
+            );
+        }
+
+        $DB->delete_records('local_eledia_exam2pdf', ['id' => (int) $record->id]);
+    }
+
+    /**
+     * Returns whether the attempt still has questions waiting for manual grading.
+     *
+     * @param int $attemptid Quiz attempt ID.
+     * @return bool
+     */
+    private static function attempt_has_pending_manual_grading(int $attemptid): bool {
+        global $CFG;
+
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        $attemptobj = \mod_quiz\quiz_attempt::create($attemptid);
+
+        foreach ($attemptobj->get_slots() as $slot) {
+            $state = $attemptobj->get_question_state($slot);
+            if ($state && $state->get_summary_state() === 'needsgrading') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Private helpers.
@@ -227,11 +323,17 @@ class observer {
         $learner = $DB->get_record('user', ['id' => $attempt->userid], '*', MUST_EXIST);
         $noreply = \core_user::get_noreply_user();
 
-        // Build recipient list: learner + additional addresses.
-        $recipients   = [$learner->email];
+        // Build recipient list: learner (optional) + additional addresses.
+        $recipients   = [];
+        if (!empty($config['studentemail'])) {
+            $recipients[] = $learner->email;
+        }
         $extraraw     = $config['emailrecipients'] ?? '';
         $extraaddrs   = array_filter(array_map('trim', explode(',', $extraraw)));
         $recipients   = array_unique(array_merge($recipients, $extraaddrs));
+        if (empty($recipients)) {
+            return;
+        }
 
         // Resolve subject / body placeholders.
         $replacements = [

@@ -44,6 +44,35 @@ class helper {
     }
 
     /**
+     * Returns installed Moodle language packs as code => display name.
+     *
+     * @return array
+     */
+    private static function get_installed_languages(): array {
+        return get_string_manager()->get_list_of_translations();
+    }
+
+    /**
+     * Normalizes configured PDF language value.
+     *
+     * Allowed values:
+     * - 'site': use the site default language
+     * - installed language code (e.g. 'de', 'en')
+     *
+     * @param string $value Raw configured value.
+     * @return string Normalized value.
+     */
+    private static function normalize_pdf_language(string $value): string {
+        $value = trim($value);
+        if ($value === '' || $value === 'site') {
+            return 'site';
+        }
+
+        $languages = self::get_installed_languages();
+        return array_key_exists($value, $languages) ? $value : 'site';
+    }
+
+    /**
      * Returns the effective configuration for a given quiz.
      *
      * Global admin settings are used as defaults; per-quiz overrides from
@@ -75,6 +104,10 @@ class helper {
             $outputmode = 'download';
         }
 
+        $pdflanguage = self::normalize_pdf_language(
+            (string) (get_config('local_eledia_exam2pdf', 'pdflanguage') ?: 'site')
+        );
+
         // Start with global defaults.
         // NOTE: retentiondays intentionally does NOT use the short-ternary `?:` fallback
         // because '0' is a valid, meaningful value (never expire). `?: 365` would silently
@@ -85,13 +118,20 @@ class helper {
         // The null-coalescing operator `??` only fires for null, so `false ?? true` stays
         // false. We must explicitly detect false and substitute the intended default (true).
         $sdraw = get_config('local_eledia_exam2pdf', 'studentdownload');
+        $seraw = get_config('local_eledia_exam2pdf', 'studentemail');
+        $studentemaildefault = ($seraw === false)
+            ? in_array($outputmode, ['email', 'both'], true)
+            : (bool) $seraw;
 
         $config = [
             'pdfgeneration'       => $pdfgeneration,
             'pdfscope'            => $pdfscope,
             'studentdownload'     => ($sdraw === false) ? true : (bool) $sdraw,
+            'studentemail'        => $studentemaildefault,
             'bulkformat'          => $bulkformat,
             'outputmode'          => $outputmode,
+            'pdflanguage'         => $pdflanguage,
+            'pdffootertext'       => get_config('local_eledia_exam2pdf', 'pdffootertext') ?: '',
             'emailrecipients'     => get_config('local_eledia_exam2pdf', 'emailrecipients') ?: '',
             'emailsubject'        => get_config('local_eledia_exam2pdf', 'emailsubject')
                                         ?: get_string('email_subject_default', 'local_eledia_exam2pdf'),
@@ -99,6 +139,7 @@ class helper {
                                         ? 365
                                         : (int) $retentionraw,
             'showcorrectanswers'  => self::get_bool_setting('showcorrectanswers', true),
+            'showquestioncomments' => self::get_bool_setting('showquestioncomments', false),
             'show_score'          => self::get_bool_setting('show_score', true),
             'show_passgrade'      => self::get_bool_setting('show_passgrade', true),
             'show_percentage'     => self::get_bool_setting('show_percentage', true),
@@ -114,13 +155,18 @@ class helper {
             '',
             'name, value'
         );
+        $hasstudentemailoverride = array_key_exists('studentemail', $overrides)
+            && $overrides['studentemail'] !== null
+            && $overrides['studentemail'] !== '';
 
         foreach ($overrides as $name => $value) {
             if ($value !== null && $value !== '') {
                 // Cast booleans stored as '0'/'1'.
                 $boolfields = [
                     'studentdownload',
+                    'studentemail',
                     'showcorrectanswers',
+                    'showquestioncomments',
                     'show_score',
                     'show_passgrade',
                     'show_percentage',
@@ -132,10 +178,18 @@ class helper {
                     $config[$name] = (bool) $value;
                 } else if ($name === 'retentiondays') {
                     $config[$name] = (int) $value;
+                } else if ($name === 'pdflanguage') {
+                    $config[$name] = self::normalize_pdf_language((string) $value);
                 } else {
                     $config[$name] = $value;
                 }
             }
+        }
+
+        // Keep backward compatibility with older outputmode overrides when no
+        // explicit student-email override exists yet.
+        if (!$hasstudentemailoverride) {
+            $config['studentemail'] = in_array((string) ($config['outputmode'] ?? 'download'), ['email', 'both'], true);
         }
 
         return $config;
@@ -302,12 +356,21 @@ class helper {
     /**
      * Returns all PDF records belonging to a given quiz course module.
      *
-     * The returned rows are augmented with the learner's full name and the
-     * stored file (if any), so callers can render a table without further
-     * lookups.
+     * The returned rows are augmented with user/attempt/quiz data and ready-made
+     * URLs so callers can render report tables without extra lookups.
      *
      * @param int $cmid Course module ID of the quiz.
-     * @return array List of objects with keys: record, user, file, downloadurl.
+     * @return array List of objects with keys:
+     *   - record (\stdClass local_eledia_exam2pdf row)
+     *   - user (\stdClass|null user row)
+     *   - attempt (\stdClass|null quiz_attempts row)
+     *   - quiz (\stdClass|null quiz row)
+     *   - fullname (string)
+     *   - profileurl (\moodle_url|null)
+     *   - gradedisplay (string)
+     *   - reviewurl (\moodle_url|null)
+     *   - file (\stored_file)
+     *   - downloadurl (\moodle_url)
      */
     public static function get_quiz_pdfs(int $cmid): array {
         global $DB;
@@ -330,6 +393,29 @@ class helper {
             $params
         );
 
+        // Bulk-load attempts.
+        $attemptids = array_unique(array_map(static fn($r) => (int) $r->attemptid, $records));
+        [$attemptinsql, $attemptparams] = $DB->get_in_or_equal($attemptids);
+        $attempts = $DB->get_records_sql(
+            "SELECT qa.id, qa.quiz, qa.sumgrades FROM {quiz_attempts} qa WHERE qa.id {$attemptinsql}",
+            $attemptparams
+        );
+
+        // Bulk-load quizzes.
+        $quizids = array_unique(array_map(static fn($r) => (int) $r->quizid, $records));
+        $quizids = array_values(array_filter($quizids));
+        if (empty($quizids)) {
+            $quizids = array_values(array_unique(array_map(static fn($a) => (int) $a->quiz, $attempts)));
+        }
+        $quizzes = [];
+        if (!empty($quizids)) {
+            [$quizinsql, $quizparams] = $DB->get_in_or_equal($quizids);
+            $quizzes = $DB->get_records_sql(
+                "SELECT q.id, q.course, q.grade, q.sumgrades FROM {quiz} q WHERE q.id {$quizinsql}",
+                $quizparams
+            );
+        }
+
         $result = [];
         foreach ($records as $record) {
             $file = self::get_stored_file($record);
@@ -337,10 +423,43 @@ class helper {
                 continue;
             }
             $user = $users[$record->userid] ?? null;
+            $attempt = $attempts[$record->attemptid] ?? null;
+            $quiz = $quizzes[$record->quizid] ?? null;
+            if (!$quiz && $attempt) {
+                $quiz = $quizzes[$attempt->quiz] ?? null;
+            }
+
+            $profileurl = null;
+            if ($user && $quiz) {
+                $profileurl = new \moodle_url('/user/profile.php', [
+                    'id' => (int) $user->id,
+                    'course' => (int) $quiz->course,
+                ]);
+            }
+
+            $gradedisplay = '-';
+            if ($attempt && $quiz && (float) $quiz->sumgrades > 0 && $attempt->sumgrades !== null) {
+                $grade = $attempt->sumgrades / $quiz->sumgrades * $quiz->grade;
+                $gradedisplay = round($grade, 2) . ' / ' . round((float) $quiz->grade, 2);
+            }
+
+            $reviewurl = null;
+            if ($attempt) {
+                $reviewurl = new \moodle_url('/mod/quiz/review.php', [
+                    'attempt' => (int) $attempt->id,
+                    'cmid' => (int) $record->cmid,
+                ]);
+            }
+
             $result[] = (object) [
                 'record'      => $record,
                 'user'        => $user,
+                'attempt'     => $attempt,
+                'quiz'        => $quiz,
                 'fullname'    => $user ? fullname($user) : '-',
+                'profileurl'  => $profileurl,
+                'gradedisplay' => $gradedisplay,
+                'reviewurl'   => $reviewurl,
                 'file'        => $file,
                 'downloadurl' => self::get_download_url($record, $file->get_filename()),
             ];
