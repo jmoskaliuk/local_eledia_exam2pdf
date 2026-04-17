@@ -21,35 +21,40 @@
  * @copyright  2026 eLeDia GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+define([], function() {
+    'use strict';
 
-/**
- * Initialise the module.
- *
- * @param {Object} args
- * @param {string} args.holderId DOM id of the footer download-button wrapper.
- */
-export const init = (args) => {
-    const holder = document.getElementById(args.holderId);
-    if (!holder) {
-        return;
-    }
+    return {
+        /**
+         * Initialise the module.
+         *
+         * @param {Object} args
+         * @param {String} args.holderId DOM id of the footer download-button wrapper.
+         */
+        init: function(args) {
+            var holder = document.getElementById(args.holderId);
+            if (!holder) {
+                return;
+            }
 
-    const finish = document.querySelector('button[name="finishreview"], input[name="finishreview"]');
-    if (finish) {
-        holder.style.display = 'inline-block';
-        holder.style.margin = '0 0 0 .5rem';
-        holder.style.textAlign = 'left';
-        finish.insertAdjacentElement('afterend', holder);
-        return;
-    }
+            var finish = document.querySelector('button[name="finishreview"], input[name="finishreview"]');
+            if (finish) {
+                holder.style.display = 'inline-block';
+                holder.style.margin = '0 0 0 .5rem';
+                holder.style.textAlign = 'left';
+                finish.insertAdjacentElement('afterend', holder);
+                return;
+            }
 
-    const header = document.querySelector('#page-header .page-header-headings')
-        || document.querySelector('#page-header .page-header-content')
-        || document.querySelector('#page-header');
-    if (header) {
-        holder.style.display = 'block';
-        holder.style.margin = '0 0 1rem 0';
-        holder.style.textAlign = 'left';
-        header.insertAdjacentElement('beforeend', holder);
-    }
-};
+            var header = document.querySelector('#page-header .page-header-headings')
+                || document.querySelector('#page-header .page-header-content')
+                || document.querySelector('#page-header');
+            if (header) {
+                holder.style.display = 'block';
+                holder.style.margin = '0 0 1rem 0';
+                holder.style.textAlign = 'left';
+                header.insertAdjacentElement('beforeend', holder);
+            }
+        }
+    };
+});

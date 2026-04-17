@@ -6,6 +6,31 @@ Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-04-17
+
+Zweiter CI-Fix-Patch für die `amd/build`-Artefakte: 0.5.1 committete zwar
+die minifizierten Module, aber meine Terser-Pipeline produzierte eine
+andere Byte-Sequenz als Moodles kanonisches `grunt amd` — der Check
+`git diff --exit-code` im `moodle-plugin-ci grunt`-Step blieb deshalb rot.
+0.5.2 dreht die Quell-Dateien auf klassisches AMD (pre-ES6) zurück,
+sodass Moodles Grunt-Pipeline beim Regenerieren keinen Babel-Transform
+mehr anwendet und der Output byte-identisch zum Commit bleibt.
+
+### Changed
+- `amd/src/*.js` — von ES6-Modulen (`export const init = (args) => {...}`)
+  auf klassisches AMD umgestellt (`define([], function() { 'use strict';
+  return { init: function(args) {...} }; });`). Alle `const`/`let` durch
+  `var` ersetzt, Arrow Functions durch benannte `function`-Deklarationen,
+  ES6-Module-Syntax komplett entfernt. Verhalten unverändert. Begründung:
+  Mit klassischem AMD hat Moodles `babel-plugin-transform-es2015-modules-
+  amd-lazy` nichts zu transformieren; nur der `add-module-to-define`-
+  Schritt läuft, und der ist deterministisch — der committete Build matcht
+  damit byte-genau das, was `moodle-plugin-ci grunt` auf der CI regeneriert.
+- `amd/build/*.min.js` — neu mit `comments: 'some'` minifiziert, sodass
+  der `@module`-JSDoc-Block am Dateianfang erhalten bleibt (matcht das
+  LeitnerFlow-Referenz-Format). Module-ID wird als erster `define()`-
+  Argument injiziert (`define("local_eledia_exam2pdf/<name>", [], …)`).
+
 ## [0.5.1] - 2026-04-17
 
 CI-Fix-Patch für 0.5.0: committed die bisher nie gepushten AMD-`build`-

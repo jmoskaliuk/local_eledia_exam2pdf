@@ -22,30 +22,35 @@
  * @copyright  2026 eLeDia GmbH
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+define([], function() {
+    'use strict';
 
-/**
- * Initialise the module.
- *
- * @param {Object} args
- * @param {string} args.sectionId DOM id of the wrapper <section>.
- */
-export const init = (args) => {
-    const section = document.getElementById(args.sectionId);
-    if (!section) {
-        return;
-    }
+    return {
+        /**
+         * Initialise the module.
+         *
+         * @param {Object} args
+         * @param {String} args.sectionId DOM id of the wrapper <section>.
+         */
+        init: function(args) {
+            var section = document.getElementById(args.sectionId);
+            if (!section) {
+                return;
+            }
 
-    const moveNextTo = document.getElementById('regradeattempts')
-        || document.querySelector('input[name="regradeattempts"], button[name="regradeattempts"]');
+            var moveNextTo = document.getElementById('regradeattempts')
+                || document.querySelector('input[name="regradeattempts"], button[name="regradeattempts"]');
 
-    if (moveNextTo) {
-        section.style.display = 'inline-block';
-        section.style.margin = '0 0 0 .5rem';
-        section.style.verticalAlign = 'middle';
-        moveNextTo.insertAdjacentElement('afterend', section);
-        return;
-    }
+            if (moveNextTo) {
+                section.style.display = 'inline-block';
+                section.style.margin = '0 0 0 .5rem';
+                section.style.verticalAlign = 'middle';
+                moveNextTo.insertAdjacentElement('afterend', section);
+                return;
+            }
 
-    // Fallback when "Regrade attempts" is unavailable.
-    section.style.margin = '1rem 0 0 0';
-};
+            // Fallback when "Regrade attempts" is unavailable.
+            section.style.margin = '1rem 0 0 0';
+        }
+    };
+});
