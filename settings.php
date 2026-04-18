@@ -180,6 +180,6 @@ if ($hassiteconfig) {
         'local_eledia_exam2pdf/showquestioncomments',
         get_string('setting_showquestioncomments', 'local_eledia_exam2pdf'),
         get_string('setting_showquestioncomments_desc', 'local_eledia_exam2pdf'),
-        0
+        1
     ));
 }

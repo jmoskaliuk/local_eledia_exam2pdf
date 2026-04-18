@@ -159,7 +159,7 @@ class helper {
                                         ? 365
                                         : (int) $retentionraw,
             'showcorrectanswers'  => self::get_bool_setting('showcorrectanswers', true),
-            'showquestioncomments' => self::get_bool_setting('showquestioncomments', false),
+            'showquestioncomments' => self::get_bool_setting('showquestioncomments', true),
             'show_score'          => self::get_bool_setting('show_score', true),
             'show_passgrade'      => self::get_bool_setting('show_passgrade', true),
             'show_percentage'     => self::get_bool_setting('show_percentage', true),

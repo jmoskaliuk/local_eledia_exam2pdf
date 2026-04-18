@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Quiz-Auswertung · Mockup v1 (kompakt · admin · white-label)</title>
+<style>
+  /* ────────────────────────────────────────────────────────────
+   * Design-Tokens. "White-Label"-Logik: ein Kunde überschreibt
+   *   --accent und --logo-src über Plugin-Settings, alles andere
+   *   bleibt stabil.
+   * ────────────────────────────────────────────────────────── */
+  :root {
+    --accent:       #2a5d8a;   /* Primär (Überschriften, Header-Rule) */
+    --accent-soft:  #eaf1f8;
+    --success:      #1f7a3f;
+    --success-soft: #e8f3ec;
+    --fail:         #b42318;
+    --fail-soft:    #fcebe9;
+    --partial:      #b36b00;
+    --partial-soft: #fdf3e1;
+    --ink:          #1a1a1a;
+    --ink-soft:     #4a4a4a;
+    --ink-muted:    #7a7a7a;
+    --rule:         #dcdcdc;
+    --rule-soft:    #ededed;
+    --paper:        #ffffff;
+    --bg:           #ececec;
+  }
+
+  /* Preview-Rahmen (nur für Browser, nicht im finalen PDF) */
+  body {
+    background: var(--bg);
+    padding: 24px 16px;
+    margin: 0;
+    font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    color: var(--ink);
+  }
+
+  /* ─── A4-Seite ─── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 12mm 14mm;
+    background: var(--paper);
+    box-shadow: 0 2px 14px rgba(0,0,0,0.14);
+    box-sizing: border-box;
+    font-size: 9.5pt;
+    line-height: 1.42;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── Header-Strip ─── */
+  .hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8mm;
+    padding-bottom: 4mm;
+    margin-bottom: 5mm;
+    border-bottom: 1.2pt solid var(--accent);
+  }
+  .hdr .logo-zone {
+    /* Swap-Zone für Kunden-Logo. 35mm × 10mm ist ausreichend für die
+       meisten Firmenlogos; größere werden via max-height runterskaliert. */
+    width: 35mm;
+    height: 10mm;
+    display: flex;
+    align-items: center;
+    border: 0.5pt dashed var(--rule);
+    background: var(--rule-soft);
+    color: var(--ink-muted);
+    font-size: 7.5pt;
+    letter-spacing: 0.5px;
+    padding: 0 3mm;
+    font-family: "Courier New", monospace;
+  }
+  .hdr .title {
+    flex: 1;
+    text-align: center;
+    font-size: 12pt;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+  .hdr .meta {
+    text-align: right;
+    font-size: 8pt;
+    color: var(--ink-muted);
+    line-height: 1.4;
+  }
+  .hdr .meta strong {
+    color: var(--ink);
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  /* ─── Hero: Pass/Fail + Score ─── */
+  .hero {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 5mm;
+    border: 0.5pt solid var(--rule);
+    border-radius: 1mm;
+    overflow: hidden;
+  }
+  .hero-status {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 4mm 5mm;
+    background: var(--success-soft);
+    border-right: 0.5pt solid var(--rule);
+    min-width: 42mm;
+  }
+  .hero-status .icon {
+    /* Große Ikone als primäres Signal — trägt die Information auch ohne Farbe. */
+    width: 10mm;
+    height: 10mm;
+    line-height: 10mm;
+    text-align: center;
+    border: 1pt solid var(--success);
+    border-radius: 50%;
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--success);
+    background: white;
+    margin-bottom: 1.5mm;
+  }
+  .hero-status .badge {
+    font-size: 12pt;
+    font-weight: 700;
+    color: var(--success);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    line-height: 1;
+  }
+  .hero-status .sub {
+    margin-top: 1mm;
+    font-size: 7.5pt;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .hero.is-fail .hero-status { background: var(--fail-soft); }
+  .hero.is-fail .hero-status .icon { border-color: var(--fail); color: var(--fail); }
+  .hero.is-fail .hero-status .badge { color: var(--fail); }
+
+  .hero-score {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4mm 6mm;
+    border-right: 0.5pt solid var(--rule);
+    min-width: 44mm;
+  }
+  .hero-score .big {
+    font-size: 22pt;
+    font-weight: 300;
+    color: var(--ink);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+  }
+  .hero-score .big .sep { color: var(--ink-muted); font-weight: 200; }
+  .hero-score .big .pct {
+    font-size: 11pt;
+    color: var(--ink-soft);
+    font-weight: 500;
+    margin-left: 2mm;
+  }
+  .hero-score .lbl {
+    margin-top: 1.5mm;
+    font-size: 7.5pt;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .hero-quiz {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4mm 5mm;
+    min-width: 0;
+  }
+  .hero-quiz .name {
+    font-size: 11pt;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.2;
+    margin-bottom: 1mm;
+  }
+  .hero-quiz .context {
+    font-size: 8pt;
+    color: var(--ink-muted);
+    line-height: 1.35;
+  }
+
+  /* ─── Body: Sidebar + Main-Spalte ─── */
+  .body {
+    display: flex;
+    gap: 6mm;
+    flex: 1;
+  }
+
+  /* Sidebar ~ 28% */
+  .sidebar {
+    width: 58mm;
+    flex-shrink: 0;
+  }
+  .sb-block { margin-bottom: 5mm; }
+  .sb-block h4 {
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    color: var(--accent);
+    margin: 0 0 1.5mm 0;
+    font-weight: 700;
+    padding-bottom: 0.8mm;
+    border-bottom: 0.5pt solid var(--rule);
+  }
+  .sb-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.8mm 0;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    gap: 2mm;
+  }
+  .sb-row + .sb-row { border-top: 0.3pt solid var(--rule-soft); }
+  .sb-row .lbl { color: var(--ink-muted); white-space: nowrap; }
+  .sb-row .val {
+    color: var(--ink);
+    font-weight: 500;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .sb-row.stack { flex-direction: column; gap: 0.3mm; padding-top: 0.5mm; }
+  .sb-row.stack .val { text-align: left; }
+  .sb-row.stack .sub {
+    font-size: 7.5pt;
+    color: var(--ink-muted);
+    font-weight: 400;
+  }
+
+  /* Fragen-Übersicht: Dot-Grid. 5 Spalten × beliebig Zeilen.
+     Jede Kachel trägt Nummer + Status-Symbol — redundante Kodierung für
+     Schwarz-Weiß-Druck. Unterschiedliche Fill-Patterns (solid/striped/outline)
+     sorgen dafür, dass die drei Zustände auch ohne Farbe unterscheidbar bleiben. */
+  .sb-dots {
+    display: grid;
+    grid-template-columns: repeat(5, 9mm);
+    gap: 1.2mm;
+    margin-top: 1mm;
+  }
+  .sb-dot {
+    width: 9mm;
+    height: 5.5mm;
+    border-radius: 1mm;
+    font-size: 7pt;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8mm;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .sb-dot .n { font-size: 7.5pt; }
+  .sb-dot .sym { font-size: 7.5pt; }
+
+  .sb-dot.ok {
+    /* Solid-Fill: semantisch "erledigt, korrekt". Hoher Schwarzanteil in B/W. */
+    background: var(--success);
+    color: white;
+    border: 0.5pt solid var(--success);
+  }
+  .sb-dot.partial {
+    /* Halbiert: diagonale Füllung. Visuell "halb geschafft". */
+    background: linear-gradient(135deg, var(--partial) 0%, var(--partial) 50%, white 50%, white 100%);
+    color: var(--partial);
+    border: 0.7pt solid var(--partial);
+    /* Text in der hellen Hälfte bleibt lesbar. */
+  }
+  .sb-dot.wrong {
+    /* Outline-only mit X-Symbol — in B/W als "leere Zelle" erkennbar. */
+    background: white;
+    color: var(--fail);
+    border: 0.7pt solid var(--fail);
+  }
+  .sb-dot.blank {
+    background: var(--rule-soft);
+    color: var(--ink-muted);
+    border: 0.5pt dashed var(--rule);
+  }
+
+  .sb-legend {
+    margin-top: 2mm;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2mm 3mm;
+    font-size: 7pt;
+    color: var(--ink-muted);
+  }
+  .sb-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 1mm;
+  }
+  .sb-legend i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5mm;
+    height: 3.5mm;
+    border-radius: 0.5mm;
+    font-size: 6pt;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .sb-legend i.ok      { background: var(--success); color: white; border: 0.3pt solid var(--success); }
+  .sb-legend i.partial { background: linear-gradient(135deg, var(--partial) 0%, var(--partial) 50%, white 50%, white 100%); color: var(--partial); border: 0.5pt solid var(--partial); }
+  .sb-legend i.wrong   { background: white; color: var(--fail); border: 0.5pt solid var(--fail); }
+
+  /* Haupt-Spalte */
+  .main {
+    flex: 1;
+    min-width: 0;
+  }
+  .main h3 {
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    color: var(--accent);
+    margin: 0 0 2.5mm 0;
+    font-weight: 700;
+    padding-bottom: 0.8mm;
+    border-bottom: 0.5pt solid var(--rule);
+  }
+
+  /* Frage-Karten: drei Zustände über *drei* Dimensionen differenziert:
+     Farbe + Border-Pattern + Badge-Symbol. B/W-Druck bleibt lesbar. */
+  .q {
+    margin-bottom: 3mm;
+    padding: 3mm 4mm 3mm 4mm;
+    background: #fcfcfd;
+    border: 0.4pt solid var(--rule);
+    border-left: 1.5mm solid var(--success);        /* solid = korrekt */
+    border-radius: 0.8mm;
+    page-break-inside: avoid;
+  }
+  .q.is-wrong {
+    background: #fdf9f8;
+    border-left: 1.5mm double var(--fail);          /* double = falsch */
+  }
+  .q.is-partial {
+    background: #fdfaf4;
+    border-left: 1.5mm dashed var(--partial);       /* dashed = teilweise */
+  }
+
+  .q-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 3mm;
+    margin-bottom: 2mm;
+  }
+  .q-hdr .num {
+    font-size: 9.5pt;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .q-hdr .num .no {
+    color: var(--ink-muted);
+    font-weight: 500;
+    margin-right: 1mm;
+  }
+  .q-hdr .score {
+    font-size: 8.5pt;
+    color: var(--ink-soft);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 1.5mm;
+  }
+  .q-hdr .mark {
+    width: 4mm;
+    height: 4mm;
+    line-height: 4mm;
+    text-align: center;
+    background: var(--success);
+    color: white;
+    border-radius: 50%;
+    font-size: 7pt;
+    font-weight: 700;
+  }
+  .q.is-wrong   .q-hdr .mark { background: var(--fail); }
+  .q.is-partial .q-hdr .mark { background: var(--partial); }
+
+  .q-prompt {
+    font-size: 8.5pt;
+    color: var(--ink-soft);
+    margin-bottom: 1.5mm;
+    font-style: italic;
+  }
+
+  .q-answers {
+    display: grid;
+    grid-template-columns: 24mm 1fr;
+    gap: 0.8mm 3mm;
+    font-size: 8.5pt;
+  }
+  .q-answers .lbl {
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-size: 7pt;
+    font-weight: 600;
+    padding-top: 0.3mm;
+  }
+  .q-answers .val { color: var(--ink); }
+  .q-answers .val.correct {
+    color: var(--success);
+    font-weight: 500;
+  }
+  /* ✓ vor korrekten Werten — für B/W-Druck das Signal wenn Grün wegfällt. */
+  .q-answers .val.correct::before {
+    content: "\2713\00a0";   /* ✓ + NBSP */
+    font-weight: 700;
+  }
+  .q-answers .val.incorrect { color: var(--fail); }
+  .q-answers .val.incorrect s { opacity: 0.85; }
+  .q-answers .val .inline-wrong {
+    color: var(--fail);
+    text-decoration: line-through;
+    text-decoration-thickness: 1pt;
+  }
+  .q-answers .val .inline-correct {
+    color: var(--success);
+  }
+  .q-answers .val .inline-correct::before {
+    content: "\2713\00a0";
+    font-weight: 700;
+  }
+
+  /* ─── Footer ─── */
+  .ftr {
+    margin-top: auto;
+    padding-top: 4mm;
+    border-top: 0.4pt solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+    color: var(--ink-muted);
+  }
+  .ftr .org { font-weight: 500; color: var(--ink-soft); }
+
+  /* ─── Druck-Modus (wenn aus Browser exportiert) ─── */
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+
+    <!-- ═══ HEADER ═══ -->
+    <div class="hdr">
+      <div class="logo-zone">[ KUNDEN-LOGO ]</div>
+      <div class="title">Quiz-Auswertung</div>
+      <div class="meta">
+        <strong>Versuch #1</strong>
+        17.04.2026 · 08:31&nbsp;Uhr
+      </div>
+    </div>
+
+    <!-- ═══ HERO: Status + Score + Quiz ═══ -->
+    <div class="hero">
+      <div class="hero-status">
+        <div class="icon">&#10003;</div>
+        <div class="badge">Bestanden</div>
+        <div class="sub">Status</div>
+      </div>
+      <div class="hero-score">
+        <div class="big">10<span class="sep"> / </span>10<span class="pct">· 100 %</span></div>
+        <div class="lbl">Erreichte Punkte</div>
+      </div>
+      <div class="hero-quiz">
+        <div class="name">Testquiz</div>
+        <div class="context">
+          Kurs: Moodle-Basics<br>
+          Abgeschlossen Fr, 17.04.2026 · 08:31&nbsp;Uhr
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ BODY: Sidebar + Main ═══ -->
+    <div class="body">
+
+      <!-- ── SIDEBAR ── -->
+      <div class="sidebar">
+
+        <div class="sb-block">
+          <h4>Teilnehmer/in</h4>
+          <div class="sb-row stack">
+            <span class="val">Demo Student</span>
+            <span class="sub">demo.student@example.org</span>
+            <span class="sub">ID: 12345</span>
+          </div>
+        </div>
+
+        <div class="sb-block">
+          <h4>Versuch</h4>
+          <div class="sb-row">
+            <span class="lbl">Abgeschlossen</span>
+            <span class="val">17.04.26 · 08:31</span>
+          </div>
+          <div class="sb-row">
+            <span class="lbl">Dauer</span>
+            <span class="val">00:00:09</span>
+          </div>
+          <div class="sb-row">
+            <span class="lbl">Versuch Nr.</span>
+            <span class="val">1</span>
+          </div>
+          <div class="sb-row">
+            <span class="lbl">Bestehensgrenze</span>
+            <span class="val">50 %</span>
+          </div>
+        </div>
+
+        <div class="sb-block">
+          <h4>Fragen-Übersicht</h4>
+          <div class="sb-dots">
+            <div class="sb-dot ok">      <span class="n">1</span> <span class="sym">&#10003;</span></div>
+            <div class="sb-dot ok">      <span class="n">2</span> <span class="sym">&#10003;</span></div>
+            <div class="sb-dot wrong">   <span class="n">3</span> <span class="sym">&#10007;</span></div>
+            <div class="sb-dot partial"> <span class="n">4</span> <span class="sym">&frac12;</span></div>
+            <div class="sb-dot ok">      <span class="n">5</span> <span class="sym">&#10003;</span></div>
+            <div class="sb-dot ok">      <span class="n">6</span> <span class="sym">&#10003;</span></div>
+            <div class="sb-dot ok">      <span class="n">7</span> <span class="sym">&#10003;</span></div>
+            <div class="sb-dot ok">      <span class="n">8</span> <span class="sym">&#10003;</span></div>
+            <div class="sb-dot ok">      <span class="n">9</span> <span class="sym">&#10003;</span></div>
+            <div class="sb-dot ok">      <span class="n">10</span><span class="sym">&#10003;</span></div>
+          </div>
+          <div class="sb-legend">
+            <span><i class="ok">&#10003;</i>richtig</span>
+            <span><i class="partial">&frac12;</i>teilw.</span>
+            <span><i class="wrong">&#10007;</i>falsch</span>
+          </div>
+        </div>
+
+        <div class="sb-block">
+          <h4>Quiz-Kontext</h4>
+          <div class="sb-row stack">
+            <span class="val">Testquiz</span>
+            <span class="sub">Kurs: Moodle-Basics</span>
+            <span class="sub">Kursleitung: Max Mustermann</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── MAIN: Fragen & Antworten ── -->
+      <div class="main">
+        <h3>Fragen &amp; Antworten</h3>
+
+        <!-- Frage 1: klassisch richtig -->
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 1</span> Was ist 1 + 1?</span>
+            <span class="score">1 / 1 <span class="mark">✓</span></span>
+          </div>
+          <div class="q-answers">
+            <span class="lbl">Antwort</span><span class="val correct">2</span>
+            <span class="lbl">Lösung</span><span class="val">2</span>
+          </div>
+        </div>
+
+        <!-- Frage 2: mit längerem Prompt + Multi-Select -->
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 2</span> Welche Komponenten gehören zu den Pflicht-Dateien eines Moodle-Aktivitätsmoduls?</span>
+            <span class="score">1 / 1 <span class="mark">✓</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl — wählen Sie alle zutreffenden Antworten aus.</div>
+          <div class="q-answers">
+            <span class="lbl">Antwort</span>
+            <span class="val correct">mod_form.php, lib.php, version.php, db/install.xml</span>
+            <span class="lbl">Lösung</span>
+            <span class="val">mod_form.php, lib.php, version.php, db/install.xml</span>
+          </div>
+        </div>
+
+        <!-- Frage 3: falsch -->
+        <div class="q is-wrong">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 3</span> Welche Dateiendung hat eine Moodle-Template-Datei?</span>
+            <span class="score">0 / 1 <span class="mark">✗</span></span>
+          </div>
+          <div class="q-answers">
+            <span class="lbl">Antwort</span><span class="val incorrect"><s>.html</s></span>
+            <span class="lbl">Lösung</span><span class="val correct">.mustache</span>
+          </div>
+        </div>
+
+        <!-- Frage 4: teilweise richtig -->
+        <div class="q is-partial">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 4</span> Welche globalen Variablen stehen in einem Moodle-Plugin zur Verfügung?</span>
+            <span class="score">0.5 / 1 <span class="mark">½</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl — 2 von 4 richtigen Optionen getroffen.</div>
+          <div class="q-answers">
+            <span class="lbl">Antwort</span>
+            <span class="val"><span class="inline-correct">$DB</span>, <span class="inline-correct">$USER</span>, <span class="inline-wrong">$CONFIG</span></span>
+            <span class="lbl">Lösung</span>
+            <span class="val correct">$DB, $USER, $CFG, $PAGE</span>
+          </div>
+        </div>
+
+        <!-- Frage 5: Essay / Freitext -->
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 5</span> Erläutern Sie kurz, wofür die Hooks-API in Moodle eingesetzt wird.</span>
+            <span class="score">1 / 1 <span class="mark">✓</span></span>
+          </div>
+          <div class="q-answers">
+            <span class="lbl">Antwort</span>
+            <span class="val">Die Hooks-API ersetzt die älteren <em>*_extend_*</em>-Callbacks und erlaubt Plugins, zur Laufzeit in definierte Erweiterungspunkte von Core-Funktionalität einzugreifen — entkoppelt, typisiert und per <em>db/hooks.php</em> registriert.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <div class="ftr">
+      <div class="org">eLeDia GmbH · Ausbildung zum Experten für Moodle</div>
+      <div>Seite 1 / 1 · generiert 17.04.2026, 08:31</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

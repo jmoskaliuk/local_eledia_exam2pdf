@@ -6,6 +6,80 @@ Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-04-18
+
+Komplettes UX-Redesign des PDF-Auswertungsberichts: vom "funktionalen Report"
+zu einer designten, mehrseitigen Teilnehmer-Auswertung im eLeDia-Look. Basis
+war das Mockup `design-mockups/pdf-auswertung-v1-stress.html`, das iterativ
+in den TCPDF-Generator portiert wurde (Live-Preview-Loop, keine funktionalen
+API-Änderungen). Die Versionen 0.6.0–0.6.2 waren interne Iterationen und
+wurden nicht separat released; 0.6.3 ist der erste öffentliche Design-Cut.
+
+### Added
+- Design-System in `classes/pdf/generator.php`: Accent-Farbe (#1d4fd8),
+  Ink/Ink-Muted-Paare, RULE-Border-Token, Spacing-Scale. Alle Komponenten
+  teilen eine gemeinsame Farb- und Abstandssprache.
+- **Hero-Block** mit Status-Badge (BESTANDEN/NICHT BESTANDEN/IN BEWERTUNG)
+  und großer Punktzahl — setzt auf Seite 1 den visuellen Anker.
+- **Cover-Grid** mit zwei ausgewogenen Meta-Blöcken TEILNEHMER/IN und
+  VERSUCH; Quiz-Kontext als dritter, full-width Block darunter.
+- **Fragen-Übersicht** ("Navigation Compact"): farbcodierte Badges pro
+  Slot-Nummer (grün/gelb/rot/blau = korrekt/teilweise/falsch/pending),
+  dynamisches Layout `perrow = min(slotcount, 14)`, Legende mit Zähler
+  pro Status. Erlaubt ein visuelles Scan-Lesen der Gesamtperformance.
+- **Fragen-Cards** mit weißem Hintergrund + RULE-Border, kompaktem
+  Titel-Header (11pt bold) und farbiger Left-Border je nach Status.
+- **BEWERTUNGSKOMMENTAR**-Block pro Frage via Step-Walking des
+  `question_attempt` (direkt `has_behaviour_var('comment')` + letzter
+  relevanter Step), inklusive Grader-Name und Zeitstempel. Ersetzt die
+  bisher unzuverlässige `has_manual_comment()`-Abfrage der Behaviour-API.
+- **Q-Type-Hints**: pro Fragetyp eine kurze Kontext-Zeile
+  (Einzelauswahl / Mehrfachauswahl / Freitext / Kurzantwort / …),
+  Pending-Varianten für noch nicht bewertete Freitext-Fragen.
+- Sprachstrings: `pdf_cover_title`, `pdf_status_{passed|failed|pending}`,
+  `pdf_status_label`, `pdf_score_points_label`, `pdf_participant_block`,
+  `pdf_attempt_block`, `pdf_context_block`, `pdf_nav_legend_{all|correct|
+  partial|wrong|pending}`, `pdf_pending_note`, `pdf_pending_questions`,
+  `pdf_qtype_hint_*`, `pdf_comment_label`, `pdf_comment_by`,
+  `pdf_attempt_hash`, `pdf_moodleid`, `pdf_questions_section_heading`.
+  Jeweils in `lang/en/` und `lang/de/`.
+- Upgrade-Step `2026041800`: flippt `showquestioncomments` einmalig von
+  `0` auf `1` auf Bestandsinstallationen, damit der BEWERTUNGSKOMMENTAR-
+  Block auch nach dem Upgrade ohne Admin-Handgriff sichtbar ist. Explizit
+  auf `1` gesetzte Configs werden nicht angefasst.
+- `DEPLOY-HANDOFF.md` — portabler Deployment-Leitfaden für andere Agents,
+  die das gleiche Orb-/Docker-Setup nutzen. Dokumentiert Pitfalls (rsync-
+  im-Container-Mythos, `/var/www/html`-Guess, Moodle-5.1-`public/`-Layout,
+  OPcache-Trap, `www-data`-User, `demo-webserver-1`-Containername),
+  One-Liner und einen Copy/Paste-Template-Deploy-Script.
+
+### Changed
+- Seitenränder von 15/28/15 mm auf 12/28/12 mm — nutzt die PDF-Breite
+  besser aus, FRAGEN-ÜBERSICHT füllt jetzt die ganze Seite.
+- **Seitenumbruch-Flow**: kein forcierter Break mehr zwischen Cover und
+  Fragen (Q1 beginnt auf Seite 1 direkt unter der Übersicht), stattdessen
+  `<br pagebreak="true" />` **vor** Q2, Q3, Q4… Ergebnis: eine Frage pro
+  Seite ab Q2, sauberer Cover ohne Leerfläche am Seitenende.
+- **Section-Heading** "Fragen & Antworten · N Fragen" wird visuell
+  gesplittet: Hauptteil in Accent-Bold, Separator + Zählung in Ink-Muted-
+  Normal.
+- `helper.php`: Default für `showquestioncomments` von `false` auf `true`.
+- `settings.php`: Default-Checkbox für Grading-Comments von 0 auf 1.
+- `get_manual_comment_meta()` (ex `has_manual_comment` + `get_manual_
+  comment`) jetzt step-walking-basiert: iteriert `get_num_steps()`
+  rückwärts, sucht den letzten Step mit `has_behaviour_var('comment')`,
+  zieht Text/Grader/Timestamp direkt daraus. Robuster gegenüber
+  Behaviour-API-Varianten in 4.5/5.0/5.1.
+
+### Fixed
+- BEWERTUNGSKOMMENTAR-Block wurde in 0.5.x nicht ins PDF übernommen,
+  obwohl Lehrkräfte Kommentare im Quiz-Review hinterlegt hatten. Ursache:
+  alte Extraktion via `has_manual_comment()` der Behaviour-API schlug
+  in Moodle 5.x still fehl. Fix: direkter Step-Walk (siehe oben).
+- `CHANGES.md`-Lücke: 0.5.3 → direkt 0.6.3 ohne Zwischeneinträge, weil
+  0.6.0/0.6.1/0.6.2 interne Design-Iterationen waren. Konsolidiert auf
+  einen einzigen öffentlichen 0.6.3-Eintrag.
+
 ## [0.5.3] - 2026-04-17
 
 Dritter und letzter CI-Fix-Patch für die `amd/build`-Artefakte: 0.5.1/0.5.2

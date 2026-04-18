@@ -1,0 +1,1111 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Quiz-Auswertung · Stress-Test (28 Fragen)</title>
+<style>
+
+  :root {
+    --accent:       #2a5d8a;
+    --accent-soft:  #eaf1f8;
+    --success:      #1f7a3f;
+    --success-soft: #e8f3ec;
+    --fail:         #b42318;
+    --fail-soft:    #fcebe9;
+    --partial:      #c48a00;      /* kräftiges Amber-Gelb – in Graustufen mittel-dunkel */
+    --partial-ink:  #5a3f00;      /* dunkles Braun für "?" auf Gelb (Kontrast) */
+    --partial-soft: #fdf3e1;
+    --pending:      #1e6fb0;      /* eigenständiges Blau (≠ accent) für ungraded */
+    --pending-soft: #e6f0fa;
+    --ink:          #1a1a1a;
+    --ink-soft:     #4a4a4a;
+    --ink-muted:    #7a7a7a;
+    --rule:         #dcdcdc;
+    --rule-soft:    #ededed;
+    --paper:        #ffffff;
+  }
+
+  html, body {
+    margin: 0; padding: 0;
+    font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.42;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  /* ══ @page: margins, footer, running header ══ */
+  /* default: all pages have running header at top + footer at bottom */
+  @page {
+    size: A4;
+    /* top: runhdr; bottom: reduced margin, footer pulled up */
+    margin: 22mm 14mm 18mm 14mm;
+    @top-center {
+      content: element(runhdr);
+      vertical-align: bottom;
+      padding-bottom: 3mm;
+      border-bottom: 0.5pt solid #dcdcdc;
+    }
+    @bottom-left {
+      content: "eLeDia GmbH · Ausbildung zum Experten für Moodle";
+      font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+      font-size: 7.5pt;
+      color: #7a7a7a;
+      padding-top: 2.5mm;
+      border-top: 0.4pt solid #dcdcdc;
+      vertical-align: top;
+    }
+    @bottom-right {
+      content: "Seite " counter(page) " / " counter(pages);
+      font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+      font-size: 7.5pt;
+      color: #7a7a7a;
+      padding-top: 2.5mm;
+      border-top: 0.4pt solid #dcdcdc;
+      text-align: right;
+      vertical-align: top;
+    }
+  }
+  /* first page: no running header (cover has its own big header) */
+  @page :first {
+    margin-top: 14mm;
+    @top-center { content: none; }
+  }
+
+  .running-hdr {
+    position: running(runhdr);
+    width: 100%;
+    display: table;
+    table-layout: fixed;
+  }
+  .running-hdr > div {
+    display: table-cell;
+    font-size: 8pt;
+    color: var(--ink-muted);
+    line-height: 1.2;
+    padding: 0 1mm;
+  }
+  .running-hdr .who { font-weight: 600; color: var(--ink); text-align: left; }
+  .running-hdr .ctx { text-align: center; }
+  .running-hdr .ctx strong { color: var(--ink-soft); font-weight: 500; }
+  .running-hdr .pg  { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ══ COVER PAGE (page 1) ══ */
+  .cover { page-break-after: always; }
+
+  /* Header-Strip */
+  .hdr {
+    display: table;
+    width: 100%;
+    border-bottom: 1.2pt solid var(--accent);
+    padding-bottom: 4mm;
+    margin-bottom: 6mm;
+  }
+  .hdr > div { display: table-cell; vertical-align: middle; }
+  .hdr .logo-zone {
+    width: 35mm;
+    height: 10mm;
+    border: 0.5pt dashed var(--rule);
+    background: var(--rule-soft);
+    color: var(--ink-muted);
+    font-size: 7.5pt;
+    letter-spacing: 0.5px;
+    font-family: "Courier New", monospace;
+    padding: 0 3mm;
+    text-align: center;
+    line-height: 10mm;
+  }
+  .hdr .title {
+    text-align: center;
+    font-size: 12pt;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+  .hdr .meta {
+    width: 40mm;
+    text-align: right;
+    font-size: 8pt;
+    color: var(--ink-muted);
+    line-height: 1.4;
+  }
+  .hdr .meta strong {
+    color: var(--ink);
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    display: block;
+  }
+
+  /* Hero — table layout (Weasyprint-safer als flex) */
+  .hero {
+    display: table;
+    width: 100%;
+    border: 0.5pt solid var(--rule);
+    border-radius: 1mm;
+    margin-bottom: 6mm;
+    border-spacing: 0;
+  }
+  .hero > div { display: table-cell; vertical-align: middle; border-right: 0.5pt solid var(--rule); }
+  .hero > div:last-child { border-right: none; }
+
+  .hero-status {
+    width: 42mm;
+    padding: 5mm 6mm;
+    background: var(--success-soft);
+    text-align: center;
+  }
+  .hero-status .icon {
+    display: block;
+    width: 10mm; height: 10mm;
+    line-height: 10mm;
+    margin: 0 auto 1.5mm;
+    border: 1pt solid var(--success);
+    border-radius: 50%;
+    background: white;
+    color: var(--success);
+    font-size: 13pt; font-weight: 700;
+  }
+  .hero-status .badge {
+    font-size: 12pt; font-weight: 700;
+    color: var(--success);
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .hero-status .sub {
+    margin-top: 1mm;
+    font-size: 7.5pt; color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .hero.is-fail .hero-status { background: var(--fail-soft); }
+  .hero.is-fail .hero-status .icon { border-color: var(--fail); color: var(--fail); }
+  .hero.is-fail .hero-status .badge { color: var(--fail); }
+
+  .hero-score {
+    width: 48mm;
+    padding: 5mm 6mm;
+  }
+  .hero-score .big {
+    font-size: 22pt; font-weight: 300; line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+  }
+  .hero-score .big .sep { color: var(--ink-muted); font-weight: 200; }
+  .hero-score .big .pct {
+    font-size: 11pt; color: var(--ink-soft); font-weight: 500;
+    margin-left: 2mm;
+  }
+  .hero-score .lbl {
+    margin-top: 1.5mm;
+    font-size: 7.5pt; color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+
+  .hero-quiz {
+    padding: 5mm 6mm;
+  }
+  .hero-quiz .name {
+    font-size: 11pt; font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+    margin-bottom: 1.5mm;
+  }
+  .hero-quiz .context {
+    font-size: 8pt; color: var(--ink-muted);
+    line-height: 1.4;
+  }
+
+  /* Cover meta grid — 2 columns */
+  .cover-meta {
+    display: table;
+    width: 100%;
+    border-spacing: 5mm 0;
+    margin-left: -5mm; margin-right: -5mm;
+  }
+  .cover-meta > div {
+    display: table-cell;
+    vertical-align: top;
+    width: 50%;
+  }
+
+  .meta-block { margin-bottom: 5mm; }
+  .meta-block h4 {
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    color: var(--accent);
+    margin: 0 0 2mm 0;
+    font-weight: 700;
+    padding-bottom: 1mm;
+    border-bottom: 0.5pt solid var(--rule);
+  }
+  .mb-row {
+    display: table;
+    width: 100%;
+    padding: 0.8mm 0;
+    font-size: 9pt;
+  }
+  .mb-row + .mb-row { border-top: 0.3pt solid var(--rule-soft); }
+  .mb-row .lbl { display: table-cell; color: var(--ink-muted); width: 40mm; }
+  .mb-row .val { display: table-cell; color: var(--ink); font-weight: 500;
+                 text-align: right; font-variant-numeric: tabular-nums; }
+  .mb-stack .val { display: block; text-align: left; padding-bottom: 0.5mm; }
+  .mb-stack .sub { display: block; font-size: 8pt; color: var(--ink-muted);
+                   font-weight: 400; padding-bottom: 0.3mm; }
+
+  /* Dot grid — 7 Spalten, skaliert bis 35 Fragen comfortable */
+  .sb-dots {
+    display: table;
+    border-spacing: 1.2mm;
+    margin: 1mm 0 0 -1.2mm;
+  }
+  .sb-dots-row { display: table-row; }
+  .sb-dot {
+    display: table-cell;
+    width: 9mm;
+    height: 5.5mm;
+    border-radius: 1mm;
+    font-size: 7.5pt;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+    text-align: center;
+    line-height: 1;
+  }
+  .sb-dot .n { padding-right: 1mm; }
+  .sb-dot.ok {
+    background: var(--success);
+    color: white;
+    border: 0.5pt solid var(--success);
+  }
+  .sb-dot.partial {
+    background: var(--partial);
+    color: var(--partial-ink);
+    border: 0.5pt solid var(--partial);
+  }
+  .sb-dot.wrong {
+    background: white;
+    color: var(--fail);
+    border: 0.7pt solid var(--fail);
+  }
+  .sb-dot.pending {
+    background: var(--pending);
+    color: white;
+    border: 0.5pt solid var(--pending);
+  }
+
+  .sb-legend {
+    margin-top: 3mm;
+    font-size: 7.5pt;
+    color: var(--ink-muted);
+  }
+  .sb-legend span { margin-right: 4mm; white-space: nowrap; }
+  .sb-legend i {
+    display: inline-block;
+    width: 3.5mm; height: 3.5mm;
+    border-radius: 0.5mm;
+    font-size: 6pt; font-weight: 700;
+    line-height: 3.5mm; text-align: center;
+    vertical-align: -0.8mm;
+    margin-right: 0.8mm;
+  }
+  .sb-legend i.ok      { background: var(--success); color: white; border: 0.3pt solid var(--success); }
+  .sb-legend i.partial { background: var(--partial); color: var(--partial-ink); border: 0.5pt solid var(--partial); }
+  .sb-legend i.wrong   { background: white; color: var(--fail); border: 0.5pt solid var(--fail); }
+  .sb-legend i.pending { background: var(--pending); color: white; border: 0.3pt solid var(--pending); }
+
+  /* ══ QUESTIONS FLOW (page 2+) ══ */
+  .questions h3 {
+    font-size: 10pt;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    color: var(--accent);
+    margin: 0 0 4mm 0;
+    font-weight: 700;
+    padding-bottom: 1.5mm;
+    border-bottom: 0.5pt solid var(--rule);
+  }
+  .questions h3 .cnt { color: var(--ink-muted); font-weight: 500; }
+
+  .q {
+    margin-bottom: 3mm;
+    padding: 3mm 4mm 3mm 4mm;
+    background: #fcfcfd;
+    border: 0.4pt solid var(--rule);
+    border-left: 1.5mm solid var(--success);
+    border-radius: 0.8mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .q.is-wrong   { background: #fdf9f8; border-left: 1.5mm double var(--fail); }
+  .q.is-partial { background: #fdfaf4; border-left: 1.5mm dashed var(--partial); }
+  .q.is-pending { background: var(--pending-soft); border-left: 1.5mm dotted var(--pending); }
+
+  .q-hdr {
+    display: table;
+    width: 100%;
+    margin-bottom: 2mm;
+  }
+  .q-hdr .num {
+    display: table-cell;
+    font-size: 9.5pt; font-weight: 600; color: var(--ink); line-height: 1.3;
+    padding-right: 4mm;
+  }
+  .q-hdr .num .no {
+    color: var(--ink-muted); font-weight: 500; margin-right: 1mm;
+  }
+  .q-hdr .score {
+    display: table-cell;
+    font-size: 8.5pt; color: var(--ink-soft); font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-align: right;
+    vertical-align: top;
+    width: 20mm;
+  }
+  .q-hdr .score .mark {
+    display: inline-block;
+    width: 4mm; height: 4mm;
+    line-height: 4mm; text-align: center;
+    background: var(--success); color: white;
+    border-radius: 50%;
+    font-size: 7pt; font-weight: 700;
+    margin-left: 1.5mm;
+    vertical-align: middle;
+  }
+  .q.is-wrong   .q-hdr .score .mark { background: var(--fail); }
+  .q.is-partial .q-hdr .score .mark { background: var(--partial); color: var(--partial-ink); }
+  .q.is-pending .q-hdr .score .mark { background: var(--pending); }
+
+  .q-prompt {
+    font-size: 8.5pt;
+    color: var(--ink-soft);
+    margin-bottom: 1.5mm;
+    font-style: italic;
+  }
+
+  .q-answers {
+    display: table;
+    width: 100%;
+    font-size: 8.5pt;
+  }
+  .q-arow { display: table-row; }
+  .q-arow .lbl {
+    display: table-cell;
+    color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.4px;
+    font-size: 7pt; font-weight: 600;
+    width: 22mm;
+    padding: 0.5mm 3mm 0.5mm 0;
+    vertical-align: top;
+  }
+  .q-arow .val { display: table-cell; color: var(--ink); padding: 0.5mm 0; }
+  .q-arow .val.correct { color: var(--success); font-weight: 500; }
+  .q-arow .val.correct::before { content: "\2713\00a0"; font-weight: 700; }
+  .q-arow .val.incorrect { color: var(--fail); }
+  .q-arow .val .inline-wrong {
+    color: var(--fail);
+    text-decoration: line-through;
+    text-decoration-thickness: 1pt;
+  }
+  .q-arow .val .inline-correct { color: var(--success); }
+  .q-arow .val .inline-correct::before { content: "\2713\00a0"; font-weight: 700; }
+
+  /* ══ Bewertungskommentar (manuell bewertete / Essay-Fragen) ══ */
+  .q-comment {
+    margin-top: 2.5mm;
+    padding: 2mm 3mm;
+    background: var(--accent-soft);
+    border-left: 1mm solid var(--accent);
+    border-radius: 0.6mm;
+    font-size: 8pt;
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  .q-comment .lbl {
+    display: block;
+    font-size: 7pt;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin-bottom: 0.8mm;
+  }
+  .q-comment .lbl .by {
+    color: var(--ink-muted);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 1mm;
+  }
+  .q-comment .body { color: var(--ink-soft); }
+
+  /* ══ Pending (ungraded) state – info line inside card ══ */
+  .q.is-pending .pending-note {
+    margin-top: 1.5mm;
+    font-size: 8pt;
+    color: var(--pending);
+    font-style: italic;
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="running-hdr">
+    <div class="who">Demo Student</div>
+    <div class="ctx"><strong>Moodle-Basics · Abschlussquiz</strong> · Versuch #1 · 17.04.2026</div>
+    <div class="pg">22<span class="sep"> / </span>27&nbsp;Pkt · 81,5 %</div>
+  </div>
+
+  <!-- ═══ COVER (page 1) ═══ -->
+  <div class="cover">
+
+    <div class="hdr">
+      <div class="logo-zone">[ KUNDEN-LOGO ]</div>
+      <div class="title">Quiz-Auswertung</div>
+      <div class="meta">
+        <strong>Versuch #1</strong>
+        17.04.2026 · 08:31&nbsp;Uhr
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-status">
+        <div class="icon">&#10003;</div>
+        <div class="badge">Vorläufig bestanden</div>
+        <div class="sub">1 Frage(n) offen</div>
+      </div>
+      <div class="hero-score">
+        <div class="big">22<span class="sep"> / </span>27<span class="pct">· 81,5 %</span></div>
+        <div class="lbl">Erreichte Punkte</div>
+      </div>
+      <div class="hero-quiz">
+        <div class="name">Moodle-Basics · Abschlussquiz</div>
+        <div class="context">
+          Kurs: Moodle-Basics<br>
+          Kursleitung: Max Mustermann<br>
+          Abgeschlossen Fr, 17.04.2026 · 08:31&nbsp;Uhr
+        </div>
+      </div>
+    </div>
+
+    <div class="cover-meta">
+
+      <!-- Left column: Teilnehmer & Versuch -->
+      <div>
+        <div class="meta-block">
+          <h4>Teilnehmer/in</h4>
+          <div class="mb-row mb-stack">
+            <span class="val">Demo Student</span>
+            <span class="sub">demo.student@example.org</span>
+            <span class="sub">Moodle-ID: 12345</span>
+          </div>
+        </div>
+
+        <div class="meta-block">
+          <h4>Versuch</h4>
+          <div class="mb-row"><span class="lbl">Abgeschlossen</span><span class="val">17.04.26 · 08:31</span></div>
+          <div class="mb-row"><span class="lbl">Dauer</span><span class="val">00:28:14</span></div>
+          <div class="mb-row"><span class="lbl">Versuch Nr.</span><span class="val">1</span></div>
+          <div class="mb-row"><span class="lbl">Bestehensgrenze</span><span class="val">50 %</span></div>
+          <div class="mb-row"><span class="lbl">Quiz-Gewichtung</span><span class="val">30 % der Endnote</span></div>
+        </div>
+      </div>
+
+      <!-- Right column: Fragen-Übersicht -->
+      <div>
+        <div class="meta-block">
+          <h4>Fragen-Übersicht (28 Fragen)</h4>
+          <div class="sb-dots">
+          <div class="sb-dots-row"><div class="sb-dot ok"><span class="n">1</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">2</span><span class="sym">&#10003;</span></div><div class="sb-dot wrong"><span class="n">3</span><span class="sym">&#10007;</span></div><div class="sb-dot partial"><span class="n">4</span><span class="sym">?</span></div><div class="sb-dot ok"><span class="n">5</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">6</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">7</span><span class="sym">&#10003;</span></div></div>
+          <div class="sb-dots-row"><div class="sb-dot ok"><span class="n">8</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">9</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">10</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">11</span><span class="sym">&#10003;</span></div><div class="sb-dot wrong"><span class="n">12</span><span class="sym">&#10007;</span></div><div class="sb-dot partial"><span class="n">13</span><span class="sym">?</span></div><div class="sb-dot ok"><span class="n">14</span><span class="sym">&#10003;</span></div></div>
+          <div class="sb-dots-row"><div class="sb-dot ok"><span class="n">15</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">16</span><span class="sym">&#10003;</span></div><div class="sb-dot wrong"><span class="n">17</span><span class="sym">&#10007;</span></div><div class="sb-dot ok"><span class="n">18</span><span class="sym">&#10003;</span></div><div class="sb-dot partial"><span class="n">19</span><span class="sym">?</span></div><div class="sb-dot ok"><span class="n">20</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">21</span><span class="sym">&#10003;</span></div></div>
+          <div class="sb-dots-row"><div class="sb-dot ok"><span class="n">22</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">23</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">24</span><span class="sym">&#10003;</span></div><div class="sb-dot partial"><span class="n">25</span><span class="sym">?</span></div><div class="sb-dot pending"><span class="n">26</span><span class="sym">&nbsp;</span></div><div class="sb-dot ok"><span class="n">27</span><span class="sym">&#10003;</span></div><div class="sb-dot ok"><span class="n">28</span><span class="sym">&#10003;</span></div></div>
+          </div>
+          <div class="sb-legend">
+            <span><i class="ok">&#10003;</i>richtig&nbsp;<strong>20</strong></span>
+            <span><i class="partial">?</i>teilw.&nbsp;<strong>4</strong></span>
+            <span><i class="wrong">&#10007;</i>falsch&nbsp;<strong>3</strong></span>
+            <span><i class="pending">&nbsp;</i>offen&nbsp;<strong>1</strong></span>
+          </div>
+        </div>
+
+        <div class="meta-block">
+          <h4>Quiz-Kontext</h4>
+          <div class="mb-row mb-stack">
+            <span class="val">Moodle-Basics · Abschlussquiz</span>
+            <span class="sub">Kurs: Moodle-Basics (MBS-101)</span>
+            <span class="sub">Kursleitung: Max Mustermann</span>
+            <span class="sub">Semester: Sommersemester 2026</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ QUESTIONS (pages 2+) ═══ -->
+  <div class="questions">
+    <h3>Fragen &amp; Antworten <span class="cnt">· 28 Fragen</span></h3>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 1</span> Was ist 1 + 1?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">2</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">2</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 2</span> Welche Komponenten gehören zu den Pflicht-Dateien eines Moodle-Aktivitätsmoduls?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl — wählen Sie alle zutreffenden Antworten aus.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">mod_form.php, lib.php, version.php, db/install.xml</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">mod_form.php, lib.php, version.php, db/install.xml</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q is-wrong">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 3</span> Welche Dateiendung hat eine Moodle-Template-Datei?</span>
+            <span class="score">0 / 1 <span class="mark">&#10007;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val incorrect"><s>.html</s></span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">.mustache</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q is-partial">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 4</span> Welche globalen Variablen stehen in einem Moodle-Plugin zur Verfügung?</span>
+            <span class="score">0.5 / 1 <span class="mark">?</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl — 2 von 4 richtigen Optionen getroffen.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val"><span class="inline-correct">$DB</span>, <span class="inline-correct">$USER</span>, <span class="inline-wrong">$CONFIG</span></span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">$DB, $USER, $CFG, $PAGE</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 5</span> Erläutern Sie kurz, wofür die Hooks-API in Moodle eingesetzt wird.</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">Die Hooks-API ersetzt die älteren <em>*_extend_*</em>-Callbacks und erlaubt Plugins, zur Laufzeit in definierte Erweiterungspunkte von Core-Funktionalität einzugreifen — entkoppelt, typisiert und per <em>db/hooks.php</em> registriert.</span>
+            </div>
+          </div>
+          
+          
+          <div class="q-comment">
+            <span class="lbl">Bewertungskommentar <span class="by">— Max Mustermann, 17.04.2026</span></span>
+            <div class="body">Gute Zusammenfassung. Ergänzend: Hooks sind streng typisiert und liefern strukturierte Rückgabewerte — anders als Events, die fire-and-forget sind.</div>
+          </div>
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 6</span> Moodle 5.x setzt PHP 8.1 als Mindest-Version voraus.</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          <div class="q-prompt">Richtig oder falsch?</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">Richtig</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">Richtig</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 7</span> Nennen Sie den Frankenstyle-Namen für ein Local-Plugin namens &bdquo;exam2pdf&ldquo;.</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">local_exam2pdf</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">local_exam2pdf</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 8</span> Welche Datei definiert die Capabilities eines Plugins?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">db/access.php</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">db/access.php</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 9</span> Welche Context-Typen gibt es im Moodle 5.x Core?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">system, coursecat, course, module, block, user</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">system, coursecat, course, module, block, user</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 10</span> Ab welcher prozentualen Leistung gilt ein Quiz als bestanden (wenn nichts anderes konfiguriert ist)?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">50 %</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">50 %</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 11</span> Ordnen Sie die Plugin-Typen ihren Beispielen zu: mod_* &rarr; Aktivität, block_* &rarr; Seitenleistenwidget, local_* &rarr; Site-weite Erweiterung.</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">korrekt zugeordnet</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">korrekt zugeordnet</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q is-wrong">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 12</span> Welche APIs sind in Moodle 5.x veraltet?</span>
+            <span class="score">0 / 1 <span class="mark">&#10007;</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val"><span class="inline-wrong">context_* (alte Klassen)</span>, <span class="inline-wrong">Hooks-API</span></span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">context_* (alte Klassen), JavaScript YUI-Module</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q is-partial">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 13</span> Wie lautet die empfohlene Behat-Tag-Convention für das Plugin <code>local_example</code>?</span>
+            <span class="score">0.5 / 1 <span class="mark">?</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl — 1 von 2 Optionen getroffen.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val"><span class="inline-correct">@local_example</span>, <span class="inline-wrong">@example</span></span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">@local_example, @javascript</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 14</span> Erklären Sie den Unterschied zwischen Events und Hooks.</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">Events sind fire-and-forget-Benachrichtigungen, die Observer asynchron verarbeiten können; Hooks sind strukturierte Erweiterungspunkte, die Plugins synchron Ausgabe oder Verhalten liefern lassen, wobei der Hook-Dispatcher das Ergebnis in den Core-Flow einspeist.</span>
+            </div>
+          </div>
+          
+          
+          <div class="q-comment">
+            <span class="lbl">Bewertungskommentar <span class="by">— Max Mustermann, 17.04.2026</span></span>
+            <div class="body">Sehr präzise Unterscheidung zwischen asynchronem Event- und synchronem Hook-Flow. Ein Punkt, den Sie in der Prüfung noch stärken könnten: Events eignen sich gut für Logging/Audit, Hooks für Erweiterung der Render-/Prozess-Pipeline.</div>
+          </div>
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 15</span> Die Privacy-API ist für jedes Plugin, das personenbezogene Daten speichert, verpflichtend.</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          <div class="q-prompt">Richtig oder falsch?</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">Richtig</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">Richtig</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 16</span> Welche Tools gehören zum Moodle-CI-Stack?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">PHPUnit, Behat, PHPCS, Grunt, PHPMD</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">PHPUnit, Behat, PHPCS, Grunt, PHPMD</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q is-wrong">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 17</span> Wo liegt die Konfiguration für <code>git archive</code>-Ausschlüsse?</span>
+            <span class="score">0 / 1 <span class="mark">&#10007;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val incorrect"><s>.gitignore</s></span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">.gitattributes</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 18</span> Wie lautet der Frankenstyle-Name für das Core-Modul <code>quiz</code>?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">mod_quiz</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">mod_quiz</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q is-partial">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 19</span> Welche Dateinamen sind Pflicht-APIs in jedem Moodle-Plugin?</span>
+            <span class="score">0.5 / 1 <span class="mark">?</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl — 3 von 5 Optionen korrekt.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val"><span class="inline-correct">version.php</span>, <span class="inline-correct">lang/en/*.php</span>, <span class="inline-correct">db/install.xml</span>, <span class="inline-wrong">db/hooks.php</span></span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">version.php, lang/en/*.php, db/install.xml, db/access.php</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 20</span> Was ist XMLDB und wofür wird es genutzt?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">XMLDB ist Moodles abstraktes Datenbank-Schema-Format. Tabellen, Felder, Keys und Indexe werden in <em>db/install.xml</em> deklarativ beschrieben, sodass Moodle sie auf allen unterstützten Datenbank-Engines (MySQL, MariaDB, PostgreSQL, MSSQL, Oracle) portabel erzeugen und upgraden kann.</span>
+            </div>
+          </div>
+          
+          
+          <div class="q-comment">
+            <span class="lbl">Bewertungskommentar <span class="by">— Max Mustermann, 17.04.2026</span></span>
+            <div class="body">Vollständige Antwort. Die Abstraktion über mehrere DB-Engines ist der zentrale Wert — genau richtig erklärt.</div>
+          </div>
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 21</span> Welcher Cache-Mode eignet sich für Session-gebundene Daten?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">session</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">session</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 22</span> Welche Moodle-Version-Konstanten werden typischerweise in <code>version.php</code> verwendet?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">$plugin->version, $plugin->requires, $plugin->maturity, $plugin->release</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">$plugin->version, $plugin->requires, $plugin->maturity, $plugin->release</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 23</span> Wie lautet die Mindest-PHP-Version für Moodle 5.0?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">8.1</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">8.1</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 24</span> Behat-Tests können parallelisiert werden.</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          <div class="q-prompt">Richtig oder falsch?</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">Richtig</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">Richtig</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q is-partial">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 25</span> Welche Task-Typen gibt es im Moodle Scheduled-Task-System?</span>
+            <span class="score">0.5 / 1 <span class="mark">?</span></span>
+          </div>
+          <div class="q-prompt">Mehrfachauswahl — 2 von 3 Optionen korrekt.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val"><span class="inline-correct">scheduled_task</span>, <span class="inline-correct">adhoc_task</span>, <span class="inline-wrong">cron_task</span></span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">scheduled_task, adhoc_task, system_task</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q is-pending">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 26</span> Skizzieren Sie die Pflicht-Schritte beim Registrieren eines Upgrade-Steps im Moodle-Plugin und erläutern Sie die Rolle von Savepoints.</span>
+            <span class="score">— / 1 <span class="mark">&#8943;</span></span>
+          </div>
+          <div class="q-prompt">Freitext-Antwort — wird manuell durch Lehrkraft bewertet.</div>
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val">In <em>db/upgrade.php</em> definiert man <code>xmldb_{component}_upgrade($oldversion)</code>. Innerhalb der Funktion prüft man den alten Versionsstand mit einem <code>if ($oldversion &lt; YYYYMMDDNN) { … }</code>-Block, führt die Schema-Änderungen über die XMLDB-API aus und beendet jeden Block mit <code>upgrade_plugin_savepoint()</code>, damit Moodle den Fortschritt persistiert und bei einem Abbruch wieder aufsetzen kann.</span>
+            </div>
+          </div>
+          <div class="pending-note">Freitext-Antwort – wartet auf manuelle Bewertung durch die Lehrkraft.</div>
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 27</span> In welcher Datei werden Hook-Callbacks registriert?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">db/hooks.php</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">db/hooks.php</span>
+          </div>
+          </div>
+          
+          
+        </div>
+
+        <div class="q">
+          <div class="q-hdr">
+            <span class="num"><span class="no">Frage 28</span> Welcher Befehl erstellt ein Release-ZIP eines Plugins ohne Test-Artefakte?</span>
+            <span class="score">1 / 1 <span class="mark">&#10003;</span></span>
+          </div>
+          
+          <div class="q-answers">
+            <div class="q-arow">
+              <span class="lbl">Antwort</span>
+              <span class="val correct">git archive --format=zip HEAD</span>
+            </div>
+          <div class="q-arow">
+            <span class="lbl">Lösung</span>
+            <span class="val correct">git archive --format=zip HEAD</span>
+          </div>
+          </div>
+          
+          
+        </div>
+  </div>
+
+</body>
+</html>

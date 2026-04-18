@@ -89,5 +89,18 @@ function xmldb_local_eledia_exam2pdf_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026041700, 'local', 'eledia_exam2pdf');
     }
 
+    if ($oldversion < 2026041800) {
+        // 0.6.0: Grading comments default changes from "off" to "on" so the
+        // BEWERTUNGSKOMMENTAR block appears in PDFs out of the box. Existing
+        // installs that still carry the historical "0" default are flipped
+        // once; any explicit "1" is already correct and is not touched.
+        $current = get_config('local_eledia_exam2pdf', 'showquestioncomments');
+        if ($current === false || (string) $current === '0') {
+            set_config('showquestioncomments', 1, 'local_eledia_exam2pdf');
+        }
+
+        upgrade_plugin_savepoint(true, 2026041800, 'local', 'eledia_exam2pdf');
+    }
+
     return true;
 }
