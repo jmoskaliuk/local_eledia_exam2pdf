@@ -55,6 +55,23 @@ define([], function() {
     }
 
     /**
+     * Apply a map of inline styles using `!important`.
+     *
+     * @param {HTMLElement} element
+     * @param {Object} styles
+     */
+    function setImportantStyles(element, styles) {
+        if (!element) {
+            return;
+        }
+        for (var prop in styles) {
+            if (Object.prototype.hasOwnProperty.call(styles, prop)) {
+                element.style.setProperty(prop, styles[prop], 'important');
+            }
+        }
+    }
+
+    /**
      * Given a logical column index (ignoring colspans), return the DOM cell
      * index in `row` that covers it, or -1 if not found.
      *
@@ -90,39 +107,73 @@ define([], function() {
         for (var i = 0; i < cells.length; i++) {
             cells[i].classList.remove('align-top');
             cells[i].classList.add('align-middle');
-            cells[i].style.setProperty('vertical-align', 'middle', 'important');
+            setImportantStyles(cells[i], {
+                'vertical-align': 'middle'
+            });
         }
 
         var questions = row.querySelectorAll('td span.que');
         for (var qi = 0; qi < questions.length; qi++) {
+            questions[qi].classList.remove('align-top');
+            questions[qi].classList.add('align-middle');
+            questions[qi].classList.add('local-eledia-exam2pdf-question-state');
+
             var qcell = questions[qi].closest('td');
             if (qcell) {
-                qcell.style.textAlign = 'center';
-                qcell.style.setProperty('vertical-align', 'middle', 'important');
+                qcell.classList.remove('align-top');
+                qcell.classList.add('align-middle');
+                qcell.classList.add('local-eledia-exam2pdf-question-cell');
+                setImportantStyles(qcell, {
+                    'text-align': 'center',
+                    'vertical-align': 'middle'
+                });
             }
 
             var qlink = questions[qi].closest('a');
             if (qlink) {
-                qlink.style.display = 'inline-flex';
-                qlink.style.alignItems = 'center';
-                qlink.style.justifyContent = 'center';
-                qlink.style.width = '100%';
-                qlink.style.minHeight = '1.75rem';
+                qlink.classList.remove('align-top');
+                qlink.classList.add('align-middle');
+                qlink.classList.add('local-eledia-exam2pdf-question-link');
+                setImportantStyles(qlink, {
+                    'display': 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'center',
+                    'width': '100%',
+                    'min-height': '1.75rem',
+                    'line-height': '1.2'
+                });
             }
 
-            questions[qi].style.display = 'inline-flex';
-            questions[qi].style.alignItems = 'center';
-            questions[qi].style.justifyContent = 'center';
-            questions[qi].style.gap = '0.25rem';
-            questions[qi].style.flexWrap = 'nowrap';
-            questions[qi].style.whiteSpace = 'nowrap';
-            questions[qi].style.lineHeight = '1.2';
-            questions[qi].style.setProperty('vertical-align', 'middle', 'important');
+            setImportantStyles(questions[qi], {
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'gap': '0.25rem',
+                'flex-wrap': 'nowrap',
+                'white-space': 'nowrap',
+                'line-height': '1.2',
+                'vertical-align': 'middle',
+                'text-align': 'center'
+            });
+        }
+
+        var questionTexts = row.querySelectorAll('td span.que > span');
+        for (var ti = 0; ti < questionTexts.length; ti++) {
+            questionTexts[ti].classList.remove('align-top');
+            questionTexts[ti].classList.add('align-middle');
+            setImportantStyles(questionTexts[ti], {
+                'text-align': 'center',
+                'vertical-align': 'middle'
+            });
         }
 
         var qicons = row.querySelectorAll('td span.que img.icon, td span.que i.icon, td span.que .questionflag');
         for (var ii = 0; ii < qicons.length; ii++) {
-            qicons[ii].style.setProperty('vertical-align', 'middle', 'important');
+            qicons[ii].classList.remove('align-top');
+            qicons[ii].classList.add('align-middle');
+            setImportantStyles(qicons[ii], {
+                'vertical-align': 'middle'
+            });
         }
     }
 
@@ -214,6 +265,32 @@ define([], function() {
             + 'table.generaltable.grades > tfoot > tr > td {\n'
             + '    vertical-align: middle !important;\n'
             + '}\n'
+            + 'table.generaltable.grades td.local-eledia-exam2pdf-question-cell {\n'
+            + '    vertical-align: middle !important;\n'
+            + '    text-align: center !important;\n'
+            + '}\n'
+            + 'table.generaltable.grades td.local-eledia-exam2pdf-question-cell a.local-eledia-exam2pdf-question-link {\n'
+            + '    display: flex !important;\n'
+            + '    align-items: center !important;\n'
+            + '    justify-content: center !important;\n'
+            + '    width: 100% !important;\n'
+            + '    min-height: 1.75rem !important;\n'
+            + '    line-height: 1.2 !important;\n'
+            + '}\n'
+            + 'table.generaltable.grades span.local-eledia-exam2pdf-question-state {\n'
+            + '    display: inline-flex !important;\n'
+            + '    align-items: center !important;\n'
+            + '    justify-content: center !important;\n'
+            + '    gap: 0.25rem !important;\n'
+            + '    white-space: nowrap !important;\n'
+            + '    line-height: 1.2 !important;\n'
+            + '    vertical-align: middle !important;\n'
+            + '    text-align: center !important;\n'
+            + '}\n'
+            + 'table.generaltable.grades span.local-eledia-exam2pdf-question-state > span {\n'
+            + '    text-align: center !important;\n'
+            + '    vertical-align: middle !important;\n'
+            + '}\n'
             + 'table.generaltable.grades .local-eledia-exam2pdf-cell-actions .btn {\n'
             + '    display: inline-flex;\n'
             + '    align-items: center;\n'
@@ -232,6 +309,18 @@ define([], function() {
             + '    vertical-align: middle !important;\n'
             + '}\n';
         document.head.appendChild(style);
+    }
+
+    /**
+     * Re-apply alignment rules to all body/footer rows.
+     *
+     * @param {HTMLElement} table
+     */
+    function normaliseAllRows(table) {
+        var rows = table.querySelectorAll('tbody tr, tfoot tr');
+        for (var ri = 0; ri < rows.length; ri++) {
+            normaliseRowCellAlignment(rows[ri]);
+        }
     }
 
     return {
@@ -364,11 +453,11 @@ define([], function() {
 
             // Some report scripts or redraws may reapply top-aligned utility classes.
             window.setTimeout(function() {
-                var rerows = table.querySelectorAll('tbody tr, tfoot tr');
-                for (var ri = 0; ri < rerows.length; ri++) {
-                    normaliseRowCellAlignment(rerows[ri]);
-                }
+                normaliseAllRows(table);
             }, 120);
+            window.setTimeout(function() {
+                normaliseAllRows(table);
+            }, 600);
         }
     };
 });

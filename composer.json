@@ -1,0 +1,12 @@
+{
+    "name": "local/eledia_exam2pdf",
+    "description": "Moodle local plugin for quiz PDF export",
+    "type": "moodle-plugin",
+    "require": {
+        "mpdf/mpdf": "^8.2"
+    },
+    "config": {
+        "vendor-dir": "vendor",
+        "optimize-autoloader": true
+    }
+}

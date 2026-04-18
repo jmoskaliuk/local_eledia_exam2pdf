@@ -52,6 +52,8 @@ INCLUDES=(
     version.php
     README.md
     CHANGES.md
+    vendor
+    composer.json
 )
 
 for item in "${INCLUDES[@]}"; do
@@ -65,14 +67,9 @@ for item in "${INCLUDES[@]}"; do
             --exclude='.git' \
             --exclude='.deploy' \
             --exclude='node_modules' \
-            --exclude='vendor' \
             "$src" "$MIRROR/"
     else
         cp -p "$src" "$MIRROR/"
     fi
     echo "  synced:        $item"
 done
-
-echo
-echo "  Mirror rebuilt OK."
-echo "═══════════════════════════════════════════════════════════════"

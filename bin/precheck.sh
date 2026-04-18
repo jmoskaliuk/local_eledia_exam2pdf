@@ -63,6 +63,13 @@ source "$CONF"
 CONTAINER="${SAVED_CONTAINER:?SAVED_CONTAINER fehlt in ${CONF}}"
 WEBROOT="${SAVED_WEBROOT:?SAVED_WEBROOT fehlt in ${CONF}}"
 
+# moodle-plugin-ci expects the Moodle project root. In our local setup WEBROOT
+# points to Moodle's public/ dir, so derive project root when needed.
+MOODLE_ROOT="$WEBROOT"
+if [[ "${WEBROOT%/}" == */public ]]; then
+    MOODLE_ROOT="${WEBROOT%/public}"
+fi
+
 # ---- moodle-plugin-ci Pfad ----
 CI_BIN="/opt/moodle-plugin-ci/bin/moodle-plugin-ci"
 
@@ -90,9 +97,78 @@ FAILED_CHECKS=()
 mpci() {
     # Führt moodle-plugin-ci im Container aus, mit korrektem Moodle- und Plugin-Pfad.
     docker exec -u www-data \
-        -e MOODLE_DIR="$WEBROOT" \
+        -e MOODLE_DIR="$MOODLE_ROOT" \
         "$CONTAINER" \
         "$CI_BIN" "$@" "$WEBROOT/$PLUGIN_REL_PATH"
+}
+
+mpci_phpdoc() {
+    # phpdoc should validate plugin code, not bundled third-party vendor code.
+    docker exec -u www-data \
+        -e MOODLE_DIR="$MOODLE_ROOT" \
+        "$CONTAINER" bash -lc '
+            tmpdir=$(mktemp -d /tmp/'"$PLUGIN_SHORTNAME"'_phpdoc.XXXXXX)
+            trap "rm -rf \"$tmpdir\"" EXIT
+            cp -a "'"$WEBROOT/$PLUGIN_REL_PATH"'"/. "$tmpdir"/
+            rm -rf "$tmpdir/vendor"
+            "'"$CI_BIN"'" phpdoc --max-warnings 0 "$tmpdir"
+        '
+}
+
+mpci_phpmd() {
+    # phpmd on bundled vendor libraries is noisy and memory-intensive.
+    docker exec -u www-data \
+        -e MOODLE_DIR="$MOODLE_ROOT" \
+        "$CONTAINER" bash -lc '
+            tmpdir=$(mktemp -d /tmp/'"$PLUGIN_SHORTNAME"'_phpmd.XXXXXX)
+            trap "rm -rf \"$tmpdir\"" EXIT
+            cp -a "'"$WEBROOT/$PLUGIN_REL_PATH"'"/. "$tmpdir"/
+            rm -rf "$tmpdir/vendor"
+            "'"$CI_BIN"'" phpmd "$tmpdir"
+        '
+}
+
+mpci_grunt() {
+    # grunt-gherkin-lint has a module-level features[] state that is NOT reset between
+    # task invocations. When the plugin's feature files appear both as absolute paths
+    # (from the plugin component run) and as relative paths (from the full Moodle scan),
+    # gherkin-lint flags each file as a duplicate of itself — a known false positive.
+    # We detect this pattern: if EVERY no-dupe-feature-names violation refers back to
+    # the same file that was just reported as the current file (self-referential), the
+    # gherkinlint failure is entirely noise and we suppress it.
+    local raw rc
+    set +e
+    raw=$(mpci grunt --max-lint-warnings 0 2>&1 | tr -d '\r' | sed $'s/\x1b\\[[0-9;]*[a-zA-Z]//g')
+    rc=$?
+    set -e
+
+    if [[ "$rc" -eq 0 ]]; then
+        echo "$raw"
+        return 0
+    fi
+
+    # Check if all no-dupe-feature-names violations are self-referential.
+    # Scan through lines, tracking the last *.feature path header.
+    local lastfile="" line dupe real_violations=0
+    while IFS= read -r line; do
+        if echo "$line" | grep -qE 'no-dupe-feature-names'; then
+            dupe=$(echo "$line" | sed -n 's/.*already used in: \([^[:space:]]*\).*/\1/p')
+            if [[ -z "$dupe" || "$lastfile" != *"$dupe"* ]]; then
+                real_violations=$((real_violations + 1))
+            fi
+        elif echo "$line" | grep -qE '\.feature$'; then
+            lastfile="$line"
+        fi
+    done <<< "$raw"
+
+    if [[ "$real_violations" -eq 0 ]]; then
+        # Only self-referential false positives — treat as clean.
+        echo "$raw" | grep -vE 'no-dupe-feature-names|Warning: Task .gherkinlint. failed|Aborted due to warnings'
+        return 0
+    fi
+
+    echo "$raw"
+    return "$rc"
 }
 
 # ---- Helper: docker exec raw (für Legacy-Modus) ----
@@ -129,7 +205,11 @@ run_check() {
             FAIL=$((FAIL + 1))
             FAILED_CHECKS+=("$name")
         fi
-        printf "${C_DIM}%s${C_RESET}\n" "$out" | head -n 30
+        if [[ "$VERBOSE" == true ]]; then
+            printf "${C_DIM}%s${C_RESET}\n" "$out"
+        else
+            printf "${C_DIM}%s${C_RESET}\n" "$out" | head -n 30
+        fi
     fi
 }
 
@@ -150,6 +230,7 @@ else
     printf "${C_BLUE}▸ precheck (moodle-plugin-ci) — %s${C_RESET}\n" "$PLUGIN_COMPONENT"
 fi
 printf "  Container: %s\n" "$CONTAINER"
+printf "  Moodle:    %s\n" "$MOODLE_ROOT"
 printf "  Plugin:    %s\n\n" "$WEBROOT/$PLUGIN_REL_PATH"
 
 # ---- Preflight: Plugin im Container vorhanden? ----
@@ -170,7 +251,7 @@ if [[ "$LEGACY" == false ]]; then
         "mpci phplint"
 
     run_check "phpmd" WARN \
-        "mpci phpmd"
+        "mpci_phpmd"
 
     # Identisch zu moodle-ci.yml Zeile 99
     run_check "phpcs" FAIL \
@@ -178,7 +259,7 @@ if [[ "$LEGACY" == false ]]; then
 
     # Identisch zu moodle-ci.yml Zeile 103
     run_check "phpdoc" FAIL \
-        "mpci phpdoc --max-warnings 0"
+        "mpci_phpdoc"
 
     run_check "validate" FAIL \
         "mpci validate"
@@ -189,8 +270,12 @@ if [[ "$LEGACY" == false ]]; then
     run_check "mustache" FAIL \
         "mpci mustache"
 
+    # Moodle's ignorefiles task expects this path in some local setups.
+    docker exec -u www-data "$CONTAINER" mkdir -p \
+        "$WEBROOT/local/codechecker/vendor/phpcompatibility/php-compatibility" >/dev/null 2>&1 || true
+
     run_check "grunt" WARN \
-        "mpci grunt --max-lint-warnings 0"
+        "mpci_grunt"
 
     # -- PHPUnit --
     if [[ "$NO_PHPUNIT" == false ]]; then
