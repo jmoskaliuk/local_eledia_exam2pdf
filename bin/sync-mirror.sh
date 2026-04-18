@@ -37,6 +37,7 @@ mkdir -p "$MIRROR"
 INCLUDES=(
     amd
     classes
+    templates
     db
     lang
     pix
