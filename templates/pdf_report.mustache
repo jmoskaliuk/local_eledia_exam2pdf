@@ -1,0 +1,125 @@
+{{!
+    Template for the designed PDF report.
+}}
+<style>
+  @page {
+    size: A4;
+    margin: 28mm 12mm 15mm 12mm;
+    header: html_runhdr;
+    footer: html_pgfooter;
+  }
+  @page :first {
+    margin-top: 14mm;
+    header: _blank;
+  }
+  html, body { font-family: "dejavusans", sans-serif; font-size: 9.5pt; color: #1a1a1a; }
+  .hdr-table { width: 100%; border-bottom: 1.2pt solid {{accent_color}}; padding-bottom: 4mm; margin-bottom: 6mm; }
+  .hdr-title { text-align: center; font-size: 12pt; color: {{accent_color}}; font-weight: bold; }
+  .hdr-meta { text-align: right; font-size: 8pt; color: #7a7a7a; }
+  
+  .hero-table { width: 100%; border: 0.5pt solid #dcdcdc; border-radius: 1mm; border-collapse: collapse; margin-bottom: 6mm; }
+  .hero-table td { border-right: 0.5pt solid #dcdcdc; vertical-align: middle; padding: 5mm 6mm; }
+  .hero-status { width: 42mm; text-align: center; background: #e8f3ec; }
+  {{#attempts}}{{#is_pending}}.hero-status { background: #e6f0fa; }{{/is_pending}}{{/attempts}}
+  
+  .hcell-big { font-size: 22pt; font-weight: 300; }
+  .hcell-pct { font-size: 11pt; color: #4a4a4a; margin-left: 2mm; }
+  
+  .sb-table { border-spacing: 1.2mm; border-collapse: separate; margin: 1mm 0; }
+  .sb-dot { width: 9mm; height: 5.5mm; border-radius: 1mm; font-size: 7.5pt; font-weight: bold; text-align: center; color: white; }
+  .sb-ok { background: #1f7a3f; }
+  .sb-wrong { background: white; color: #b42318; border: 0.7pt solid #b42318; }
+  .sb-partial { background: #c48a00; }
+  .sb-pending { background: #1e6fb0; }
+
+  .qcard { margin-bottom: 3mm; padding: 3mm 4mm; background: #fcfcfd; border: 0.4pt solid #dcdcdc; border-left: 1.5mm solid #1f7a3f; }
+  .qcard.is-wrong { border-left-style: double; border-left-color: #b42318; }
+  .qcard.is-partial { border-left-style: dashed; border-left-color: #c48a00; }
+</style>
+
+<htmlpagefooter name="pgfooter">
+    <table width="100%" style="border-top: 0.4pt solid #dcdcdc; padding-top: 2mm;">
+        <tr>
+            <td style="font-size: 7.5pt; color: #7a7a7a;">{{footer_text}}</td>
+            <td style="font-size: 7.5pt; color: #7a7a7a; text-align: right;">Seite {PAGENO} / {nbpg}</td>
+        </tr>
+    </table>
+</htmlpagefooter>
+
+{{#attempts}}
+<div class="attempt-container">
+    {{! Header }}
+    <table class="hdr-table">
+        <tr>
+            <td width="33%">{{{logo_html}}}</td>
+            <td class="hdr-title">QUIZ-AUSWERTUNG</td>
+            <td class="hdr-meta"><strong>VERSUCH #{{attempt_no}}</strong><br>{{date_finished}}</td>
+        </tr>
+    </table>
+
+    {{! Hero Block }}
+    <table class="hero-table">
+        <tr>
+            <td class="hero-status">
+                <div style="font-size: 14pt;">{{#passed}}✓{{/passed}}{{^passed}}✗{{/passed}}</div>
+                <div style="font-weight: bold;">{{#passed}}BESTANDEN{{/passed}}{{^passed}}NICHT BESTANDEN{{/passed}}</div>
+            </td>
+            <td width="50%">
+                <div class="hcell-big">{{grade}} <span style="color: #7a7a7a;">/</span> {{max_grade}} <span class="hcell-pct">· {{percentage}}%</span></div>
+                <div style="font-size: 7.5pt; color: #7a7a7a; text-transform: uppercase;">Erreichte Punkte</div>
+            </td>
+            <td>
+                <div style="font-weight: bold;">{{quiz_name}}</div>
+                <div style="font-size: 8pt; color: #7a7a7a;">Kurs: {{course_name}}</div>
+            </td>
+        </tr>
+    </table>
+
+    {{! Meta Grid }}
+    <table width="100%" style="border-collapse: collapse;">
+        <tr>
+            <td width="50%" valign="top">
+                <h4 style="border-bottom: 0.5pt solid #dcdcdc; font-size: 7.5pt; color: {{accent_color}};">TEILNEHMER/IN</h4>
+                <div style="font-weight: bold;">{{learner_name}}</div>
+                <div style="color: #7a7a7a; font-size: 8pt;">{{learner_email}}</div>
+                
+                <h4 style="border-bottom: 0.5pt solid #dcdcdc; font-size: 7.5pt; color: {{accent_color}}; margin-top: 4mm;">VERSUCH</h4>
+                <table width="100%" style="font-size: 9pt;">
+                    {{#show_duration}}<tr><td style="color: #7a7a7a;">Dauer</td><td align="right">{{duration}}</td></tr>{{/show_duration}}
+                    {{#show_passgrade}}<tr><td style="color: #7a7a7a;">Bestehensgrenze</td><td align="right">{{gradepass}}</td></tr>{{/show_passgrade}}
+                </table>
+            </td>
+            <td width="50%" valign="top" style="padding-left: 5mm;">
+                <h4 style="border-bottom: 0.5pt solid #dcdcdc; font-size: 7.5pt; color: {{accent_color}};">FRAGEN-ÜBERSICHT</h4>
+                <table class="sb-table">
+                    {{! Hier müsste eine Logik für den Zeilenumbruch der Dots rein (14er Grid) }}
+                    <tr>
+                        {{#slots}}
+                            <td class="sb-dot {{class}}">{{num}}</td>
+                        {{/slots}}
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div style="page-break-after: always;"></div>
+
+    {{! Questions Section }}
+    <h3 style="border-bottom: 0.5pt solid #dcdcdc; color: {{accent_color}};">FRAGEN & ANTWORTEN</h3>
+    {{#questions}}
+        <div class="qcard {{#is_wrong}}is-wrong{{/is_wrong}} {{#is_partial}}is-partial{{/is_partial}}">
+            <table width="100%">
+                <tr>
+                    <td style="font-weight: bold;">Frage {{num}}</td>
+                    <td align="right">{{score}} / {{max_score}}</td>
+                </tr>
+            </table>
+            <div style="margin-top: 2mm;">{{text}}</div>
+            <div style="margin-top: 3mm; font-size: 8.5pt;">
+                <span style="color: #7a7a7a;">ANTWORT:</span> {{answer}}
+            </div>
+        </div>
+    {{/questions}}
+</div>
+{{/attempts}}

@@ -109,7 +109,8 @@ class generator {
         $originallanguage = self::force_pdf_language($config);
         try {
             $mpdf = self::create_mpdf_document($config);
-            $html = self::build_html_document([$attemptobj], $quiz, $config);
+            $context = self::prepare_template_context([$attemptobj], $quiz, $config);
+            $html = self::render_template($context);
             $mpdf->WriteHTML($html);
             return $mpdf->Output('', 'S');
         } finally {
@@ -144,7 +145,8 @@ class generator {
                 $attemptids
             );
             $mpdf = self::create_mpdf_document($config);
-            $html = self::build_html_document($attemptobjs, $quiz, $config);
+            $context = self::prepare_template_context($attemptobjs, $quiz, $config);
+            $html = self::render_template($context);
             $mpdf->WriteHTML($html);
             return $mpdf->Output('', 'S');
         } finally {
