@@ -8,10 +8,16 @@ Operatives Arbeitsdokument für den aktuellen DevFlow-Stand.
 
 ## In Progress
 
+_(keine)_
+
+---
+
+## Open
+
 ### task20 Tabellen-Alignment in Quiz-Overview stabilisieren
-Status: in progress
+Status: open
 Feature: feat07
-Priority: hoch
+Priority: mittel
 
 Ziel:
 - Werte in Frage-Spalten (`Q.x`) in allen Themes sauber vertikal zentrieren.
@@ -21,20 +27,6 @@ Offene Schritte:
 2. Gegen Boost + Classic prüfen.
 3. Screenshots dokumentieren.
 
----
-
-## Open
-
-### task21 DevFlow-Dokumente in `/docs` konsolidieren
-Status: done
-Feature: alle
-Priority: hoch
-
-Ergebnis:
-- DevFlow-Dateien nach `docs/` verschoben.
-- README- und DevFlow-Verweise aktualisiert.
-- Kerninhalte (Features, User-Doc, Dev-Doc, Quality) auf aktuellen Stand gebracht.
-
 ### task22 Optional: Async-Bulk-Download evaluieren
 Status: open
 Feature: feat08
@@ -43,13 +35,14 @@ Priority: niedrig
 Ziel:
 - Für sehr große Kurse prüfen, ob `zip.php` optional asynchron laufen soll.
 
-### task23 CI-Lauf nach Doc/UX-Updates verifizieren
+### task24 Release-ZIP mit vendor/ bauen und auf moodle.org hochladen
 Status: open
 Feature: alle
-Priority: mittel
+Priority: hoch
 
 Ziel:
-- GitHub Actions Lauf nach den aktuellen Änderungen vollständig prüfen.
+- Version bumpen, Tag setzen, ZIP mit `vendor/` (mPDF) bauen, auf moodle.org hochladen.
+- Siehe `docs/dev-workflow.md` Abschnitt 7.
 
 ---
 
@@ -93,6 +86,24 @@ Status: done
 
 ### task21 DevFlow-Dokumente nach `docs/` verschoben und aktualisiert
 Status: done
+
+### task23 PDF-Generator auf mPDF umschreiben
+Status: done
+
+Ergebnis:
+- `generator.php` vollständig auf mPDF portiert (zuvor TCPDF).
+- `composer.json` / `composer.lock` hinzugefügt (`mpdf/mpdf`).
+- `vendor/` in `.gitignore`, muss beim ZIP-Export manuell dazugenommen werden.
+- `bin/sync-mirror.sh` aktualisiert (schließt `vendor/` ein).
+
+### task25 precheck.sh — Toolchain-Workarounds ergänzt
+Status: done
+
+Ergebnis:
+- `mpci_phpdoc()` / `mpci_phpmd()`: laufen auf Temp-Copy ohne `vendor/` (mPDF würde false failures produzieren).
+- `mpci_grunt()`: filtert selbstreferenzielle `no-dupe-feature-names`-Meldungen aus (gherkin-lint Toolchain-Bug).
+- ANSI-Escape-Codes + CRLF werden vor dem Parsing entfernt.
+- Precheck-Ergebnis: PASS:9 WARN:0 FAIL:0 SKIP:1.
 
 ---
 
