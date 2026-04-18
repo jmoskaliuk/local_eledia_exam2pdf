@@ -30,30 +30,42 @@ use mod_quiz\quiz_attempt;
  * Generates the PDF certificate for a passed quiz attempt using TCPDF.
  */
 class generator {
-
-    // ══════════════════════════════════════════════════════════════════
+    // Design tokens section
     // DESIGN TOKENS
     // Inspired by the v1.1 mockup (pdf-auswertung-v1-stress.html).
     // Phase 4 will promote ACCENT_DEFAULT to a plugin setting; everything
     // else stays constant (semantic-state colors and neutrals).
-    // ══════════════════════════════════════════════════════════════════
+    // End of design tokens.
     /** eLeDia brand accent, used for headings, borders, comment blocks. */
     private const ACCENT_DEFAULT  = '#2a5d8a';
+    /** Soft accent background color. */
     private const ACCENT_SOFT     = '#eaf1f8';
-    // Semantic state colors — fixed across themes (red/green/amber/blue).
+    /** Success state color. */
     private const SUCCESS         = '#1f7a3f';
+    /** Soft success background color. */
     private const SUCCESS_SOFT    = '#e8f3ec';
+    /** Fail state color. */
     private const FAIL            = '#b42318';
+    /** Soft fail background color. */
     private const FAIL_SOFT       = '#fcebe9';
-    private const PARTIAL         = '#c48a00';  // amber yellow
-    private const PARTIAL_INK     = '#5a3f00';  // dark brown for "?" text on amber
+    /** Partial state color (amber yellow). */
+    private const PARTIAL         = '#c48a00';
+    /** Dark ink color for text on partial background. */
+    private const PARTIAL_INK     = '#5a3f00';
+    /** Soft partial background color. */
     private const PARTIAL_SOFT    = '#fdf3e1';
-    private const PENDING         = '#1e6fb0';  // distinct blue, ≠ accent
+    /** Pending state color. */
+    private const PENDING         = '#1e6fb0';
+    /** Soft pending background color. */
     private const PENDING_SOFT    = '#e6f0fa';
     // Neutrals.
+    /** Primary ink color. */
     private const INK             = '#1a1a1a';
+    /** Soft ink color. */
     private const INK_SOFT        = '#4a4a4a';
+    /** Muted ink color. */
     private const INK_MUTED       = '#7a7a7a';
+    /** Rule color. */
     private const RULE            = '#dcdcdc';
 
     /**
@@ -218,7 +230,7 @@ class generator {
                 if ($this->runningheader === '') {
                     return;
                 }
-                // writeHTMLCell paints inside the top margin (28mm) above the body.
+                // WriteHTMLCell paints inside the top margin (28mm) above the body.
                 $this->writeHTMLCell(0, 0, $this->original_lMargin, 10, $this->runningheader, 0, 0, false, true, 'L');
             }
 
@@ -818,12 +830,11 @@ class generator {
             . '; font-weight:normal;">(' . s($navcount) . ')</span>'
             . '</div>';
 
-        // Badge grid — full width. Dynamic per-row count so few questions fit
-        // neatly in one row, many questions wrap at a sensible width.
-        // 14 badges ≈ 95mm wide, fits easily inside the 12mm-margin A4 content.
+        // Badge grid — full width. Seven badges per row matches the
+        // design mockup's balanced dot grid and improves readability.
         $slotcount = count($slots);
-        $perrow    = min($slotcount, 14);
-        $html  .= '<table cellpadding="2" cellspacing="2" style="border-collapse:separate;">';
+        $perrow    = min($slotcount, 7);
+        $html  .= '<table cellpadding="0" cellspacing="0" style="border-collapse:separate; border-spacing:1.2mm; width:100%;">';
         $i = 0;
         foreach ($slots as $slot) {
             if ($i % $perrow === 0) {
@@ -838,12 +849,14 @@ class generator {
             );
             $displaynumber = $attemptobj->get_question_number($slot);
 
-            $html .= '<td style="width:22px; border:0.25mm solid ' . $bordercolor
+            $html .= '<td style="width:9mm; height:5.5mm; border:0.25mm solid ' . $bordercolor
                 . '; background-color:' . $bgcolor
-                . '; text-align:center; vertical-align:middle;">'
-                . '<span style="font-size:8pt; font-weight:bold; color:' . $textcolor . ';">'
-                . s($displaynumber) . '</span>'
-                . '<br />' . self::render_navigation_symbol_html($symbol, $textcolor)
+                . '; border-radius:1mm; text-align:center; vertical-align:middle; padding:0;">'
+                . '<div style="font-size:7pt; line-height:1.1; font-weight:bold; color:' . $textcolor . ';">'
+                . s($displaynumber) . '</div>'
+                . '<div style="font-size:7pt; line-height:1.1; color:' . $textcolor . ';">'
+                . self::render_navigation_symbol_html($symbol, $textcolor)
+                . '</div>'
                 . '</td>';
             $i++;
         }
@@ -857,21 +870,23 @@ class generator {
         }
         $html .= '</table>';
 
-        // 4-state legend line.
-        // Pending glyph: ZapfDingbats "n" = filled square (Unicode ■ U+25A0).
-        // Helvetica does not carry that glyph, so we keep it in ZapfDingbats.
-        $legendparts = [
-            '<span style="color:' . self::SUCCESS . '; font-family:zapfdingbats;">3</span> '
-                . s(get_string('pdf_nav_legend_correct', 'local_eledia_exam2pdf', (string) $counts['correct'])),
-            '<span style="color:' . self::PARTIAL . '; font-weight:bold;">?</span> '
-                . s(get_string('pdf_nav_legend_partial', 'local_eledia_exam2pdf', (string) $counts['partial'])),
-            '<span style="color:' . self::FAIL . '; font-family:zapfdingbats;">7</span> '
-                . s(get_string('pdf_nav_legend_wrong', 'local_eledia_exam2pdf', (string) $counts['wrong'])),
-            '<span style="color:' . self::PENDING . '; font-family:zapfdingbats;">n</span> '
-                . s(get_string('pdf_nav_legend_pending', 'local_eledia_exam2pdf', (string) $counts['pending'])),
-        ];
         $html .= '<div style="margin-top:2mm; font-size:7.5pt; color:' . self::INK_SOFT . ';">'
-            . implode(' &nbsp;·&nbsp; ', $legendparts)
+            . '<span style="margin-right:4mm; white-space:nowrap;">'
+            . '<span style="display:inline-block; width:3.5mm; height:3.5mm; line-height:3.5mm; text-align:center; vertical-align:middle; border-radius:0.5mm; background:' . self::SUCCESS . '; color:white; border:0.3pt solid ' . self::SUCCESS . '; font-size:6pt; font-weight:700; font-family:zapfdingbats;">3</span> '
+            . s(get_string('pdf_nav_legend_correct', 'local_eledia_exam2pdf', (string) $counts['correct']))
+            . '</span>'
+            . '<span style="margin-right:4mm; white-space:nowrap;">'
+            . '<span style="display:inline-block; width:3.5mm; height:3.5mm; line-height:3.5mm; text-align:center; vertical-align:middle; border-radius:0.5mm; background:' . self::PARTIAL . '; color:' . self::PARTIAL_INK . '; border:0.5pt solid ' . self::PARTIAL . '; font-size:6pt; font-weight:700;">?</span> '
+            . s(get_string('pdf_nav_legend_partial', 'local_eledia_exam2pdf', (string) $counts['partial']))
+            . '</span>'
+            . '<span style="margin-right:4mm; white-space:nowrap;">'
+            . '<span style="display:inline-block; width:3.5mm; height:3.5mm; line-height:3.5mm; text-align:center; vertical-align:middle; border-radius:0.5mm; background:white; color:' . self::FAIL . '; border:0.5pt solid ' . self::FAIL . '; font-size:6pt; font-weight:700; font-family:zapfdingbats;">7</span> '
+            . s(get_string('pdf_nav_legend_wrong', 'local_eledia_exam2pdf', (string) $counts['wrong']))
+            . '</span>'
+            . '<span style="white-space:nowrap;">'
+            . '<span style="display:inline-block; width:3.5mm; height:3.5mm; line-height:3.5mm; text-align:center; vertical-align:middle; border-radius:0.5mm; background:' . self::PENDING . '; color:white; border:0.3pt solid ' . self::PENDING . '; font-size:6pt; font-weight:700; font-family:zapfdingbats;">n</span> '
+            . s(get_string('pdf_nav_legend_pending', 'local_eledia_exam2pdf', (string) $counts['pending']))
+            . '</span>'
             . '</div>';
 
         return $html;
@@ -1047,17 +1062,27 @@ class generator {
         $maxmark = $qa->get_max_mark();
         $scoretext = self::format_question_mark($mark) . ' / ' . self::format_question_mark($maxmark);
 
-        // Outer 2-cell table: stripe (2mm) + content (rest).
-        // Card body is pure WHITE with a thin RULE border on the outer table
-        // — echoes the mockup's elegant, airy look. Only the narrow left
-        // stripe and the score pill carry the state color.
-        $html = '<table cellpadding="0" cellspacing="0"'
-            . ' style="width:100%; margin-bottom:3mm; border:0.25mm solid ' . self::RULE . ';"><tr>';
-        $html .= '<td width="2mm" style="background-color:' . $stripe . ';">&nbsp;</td>';
-        $html .= '<td style="background-color:#ffffff; padding:3mm 4mm 3mm 4mm;">';
+        // Outer 2-cell table: stripe (2mm) + content (rest). The card body is
+        // tinted for partial/fail/pending states to match the mockup, while
+        // correct cards keep a light neutral surface.
+        $cardbg = '#fcfcfd';
+        $borderstyle = 'solid';
+        if ($state->get_summary_state() === 'needsgrading') {
+            $cardbg = self::PENDING_SOFT;
+            $borderstyle = 'dotted';
+        } else if ($state->is_partially_correct()) {
+            $cardbg = self::PARTIAL_SOFT;
+            $borderstyle = 'dashed';
+        } else if ($state->is_incorrect()) {
+            $cardbg = self::FAIL_SOFT;
+            $borderstyle = 'double';
+        }
 
-        // Unused — the card background no longer echoes the soft state tint.
-        unset($bgsoft);
+        $html = '<table cellpadding="0" cellspacing="0"'
+            . ' style="width:100%; margin-bottom:3mm; border:0.4pt ' . $borderstyle . ' ' . self::RULE . ';">'<br/>
+            . '<tr>';
+        $html .= '<td width="2mm" style="background-color:' . $stripe . ';">&nbsp;</td>';
+        $html .= '<td style="background-color:' . $cardbg . '; padding:3mm 4mm 3mm 4mm;">';
 
         // Header: question text (left) + score + mark pill (right).
         $html .= '<table cellpadding="0" cellspacing="0" style="width:100%;"><tr>';
@@ -1484,5 +1509,4 @@ class generator {
 
         return [$commenttext, $graderlabel];
     }
-
 }
