@@ -864,7 +864,7 @@ class generator {
             // Pad the last row with blank cells so columns align.
             $remaining = ($perrow - ($i % $perrow)) % $perrow;
             for ($p = 0; $p < $remaining; $p++) {
-                $html .= '<td style="width:22px;">&nbsp;</td>';
+                $html .= '<td style="width:9mm; height:5.5mm;">&nbsp;</td>';
             }
             $html .= '</tr>';
         }
@@ -1066,22 +1066,22 @@ class generator {
         // tinted for partial/fail/pending states to match the mockup, while
         // correct cards keep a light neutral surface.
         $cardbg = '#fcfcfd';
-        $borderstyle = 'solid';
+        $stripestyle = 'solid';
         if ($state->get_summary_state() === 'needsgrading') {
             $cardbg = self::PENDING_SOFT;
-            $borderstyle = 'dotted';
+            $stripestyle = 'dotted';
         } else if ($state->is_partially_correct()) {
             $cardbg = self::PARTIAL_SOFT;
-            $borderstyle = 'dashed';
+            $stripestyle = 'dashed';
         } else if ($state->is_incorrect()) {
             $cardbg = self::FAIL_SOFT;
-            $borderstyle = 'double';
+            $stripestyle = 'double';
         }
 
         $html = '<table cellpadding="0" cellspacing="0"'
-            . ' style="width:100%; margin-bottom:3mm; border:0.4pt ' . $borderstyle . ' ' . self::RULE . ';">'<br/>
+            . ' style="width:100%; margin-bottom:3mm; border:0.4pt solid ' . self::RULE . ';">'
             . '<tr>';
-        $html .= '<td width="2mm" style="background-color:' . $stripe . ';">&nbsp;</td>';
+        $html .= '<td width="2mm" style="background-color:' . $stripe . '; border-right:0.4pt ' . $stripestyle . ' ' . $stripe . ';">&nbsp;</td>';
         $html .= '<td style="background-color:' . $cardbg . '; padding:3mm 4mm 3mm 4mm;">';
 
         // Header: question text (left) + score + mark pill (right).
