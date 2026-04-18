@@ -229,121 +229,116 @@ class generator {
     private static function get_pdf_css(array $config): string {
         $a = self::accent_color($config);
 
-        return 'html,body{margin:0;padding:0;font-family:"dejavusans",sans-serif;'
-            . 'font-size:9.5pt;line-height:1.42;color:#1a1a1a;}'
+        $css = 'html,body{margin:0;padding:0;font-family:"dejavusans",sans-serif;'
+             . 'font-size:9.5pt;line-height:1.42;color:#1a1a1a;}'
 
-            . '.cover{page-break-after:always;}'
+             . '.hdr-table{width:100%;border-collapse:collapse;border-bottom:1.2pt solid ' . $a . ';'
+             . 'padding-bottom:4mm;margin-bottom:6mm;}'
+             . '.hdr-table td{vertical-align:middle;padding:0;}'
+             . '.hdr-title{text-align:center;font-size:12pt;color:' . $a . ';font-weight:600;letter-spacing:-0.2px;}'
+             . '.hdr-meta{text-align:right;font-size:8pt;color:#7a7a7a;line-height:1.4;width:40mm;}'
+             . '.hdr-meta strong{color:#1a1a1a;font-size:9pt;font-weight:600;text-transform:uppercase;display:block;}'
 
-            . '.hdr-table{width:100%;border-collapse:collapse;border-spacing:0;'
-            . 'border-bottom:1.2pt solid ' . $a . ';padding-bottom:4mm;margin-bottom:5mm;}'
-            . '.hdr-table td{vertical-align:middle;padding:0;}'
-            . '.hdr-title{text-align:center;font-size:12pt;color:' . $a . ';'
-            . 'font-weight:700;letter-spacing:-0.2px;}'
-            . '.hdr-meta{text-align:right;font-size:8pt;color:#7a7a7a;line-height:1.4;width:42mm;}'
+             . '.hero-table{width:100%;border:0.5pt solid #dcdcdc;border-radius:1mm;'
+             . 'border-spacing:0;border-collapse:collapse;margin-bottom:6mm;}'
+             . '.hero-table td{vertical-align:middle;border-right:0.5pt solid #dcdcdc;padding:0;}'
+             . '.hero-table td:last-child{border-right:none;}'
 
-            . '.hero-table{width:100%;border:0.5pt solid #dcdcdc;border-radius:1mm;'
-            . 'border-spacing:0;border-collapse:collapse;margin-bottom:5mm;}'
-            . '.hero-table td{vertical-align:middle;border-right:0.5pt solid #dcdcdc;padding:0;}'
-            . '.hero-table td:last-child{border-right:none;}'
-            . '.hcell-status{width:42mm;padding:4mm 5mm;text-align:center;background:#e8f3ec;}'
-            . '.hcell-status-fail{background:#fcebe9;}'
-            . '.hcell-status-pending{background:#e6f0fa;}'
-            . '.hcell-icon{display:block;width:10mm;height:10mm;line-height:10mm;'
-            . 'margin:0 auto 2mm auto;border:1pt solid #1f7a3f;border-radius:50%;'
-            . 'background:white;color:#1f7a3f;font-size:12pt;font-weight:700;text-align:center;}'
-            . '.hcell-icon-fail{border-color:#b42318;color:#b42318;}'
-            . '.hcell-icon-pending{border-color:#1e6fb0;color:#1e6fb0;}'
-            . '.hcell-badge{font-size:11.5pt;font-weight:700;color:#1f7a3f;'
-            . 'text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;}'
-            . '.hcell-badge-fail{color:#b42318;}'
-            . '.hcell-badge-pending{color:#1e6fb0;}'
-            . '.hcell-sub{margin-top:1.5mm;font-size:7.5pt;color:#7a7a7a;'
-            . 'text-transform:uppercase;letter-spacing:0.5px;}'
-            . '.hcell-score{width:44mm;padding:4mm 6mm;}'
-            . '.hcell-big{font-size:22pt;font-weight:300;line-height:1;color:#1a1a1a;}'
-            . '.hcell-pct{font-size:11pt;color:#4a4a4a;font-weight:500;margin-left:2mm;}'
-            . '.hcell-lbl{margin-top:1.5mm;font-size:7.5pt;color:#7a7a7a;'
-            . 'text-transform:uppercase;letter-spacing:0.4px;}'
-            . '.hcell-quiz{padding:4mm 5mm;}'
-            . '.hcell-name{font-size:11pt;font-weight:700;color:#1a1a1a;'
-            . 'line-height:1.3;margin-bottom:1.5mm;}'
-            . '.hcell-ctx{font-size:8pt;color:#7a7a7a;line-height:1.35;}'
+             . '.hcell-status{width:42mm;padding:5mm 6mm;text-align:center;background:#e8f3ec;}'
+             . '.hcell-status-fail{background:#fcebe9;}'
+             . '.hcell-status-pending{background:#e6f0fa;}'
+             . '.hcell-icon{display:block;width:10mm;height:10mm;line-height:10mm;margin:0 auto 1.5mm;'
+             . 'border:1pt solid #1f7a3f;border-radius:50%;background:white;color:#1f7a3f;font-size:13pt;font-weight:700;}'
+             . '.hcell-icon-fail{border-color:#b42318;color:#b42318;}'
+             . '.hcell-icon-pending{border-color:#1e6fb0;color:#1e6fb0;}'
+             . '.hcell-badge{font-size:12pt;font-weight:700;color:#1f7a3f;text-transform:uppercase;letter-spacing:0.6px;}'
+             . '.hcell-badge-fail{color:#b42318;}'
+             . '.hcell-badge-pending{color:#1e6fb0;}'
+             . '.hcell-sub{margin-top:1mm;font-size:7.5pt;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.4px;}'
 
-            . '.cmeta-table{width:100%;border-spacing:6mm 0;border-collapse:separate;}'
-            . '.cmeta-table td{vertical-align:top;width:50%;padding:0;}'
-            . '.mblock{margin-bottom:5mm;}'
-            . '.mblock-hdr{font-size:7.5pt;text-transform:uppercase;letter-spacing:0.9px;'
-            . 'color:' . $a . ';margin:0 0 1.5mm 0;font-weight:700;padding-bottom:0.8mm;'
-            . 'border-bottom:0.5pt solid #dcdcdc;display:block;}'
-            . '.mbrow-table{width:100%;border-spacing:0;border-collapse:collapse;}'
-            . '.mbrow-table td{font-size:8.5pt;padding:0.8mm 0;vertical-align:top;}'
-            . '.mbrow-table tr + tr td{border-top:0.3pt solid #ededed;}'
-            . '.mb-lbl{color:#7a7a7a;width:40mm;}'
-            . '.mb-val{color:#1a1a1a;font-weight:500;text-align:right;}'
-            . '.mb-name{color:#1a1a1a;font-weight:700;font-size:10pt;'
-            . 'margin:0 0 0.5mm 0;padding:0;}'
-            . '.mb-sub{color:#7a7a7a;font-size:8pt;font-weight:400;'
-            . 'margin:0 0 0.3mm 0;padding:0;}'
+             . '.hcell-score{width:48mm;padding:5mm 6mm;}'
+             . '.hcell-big{font-size:22pt;font-weight:300;line-height:1;color:#1a1a1a;}'
+             . '.hcell-pct{font-size:11pt;color:#4a4a4a;font-weight:500;margin-left:2mm;}'
+             . '.hcell-lbl{margin-top:1.5mm;font-size:7.5pt;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.4px;}'
 
-            . '.sb-table{border-spacing:1.2mm;border-collapse:separate;margin:1mm 0 0 -1.2mm;}'
-            . '.sb-table td{width:9mm;height:5.5mm;border-radius:1mm;font-size:7pt;'
-            . 'font-weight:700;vertical-align:middle;text-align:center;'
-            . 'line-height:5.5mm;padding:0;white-space:nowrap;}'
-            . '.sb-ok{background:#1f7a3f;color:white;border:0.5pt solid #1f7a3f;}'
-            . '.sb-partial{background:#c48a00;color:#5a3f00;border:0.5pt solid #c48a00;}'
-            . '.sb-wrong{background:white;color:#b42318;border:0.7pt solid #b42318;}'
-            . '.sb-pending{background:#1e6fb0;color:white;border:0.5pt solid #1e6fb0;}'
-            . '.sb-legend{margin-top:2mm;font-size:7pt;color:#7a7a7a;}'
-            . '.sb-legend span{margin-right:4mm;white-space:nowrap;}'
-            . '.sb-li{display:inline-block;width:3.5mm;height:3.5mm;border-radius:0.5mm;'
-            . 'font-size:6pt;font-weight:700;line-height:3.5mm;text-align:center;'
-            . 'vertical-align:-0.8mm;margin-right:0.8mm;}'
-            . '.sli-ok{background:#1f7a3f;color:white;border:0.3pt solid #1f7a3f;}'
-            . '.sli-partial{background:#c48a00;color:#5a3f00;border:0.3pt solid #c48a00;}'
-            . '.sli-wrong{background:white;color:#b42318;border:0.5pt solid #b42318;}'
-            . '.sli-pending{background:#1e6fb0;color:white;border:0.3pt solid #1e6fb0;}'
+             . '.hcell-quiz{padding:5mm 6mm;}'
+             . '.hcell-name{font-size:11pt;font-weight:600;color:#1a1a1a;line-height:1.3;margin-bottom:1.5mm;}'
+             . '.hcell-ctx{font-size:8pt;color:#7a7a7a;line-height:1.4;}'
 
-            . '.qs-hdr{font-size:7.5pt;text-transform:uppercase;letter-spacing:0.9px;'
-            . 'color:' . $a . ';font-weight:700;padding-bottom:0.8mm;'
-            . 'border-bottom:0.5pt solid #dcdcdc;margin:0 0 2.5mm 0;display:block;}'
-            . '.qs-cnt{color:#7a7a7a;font-weight:500;}'
-            . '.qcard{margin-bottom:3mm;padding:3mm 4mm;background:#fcfcfd;'
-            . 'border:0.4pt solid #dcdcdc;border-left:1.5mm solid #1f7a3f;'
-            . 'border-radius:0.8mm;}'
-            . '.qcard-wrong{background:#fdf9f8;border-left:1.5mm double #b42318;}'
-            . '.qcard-partial{background:#fdfaf4;border-left:1.5mm dashed #c48a00;}'
-            . '.qcard-pending{background:#e6f0fa;border-left:1.5mm dotted #1e6fb0;}'
-            . '.qhdr-table{width:100%;border-spacing:0;border-collapse:collapse;'
-            . 'margin-bottom:2mm;}'
-            . '.qhdr-table td{vertical-align:top;padding:0;}'
-            . '.qnum{font-size:9.5pt;font-weight:700;color:#1a1a1a;line-height:1.3;}'
-            . '.qno{color:#7a7a7a;font-weight:500;margin-right:1mm;}'
-            . '.qscore{font-size:8.5pt;color:#4a4a4a;font-weight:500;'
-            . 'white-space:nowrap;text-align:right;width:22mm;}'
-            . '.qmark{display:inline-block;width:4mm;height:4mm;line-height:4mm;'
-            . 'text-align:center;background:#1f7a3f;color:white;border-radius:50%;'
-            . 'font-size:7pt;font-weight:700;margin-left:1.5mm;vertical-align:middle;}'
-            . '.qmark-fail{background:#b42318;}'
-            . '.qmark-partial{background:#c48a00;color:#5a3f00;}'
-            . '.qmark-pending{background:#1e6fb0;}'
-            . '.qprompt{font-size:8.5pt;color:#4a4a4a;margin-bottom:1.5mm;font-style:italic;}'
-            . '.qans-table{width:100%;border-spacing:0;border-collapse:collapse;'
-            . 'font-size:8.5pt;margin-top:1.5mm;}'
-            . '.qans-lbl{color:#7a7a7a;text-transform:uppercase;letter-spacing:0.4px;'
-            . 'font-size:7pt;font-weight:700;width:28mm;padding:0.5mm 3mm 0.5mm 0;'
-            . 'vertical-align:top;white-space:nowrap;}'
-            . '.qans-val{color:#1a1a1a;padding:0.5mm 0;}'
-            . '.qans-correct{color:#1f7a3f;font-weight:500;}'
-            . '.qans-wrong{color:#b42318;}'
-            . '.qcomment{margin-top:2.5mm;padding:2mm 3mm;background:#eaf1f8;'
-            . 'border-left:1mm solid ' . $a . ';border-radius:0.6mm;'
-            . 'font-size:8pt;color:#1a1a1a;line-height:1.45;}'
-            . '.qcomment-lbl{font-size:7pt;color:' . $a . ';text-transform:uppercase;'
-            . 'letter-spacing:0.5px;font-weight:700;margin-bottom:0.8mm;display:block;}'
-            . '.qcomment-by{color:#7a7a7a;font-weight:500;text-transform:none;'
-            . 'letter-spacing:0;margin-left:1mm;}'
-            . '.qcomment-body{color:#4a4a4a;}'
-            . '.pending-note{margin-top:1.5mm;font-size:8pt;color:#1e6fb0;font-style:italic;}';
+             . '.cmeta-table{width:100%;border-spacing:5mm 0;border-collapse:separate;margin-left:-5mm;margin-right:-5mm;}'
+             . '.cmeta-table td{vertical-align:top;width:50%;padding:0;}'
+
+             . '.mblock{margin-bottom:5mm;}'
+             . '.mblock-hdr{font-size:7.5pt;text-transform:uppercase;letter-spacing:0.9px;color:' . $a . ';'
+             . 'margin:0 0 2mm 0;font-weight:700;padding-bottom:1mm;border-bottom:0.5pt solid #dcdcdc;display:block;}'
+
+             . '.mbrow-table{width:100%;border-spacing:0;border-collapse:collapse;}'
+             . '.mbrow-table td{font-size:9pt;padding:0.8mm 0;vertical-align:top;}'
+             . '.mbrow-table tr + tr td{border-top:0.3pt solid #ededed;}'
+             . '.mb-lbl{color:#7a7a7a;width:40mm;}'
+             . '.mb-val{color:#1a1a1a;font-weight:500;text-align:right;}'
+
+             . '.mb-stack .mb-val{text-align:left;display:block;padding-bottom:0.5mm;}'
+             . '.mb-name{color:#1a1a1a;font-weight:700;font-size:9pt;margin:0 0 0.5mm 0;}'
+             . '.mb-sub{color:#7a7a7a;font-size:8pt;font-weight:400;margin:0;}'
+
+             . '.sb-table{border-spacing:1.2mm;border-collapse:separate;margin:1mm 0 0 -1.2mm;}'
+             . '.sb-table td{width:9mm;height:5.5mm;border-radius:1mm;font-size:7.5pt;font-weight:700;'
+             . 'vertical-align:middle;text-align:center;line-height:1;padding:0;}'
+             . '.sb-ok{background:#1f7a3f;color:white;border:0.5pt solid #1f7a3f;}'
+             . '.sb-partial{background:#c48a00;color:#5a3f00;border:0.5pt solid #c48a00;}'
+             . '.sb-wrong{background:white;color:#b42318;border:0.7pt solid #b42318;}'
+             . '.sb-pending{background:#1e6fb0;color:white;border:0.5pt solid #1e6fb0;}'
+
+             . '.sb-legend{margin-top:3mm;font-size:7.5pt;color:#7a7a7a;}'
+             . '.sb-legend span{margin-right:4mm;white-space:nowrap;}'
+             . '.sb-li{display:inline-block;width:3.5mm;height:3.5mm;border-radius:0.5mm;font-size:6pt;'
+             . 'font-weight:700;line-height:3.5mm;text-align:center;vertical-align:-0.8mm;margin-right:0.8mm;}'
+             . '.sli-ok{background:#1f7a3f;color:white;border:0.3pt solid #1f7a3f;}'
+             . '.sli-partial{background:#c48a00;color:#5a3f00;border:0.5pt solid #c48a00;}'
+             . '.sli-wrong{background:white;color:#b42318;border:0.5pt solid #b42318;}'
+             . '.sli-pending{background:#1e6fb0;color:white;border:0.3pt solid #1e6fb0;}'
+
+             . '.qs-hdr{font-size:10pt;text-transform:uppercase;letter-spacing:0.9px;color:' . $a . ';'
+             . 'margin:0 0 4mm 0;font-weight:700;padding-bottom:1.5mm;border-bottom:0.5pt solid #dcdcdc;display:block;}'
+             . '.qs-cnt{color:#7a7a7a;font-weight:500;}'
+
+             . '.qcard{margin-bottom:3mm;padding:3mm 4mm;background:#fcfcfd;border:0.4pt solid #dcdcdc;'
+             . 'border-left:1.5mm solid #1f7a3f;border-radius:0.8mm;}'
+             . '.qcard-wrong{background:#fdf9f8;border-left:1.5mm double #b42318;}'
+             . '.qcard-partial{background:#fdfaf4;border-left:1.5mm dashed #c48a00;}'
+             . '.qcard-pending{background:#e6f0fa;border-left:1.5mm dotted #1e6fb0;}'
+
+             . '.qhdr-table{width:100%;border-spacing:0;border-collapse:collapse;margin-bottom:2mm;}'
+             . '.qhdr-table td{vertical-align:top;padding:0;}'
+             . '.qnum{font-size:9.5pt;font-weight:600;color:#1a1a1a;line-height:1.3;}'
+             . '.qno{color:#7a7a7a;font-weight:500;margin-right:1mm;}'
+             . '.qscore{font-size:8.5pt;color:#4a4a4a;font-weight:500;white-space:nowrap;text-align:right;width:20mm;}'
+             . '.qmark{display:inline-block;width:4mm;height:4mm;line-height:4mm;text-align:center;'
+             . 'background:#1f7a3f;color:white;border-radius:50%;font-size:7pt;font-weight:700;margin-left:1.5mm;vertical-align:middle;}'
+             . '.qmark-fail{background:#b42318;}'
+             . '.qmark-partial{background:#c48a00;color:#5a3f00;}'
+             . '.qmark-pending{background:#1e6fb0;}'
+
+             . '.qprompt{font-size:8.5pt;color:#4a4a4a;margin-bottom:1.5mm;font-style:italic;}'
+
+             . '.qans-table{width:100%;border-spacing:0;border-collapse:collapse;font-size:8.5pt;}'
+             . '.qans-lbl{color:#7a7a7a;text-transform:uppercase;letter-spacing:0.4px;font-size:7pt;font-weight:600;'
+             . 'width:22mm;padding:0.5mm 3mm 0.5mm 0;vertical-align:top;}'
+             . '.qans-val{color:#1a1a1a;padding:0.5mm 0;}'
+             . '.qans-correct{color:#1f7a3f;font-weight:500;}'
+             . '.qans-correct::before{content:"\2713\00a0";font-weight:700;}'
+             . '.qans-wrong{color:#b42318;}'
+             . '.qans-wrong::before{content:"\2717\00a0";font-weight:700;}'
+
+             . '.qcomment{margin-top:2.5mm;padding:2mm 3mm;background:#eff6ff;border-left:1mm solid ' . $a . ';'
+             . 'border-radius:0.6mm;font-size:8pt;color:#1a1a1a;line-height:1.45;}'
+             . '.qcomment-lbl{font-size:7pt;color:' . $a . ';text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:0.8mm;display:block;}'
+             . '.qcomment-by{color:#7a7a7a;font-weight:500;text-transform:none;letter-spacing:0;margin-left:1mm;}'
+             . '.qcomment-body{color:#4a4a4a;}'
+             . '.pending-note{margin-top:1.5mm;font-size:8pt;color:#1e6fb0;font-style:italic;}';
+
+        return $css;
     }
 
     // ── Language helpers ──────────────────────────────────────────────────────
@@ -555,9 +550,11 @@ class generator {
                 );
                 if (!empty($files)) {
                     $file = reset($files);
-                    $src  = 'data:' . $file->get_mimetype() . ';base64,'
-                        . base64_encode($file->get_content());
-                    return '<img src="' . $src . '" style="height:32px;width:auto;margin-top:-6px;" />';
+                    $content = $file->get_content();
+                    if (!empty($content)) {
+                        $src = 'data:' . $file->get_mimetype() . ';base64,' . base64_encode($content);
+                        return '<img src="' . $src . '" style="height:32px;width:auto;margin-top:-6px;" />';
+                    }
                 }
             }
         } catch (\Throwable $e) {
@@ -593,10 +590,11 @@ class generator {
         unset($config);
         return '<table class="hdr-table" cellpadding="0" cellspacing="0"><tr>'
             . '<td style="width:33%;">' . $logohtml . '</td>'
-            . '<td class="hdr-title">'
-            . s(get_string('pdf_cover_title', 'local_eledia_exam2pdf'))
+            . '<td class="hdr-title">' . s(get_string('pdf_cover_title', 'local_eledia_exam2pdf')) . '</td>'
+            . '<td class="hdr-meta">'
+            . '<strong>' . ($rightparts[0] ?? '') . '</strong>'
+            . ($rightparts[1] ?? '')
             . '</td>'
-            . '<td class="hdr-meta">' . implode('<br>', $rightparts) . '</td>'
             . '</tr></table>';
     }
 
@@ -649,7 +647,7 @@ class generator {
         $scorestr   = format_float($grade, 1) . '&nbsp;/&nbsp;' . format_float((float) $quiz->grade, 1);
         $pctstr     = format_float($percentage, 1) . '&nbsp;%';
         $quizname   = s($quiz->name);
-        $coursedisp = s(get_string('course') . ': ' . $course->fullname);
+        $coursedisp = s($course->fullname);
         $scorelbl   = strtoupper(s(get_string('pdf_score_points_label', 'local_eledia_exam2pdf')));
         $quizlbl    = strtoupper(s(get_string('pdf_context_block', 'local_eledia_exam2pdf')));
 
@@ -669,15 +667,15 @@ class generator {
             . '<div class="hcell-sub">' . $sub . '</div>'
             . '</td>';
         $html .= '<td class="hcell-score">'
-            . '<div class="hcell-big">' . $scorestr
+            . '<div class="hcell-big" style="font-variant-numeric: tabular-nums;">' . $scorestr
             . '<span class="hcell-pct">&nbsp;&middot;&nbsp;' . $pctstr . '</span></div>'
             . '<div class="hcell-lbl">' . $scorelbl . '</div>'
             . '</td>';
         $html .= '<td class="hcell-quiz">'
             . '<div class="hcell-name">' . $quizname . '</div>'
-            . '<div class="hcell-ctx">' . $coursedisp
-            . ($completedstr !== '' ? '<br>' . $completedstr : '')
-            . '</div>'
+            . '<div class="hcell-ctx">'
+            . s(get_string('course')) . ': ' . $coursedisp . '<br>'
+            . ($completedstr !== '' ? $completedstr : '') . '</div>'
             . '</td>';
         $html .= '</tr></table>';
         return $html;
@@ -772,6 +770,17 @@ class generator {
 
         $html .= '<td style="padding-left:0;">';
         $html .= self::render_navigation_dots($attemptobj, $config);
+
+        // Quiz context block below dots (matching mockup).
+        $html .= '<div class="mblock" style="margin-top:5mm;">';
+        $html .= '<span class="mblock-hdr">' . s(get_string('pdf_context_block', 'local_eledia_exam2pdf')) . '</span>';
+        $html .= '<div class="mb-stack">'
+            . '<p class="mb-name">' . s($quiz->name) . '</p>'
+            . '<p class="mb-sub">' . s(get_string('course')) . ': ' . s($course->fullname) . '</p>';
+        if (!empty($course->idnumber)) {
+            $html .= '<p class="mb-sub">ID: ' . s($course->idnumber) . '</p>';
+        }
+        $html .= '</div></div>';
         $html .= '</td>';
 
         $html .= '</tr></table>';
@@ -843,7 +852,7 @@ class generator {
                 $attemptobj->get_question_state($slot)
             );
             $num   = s($attemptobj->get_question_number($slot));
-            $html .= '<td class="' . $cssclass . '">'
+            $html .= '<td class="' . $cssclass . '" style="font-variant-numeric: tabular-nums;">'
                 . '<span style="padding-right:0.5mm;">' . $num . '</span>'
                 . '<span>' . $symbol . '</span>'
                 . '</td>';
@@ -912,7 +921,7 @@ class generator {
             return '';
         }
 
-        $headingmain = mb_strtoupper((string) get_string('pdf_questions_heading', 'local_eledia_exam2pdf'), 'UTF-8');
+        $headingmain = (string) get_string('pdf_questions_heading', 'local_eledia_exam2pdf');
         $headingsub  = get_string('pdf_nav_legend_all', 'local_eledia_exam2pdf', (string) $slotcount);
 
         return '<div class="qs-hdr">' . s($headingmain)
@@ -1007,7 +1016,7 @@ class generator {
             . '</span> '
             . s($qtext)
             . '</td>';
-        $html .= '<td class="qscore">'
+        $html .= '<td class="qscore" style="font-variant-numeric: tabular-nums;">'
             . s($scoretext)
             . ' <span class="qmark ' . $markclass . '">' . $markchar . '</span>'
             . '</td>';
@@ -1076,7 +1085,7 @@ class generator {
         if ($state->is_incorrect()) {
             return ['qcard-wrong', 'qmark-fail', '&#10007;'];
         }
-        return ['', '', '&nbsp;'];
+        return ['', '', '&#183;'];
     }
 
     /**
