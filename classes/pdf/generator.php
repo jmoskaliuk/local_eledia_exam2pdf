@@ -32,10 +32,10 @@ use mod_quiz\quiz_attempt;
 class generator {
 
     /** @var string Brand accent color (configurable via plugin settings). */
-    private const ACCENT_DEFAULT = '#2a5d8a';
+    private const ACCENT_DEFAULT = '#1d4fd8';
 
     /** @var string Soft accent background. */
-    private const ACCENT_SOFT    = '#eaf1f8';
+    private const ACCENT_SOFT    = '#eff6ff';
 
     /** @var string Success state foreground. */
     private const SUCCESS        = '#1f7a3f';
@@ -168,10 +168,10 @@ class generator {
         $mpdf = new \Mpdf\Mpdf([
             'mode'              => 'utf-8',
             'format'            => 'A4',
-            'margin_top'        => 22,
-            'margin_bottom'     => 18,
-            'margin_left'       => 14,
-            'margin_right'      => 14,
+            'margin_top'        => 28,
+            'margin_bottom'     => 15,
+            'margin_left'       => 12,
+            'margin_right'      => 12,
             'margin_header'     => 6,
             'margin_footer'     => 6,
             'default_font'      => 'dejavusans',
@@ -249,16 +249,16 @@ class generator {
             . '.hcell-status-fail{background:#fcebe9;}'
             . '.hcell-status-pending{background:#e6f0fa;}'
             . '.hcell-icon{display:block;width:10mm;height:10mm;line-height:10mm;'
-            . 'margin:0 auto 1.5mm auto;border:1pt solid #1f7a3f;border-radius:50%;'
+            . 'margin:0 auto 2mm auto;border:1pt solid #1f7a3f;border-radius:50%;'
             . 'background:white;color:#1f7a3f;font-size:12pt;font-weight:700;text-align:center;}'
             . '.hcell-icon-fail{border-color:#b42318;color:#b42318;}'
             . '.hcell-icon-pending{border-color:#1e6fb0;color:#1e6fb0;}'
-            . '.hcell-badge{font-size:12pt;font-weight:700;color:#1f7a3f;'
-            . 'text-transform:uppercase;letter-spacing:0.6px;line-height:1;}'
+            . '.hcell-badge{font-size:11.5pt;font-weight:700;color:#1f7a3f;'
+            . 'text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;}'
             . '.hcell-badge-fail{color:#b42318;}'
             . '.hcell-badge-pending{color:#1e6fb0;}'
-            . '.hcell-sub{margin-top:1mm;font-size:7.5pt;color:#7a7a7a;'
-            . 'text-transform:uppercase;letter-spacing:0.4px;}'
+            . '.hcell-sub{margin-top:1.5mm;font-size:7.5pt;color:#7a7a7a;'
+            . 'text-transform:uppercase;letter-spacing:0.5px;}'
             . '.hcell-score{width:44mm;padding:4mm 6mm;}'
             . '.hcell-big{font-size:22pt;font-weight:300;line-height:1;color:#1a1a1a;}'
             . '.hcell-pct{font-size:11pt;color:#4a4a4a;font-weight:500;margin-left:2mm;}'
@@ -266,7 +266,7 @@ class generator {
             . 'text-transform:uppercase;letter-spacing:0.4px;}'
             . '.hcell-quiz{padding:4mm 5mm;}'
             . '.hcell-name{font-size:11pt;font-weight:700;color:#1a1a1a;'
-            . 'line-height:1.2;margin-bottom:1mm;}'
+            . 'line-height:1.3;margin-bottom:1.5mm;}'
             . '.hcell-ctx{font-size:8pt;color:#7a7a7a;line-height:1.35;}'
 
             . '.cmeta-table{width:100%;border-spacing:6mm 0;border-collapse:separate;}'
@@ -476,7 +476,14 @@ class generator {
         $body .= '</div>';
         $body .= '<sethtmlpageheader name="runhdr" value="on" show-this-page="1" />';
 
-        $body .= self::render_questions($attemptobj, $config);
+        // Render questions with specific page-break logic:
+        // Q1 follows the cover grid on page 1. Q2+ force a page break.
+        $body .= '<div class="questions-section">';
+        $body .= self::render_questions_heading($attemptobj);
+        foreach ($attemptobj->get_slots() as $index => $slot) {
+            $body .= self::render_single_question_slot($attemptobj, $slot, $index + 1, $config);
+        }
+        $body .= '</div>';
 
         unset($course);
         return $body;
@@ -550,7 +557,7 @@ class generator {
                     $file = reset($files);
                     $src  = 'data:' . $file->get_mimetype() . ';base64,'
                         . base64_encode($file->get_content());
-                    return '<img src="' . $src . '" style="height:24px;width:auto;margin-top:-4px;" />';
+                    return '<img src="' . $src . '" style="height:32px;width:auto;margin-top:-6px;" />';
                 }
             }
         } catch (\Throwable $e) {
@@ -822,7 +829,7 @@ class generator {
         $html .= '<span class="mblock-hdr">' . $navtitle . ' (' . $navcount . ')</span>';
 
         $slotcount = count($slots);
-        $perrow    = min($slotcount, 7);
+        $perrow    = min($slotcount, 14);
         $html .= '<table class="sb-table" cellpadding="0" cellspacing="0">';
         $i = 0;
         foreach ($slots as $slot) {
@@ -894,44 +901,69 @@ class generator {
     }
 
     /**
-     * Renders the questions and answers section.
+     * Renders the questions section heading.
+     *
+     * @param quiz_attempt $attemptobj Attempt object.
+     * @return string HTML markup.
+     */
+    private static function render_questions_heading(quiz_attempt $attemptobj): string {
+        $slotcount = count($attemptobj->get_slots());
+        if ($slotcount === 0) {
+            return '';
+        }
+
+        $headingmain = mb_strtoupper((string) get_string('pdf_questions_heading', 'local_eledia_exam2pdf'), 'UTF-8');
+        $headingsub  = get_string('pdf_nav_legend_all', 'local_eledia_exam2pdf', (string) $slotcount);
+
+        return '<div class="qs-hdr">' . s($headingmain)
+            . ' <span class="qs-cnt">· ' . s($headingsub) . '</span>'
+            . '</div>';
+    }
+
+    /**
+     * Renders a single question slot including the page break logic for Q2+.
+     *
+     * @param quiz_attempt $attemptobj Attempt object.
+     * @param int          $slot       The slot ID.
+     * @param int          $num        1-based question number.
+     * @param array        $config     Effective plugin config.
+     * @return string HTML markup.
+     */
+    private static function render_single_question_slot(
+        quiz_attempt $attemptobj,
+        int $slot,
+        int $num,
+        array $config
+    ): string {
+        $accent = self::accent_color($config);
+        $quba   = \question_engine::load_questions_usage_by_activity($attemptobj->get_uniqueid());
+        $qa     = $quba->get_question_attempt($slot);
+        $question = $qa->get_question();
+        $qtype    = $question->get_type_name();
+        $state    = $qa->get_state();
+
+        $html = '';
+        // As per 0.6.3 specs: Q2, Q3, etc. each start on a new page.
+        if ($num > 1) {
+            $html .= '<pagebreak />';
+        }
+
+        $html .= self::render_question_card($qa, $question, $qtype, $state, $num, $config, $accent);
+        return $html;
+    }
+
+    /**
+     * Renders the questions and answers section (Legacy/Compat Wrapper).
      *
      * @param quiz_attempt $attemptobj Attempt object.
      * @param array        $config     Effective plugin config.
      * @return string HTML markup.
      */
     private static function render_questions(quiz_attempt $attemptobj, array $config): string {
-        $quba  = \question_engine::load_questions_usage_by_activity($attemptobj->get_uniqueid());
-        $slots = $attemptobj->get_slots();
-        if (empty($slots)) {
-            return '';
-        }
-
-        $accent = self::accent_color($config);
-
-        $heading      = mb_strtoupper(
-            (string) get_string(
-                'pdf_questions_section_heading', 'local_eledia_exam2pdf', (string) count($slots)
-            ),
-            'UTF-8'
-        );
-        $headingparts = explode(' Â· ', $heading, 2);
-        $headingmain  = s($headingparts[0]);
-        $headingsub   = isset($headingparts[1]) ? s($headingparts[1]) : '';
-
-        $html  = '<div class="qs-hdr">' . $headingmain;
-        if ($headingsub !== '') {
-            $html .= ' <span class="qs-cnt">Â· ' . $headingsub . '</span>';
-        }
-        $html .= '</div>';
-
+        $html = self::render_questions_heading($attemptobj);
         $num = 1;
-        foreach ($slots as $slot) {
-            $qa       = $quba->get_question_attempt($slot);
-            $question = $qa->get_question();
-            $qtype    = $question->get_type_name();
-            $state    = $qa->get_state();
-            $html .= self::render_question_card($qa, $question, $qtype, $state, $num, $config, $accent);
+        foreach ($attemptobj->get_slots() as $slot) {
+            $html .= self::render_single_question_slot($attemptobj, (int)$slot, $num, $config);
             $num++;
         }
 
@@ -1033,7 +1065,7 @@ class generator {
      */
     private static function resolve_question_card_style(\question_state $state): array {
         if ($state->get_summary_state() === 'needsgrading') {
-            return ['qcard-pending', 'qmark-pending', '&nbsp;'];
+            return ['qcard-pending', 'qmark-pending', '&#8943;'];
         }
         if ($state->is_correct()) {
             return ['', '', '&#10003;'];
@@ -1060,7 +1092,7 @@ class generator {
                 . s(get_string('pdf_noanswer', 'local_eledia_exam2pdf'))
                 . '</span>';
         }
-        $escaped = s($raw);
+        $escaped = trim(s($raw));
         if ($state->is_correct()) {
             return '<span class="qans-correct">&#10003;&nbsp;' . $escaped . '</span>';
         }
