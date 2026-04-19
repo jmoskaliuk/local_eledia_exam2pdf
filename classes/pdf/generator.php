@@ -30,7 +30,6 @@ use mod_quiz\quiz_attempt;
  * Generates the PDF certificate for a passed quiz attempt using mPDF.
  */
 class generator {
-
     /** @var string Brand accent color (configurable via plugin settings). */
     private const ACCENT_DEFAULT = '#2a5d8a';
 
@@ -460,10 +459,24 @@ class generator {
         $body .= '<div class="cover">';
         $body .= self::render_cover_header_band($logohtml, $attempt, $config);
         $body .= self::render_hero(
-            $quiz, $course, $passed, $pendingcount, $attempt, $grade, $percentage, $config
+            $quiz,
+            $course,
+            $passed,
+            $pendingcount,
+            $attempt,
+            $grade,
+            $percentage,
+            $config
         );
         $body .= self::render_cover_grid(
-            $learner, $quiz, $course, $attempt, $duration, $gradepass, $config, $attemptobj
+            $learner,
+            $quiz,
+            $course,
+            $attempt,
+            $duration,
+            $gradepass,
+            $config,
+            $attemptobj
         );
         $body .= '</div>';
         $body .= '<sethtmlpageheader name="runhdr" value="on" show-this-page="1" />';
@@ -532,7 +545,12 @@ class generator {
             $fs         = get_file_storage();
             foreach (['logo', 'logocompact'] as $area) {
                 $files = $fs->get_area_files(
-                    $syscontext->id, 'core_admin', $area, 0, 'filename', false
+                    $syscontext->id,
+                    'core_admin',
+                    $area,
+                    0,
+                    'filename',
+                    false
                 );
                 if (!empty($files)) {
                     $file = reset($files);
@@ -784,7 +802,9 @@ class generator {
 
         $navtitle = s(get_string('pdf_navigation_heading', 'local_eledia_exam2pdf'));
         $navcount = s(get_string(
-            'pdf_nav_legend_all', 'local_eledia_exam2pdf', (string) count($slots)
+            'pdf_nav_legend_all',
+            'local_eledia_exam2pdf',
+            (string) count($slots)
         ));
 
         $html  = '<div class="mblock">';
