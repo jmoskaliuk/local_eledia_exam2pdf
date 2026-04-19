@@ -239,31 +239,29 @@ class generator {
              . '.hdr-meta{text-align:right;font-size:8pt;color:#7a7a7a;line-height:1.4;width:40mm;}'
              . '.hdr-meta strong{color:#1a1a1a;font-size:9pt;font-weight:600;text-transform:uppercase;display:block;}'
 
-             . '.hero-table{width:100%;border:0.5pt solid #dcdcdc;border-radius:1mm;'
-             . 'border-spacing:0;border-collapse:collapse;margin-bottom:6mm;}'
-             . '.hero-table td{vertical-align:middle;border-right:0.5pt solid #dcdcdc;padding:0;}'
-             . '.hero-table td:last-child{border-right:none;}'
+             . '.hero-table{width:100%;border-spacing:0;border-collapse:collapse;margin-bottom:6mm;}'
+             . '.hero-table td{vertical-align:middle;padding:0;}'
 
-             . '.hcell-status{width:42mm;padding:5mm 6mm;text-align:center;background:#e8f3ec;}'
+             . '.hcell-status{width:32mm;padding:5mm 3mm;text-align:center;background:#e8f3ec;border-radius:1.5mm;}'
              . '.hcell-status-fail{background:#fcebe9;}'
              . '.hcell-status-pending{background:#e6f0fa;}'
-             . '.hcell-icon{display:block;width:10mm;height:10mm;line-height:10mm;margin:0 auto 1.5mm;'
-             . 'border:1pt solid #1f7a3f;border-radius:50%;background:white;color:#1f7a3f;font-size:13pt;font-weight:700;}'
-             . '.hcell-icon-fail{border-color:#b42318;color:#b42318;}'
-             . '.hcell-icon-pending{border-color:#1e6fb0;color:#1e6fb0;}'
+             . '.hcell-icon{display:block;text-align:center;margin:0 auto 2mm;'
+             . 'color:#1f7a3f;font-size:18pt;font-weight:700;line-height:1;}'
+             . '.hcell-icon-fail{color:#b42318;}'
+             . '.hcell-icon-pending{color:#1e6fb0;}'
              . '.hcell-badge{font-size:12pt;font-weight:700;color:#1f7a3f;text-transform:uppercase;letter-spacing:0.6px;}'
              . '.hcell-badge-fail{color:#b42318;}'
              . '.hcell-badge-pending{color:#1e6fb0;}'
              . '.hcell-sub{margin-top:1mm;font-size:7.5pt;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.4px;}'
 
-             . '.hcell-score{width:48mm;padding:5mm 6mm;}'
+             . '.hcell-score{padding:7mm 0 7mm 0;}'
              . '.hcell-big{font-size:22pt;font-weight:300;line-height:1;color:#1a1a1a;}'
-             . '.hcell-pct{font-size:11pt;color:#4a4a4a;font-weight:500;margin-left:2mm;}'
-             . '.hcell-lbl{margin-top:1.5mm;font-size:7.5pt;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.4px;}'
+             . '.hcell-lbl{margin-top:2mm;font-size:7.5pt;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.4px;}'
+             . '.hcell-lbl-pct{text-transform:none;color:#4a4a4a;font-weight:500;margin-left:1.2mm;letter-spacing:0;}'
 
-             . '.hcell-quiz{padding:5mm 6mm;}'
-             . '.hcell-name{font-size:11pt;font-weight:600;color:#1a1a1a;line-height:1.3;margin-bottom:1.5mm;}'
-             . '.hcell-ctx{font-size:8pt;color:#7a7a7a;line-height:1.4;}'
+             . '.hero-intro{margin-bottom:3mm;}'
+             . '.hero-intro-name{font-size:12pt;font-weight:600;color:#1a1a1a;line-height:1.3;}'
+             . '.hero-intro-ctx{font-size:9pt;color:#7a7a7a;line-height:1.4;margin-top:1mm;}'
 
              . '.cmeta-table{width:100%;border-spacing:5mm 0;border-collapse:separate;margin-left:-5mm;margin-right:-5mm;}'
              . '.cmeta-table td{vertical-align:top;width:50%;padding:0;}'
@@ -272,11 +270,8 @@ class generator {
              . '.mblock-hdr{font-size:7.5pt;text-transform:uppercase;letter-spacing:0.9px;color:' . $a . ';'
              . 'margin:0 0 2mm 0;font-weight:700;padding-bottom:1mm;border-bottom:0.5pt solid #dcdcdc;display:block;}'
 
-             . '.mbrow-table{width:100%;border-spacing:0;border-collapse:collapse;}'
-             . '.mbrow-table td{font-size:9pt;padding:0.8mm 0;vertical-align:top;}'
-             . '.mbrow-table tr + tr td{border-top:0.3pt solid #ededed;}'
-             . '.mb-lbl{color:#7a7a7a;width:40mm;}'
-             . '.mb-val{color:#1a1a1a;font-weight:500;text-align:right;}'
+             . '.mb-line{font-size:9pt;margin:0 0 1.4mm 0;color:#1a1a1a;line-height:1.45;}'
+             . '.mb-line-lbl{color:#7a7a7a;margin-right:2mm;}'
 
              . '.mb-stack .mb-val{text-align:left;display:block;padding-bottom:0.5mm;}'
              . '.mb-name{color:#1a1a1a;font-weight:700;font-size:9pt;margin:0 0 0.5mm 0;}'
@@ -290,35 +285,37 @@ class generator {
              . '.sb-wrong{background:white;color:#b42318;border:0.7pt solid #b42318;}'
              . '.sb-pending{background:#1e6fb0;color:white;border:0.5pt solid #1e6fb0;}'
 
-             . '.sb-legend{margin-top:3mm;font-size:7.5pt;color:#7a7a7a;}'
-             . '.sb-legend span{margin-right:4mm;white-space:nowrap;}'
-             . '.sb-li{display:inline-block;width:3.5mm;height:3.5mm;border-radius:0.5mm;font-size:6pt;'
-             . 'font-weight:700;line-height:3.5mm;text-align:center;vertical-align:-0.8mm;margin-right:0.8mm;}'
-             . '.sli-ok{background:#1f7a3f;color:white;border:0.3pt solid #1f7a3f;}'
-             . '.sli-partial{background:#c48a00;color:#5a3f00;border:0.5pt solid #c48a00;}'
-             . '.sli-wrong{background:white;color:#b42318;border:0.5pt solid #b42318;}'
-             . '.sli-pending{background:#1e6fb0;color:white;border:0.3pt solid #1e6fb0;}'
+             . '.sb-legend-tbl{margin-top:4mm;margin-bottom:1.5mm;'
+             . 'border-spacing:0;border-collapse:separate;font-size:8.5pt;color:#4a4a4a;}'
+             . '.sb-legend-tbl td{padding:1.3mm 0;vertical-align:middle;white-space:nowrap;}'
+             . '.sb-legend-tbl td.sb-legend-icon{padding-right:3mm;width:6mm;}'
+             . '.sb-legend-tbl td.sb-legend-lbl{padding-right:7mm;}'
+             . '.sb-li{display:inline-block;width:4.5mm;height:4.5mm;font-size:10pt;'
+             . 'font-weight:700;line-height:4.5mm;text-align:center;}'
+             . '.sli-ok{color:#1f7a3f;}'
+             . '.sli-partial{color:#c48a00;}'
+             . '.sli-wrong{color:#b42318;}'
+             . '.sli-pending{color:#1e6fb0;}'
 
              . '.qs-hdr{font-size:10pt;text-transform:uppercase;letter-spacing:0.9px;color:' . $a . ';'
-             . 'margin:0 0 4mm 0;font-weight:700;padding-bottom:1.5mm;border-bottom:0.5pt solid #dcdcdc;display:block;}'
+             . 'margin:10mm 0 4mm 0;font-weight:700;padding-bottom:1.5mm;border-bottom:0.5pt solid #dcdcdc;display:block;}'
              . '.qs-cnt{color:#7a7a7a;font-weight:500;}'
 
              . '.qcard{margin-bottom:3mm;padding:3mm 4mm;background:#fcfcfd;border:0.4pt solid #dcdcdc;'
-             . 'border-left:1.5mm solid #1f7a3f;border-radius:0.8mm;}'
-             . '.qcard-wrong{background:#fdf9f8;border-left:1.5mm double #b42318;}'
-             . '.qcard-partial{background:#fdfaf4;border-left:1.5mm dashed #c48a00;}'
-             . '.qcard-pending{background:#e6f0fa;border-left:1.5mm dotted #1e6fb0;}'
+             . 'border-left:2mm solid #1f7a3f;page-break-inside:avoid;}'
+             . '.qcard-wrong{background:#fdf9f8;border-left-color:#b42318;}'
+             . '.qcard-partial{background:#fdfaf4;border-left-color:#c48a00;}'
+             . '.qcard-pending{background:#e6f0fa;border-left-color:#1e6fb0;}'
 
              . '.qhdr-table{width:100%;border-spacing:0;border-collapse:collapse;margin-bottom:2mm;}'
              . '.qhdr-table td{vertical-align:top;padding:0;}'
              . '.qnum{font-size:9.5pt;font-weight:600;color:#1a1a1a;line-height:1.3;}'
              . '.qno{color:#7a7a7a;font-weight:500;margin-right:1mm;}'
-             . '.qscore{font-size:8.5pt;color:#4a4a4a;font-weight:500;white-space:nowrap;text-align:right;width:20mm;}'
-             . '.qmark{display:inline-block;width:4mm;height:4mm;line-height:4mm;text-align:center;'
-             . 'background:#1f7a3f;color:white;border-radius:50%;font-size:7pt;font-weight:700;margin-left:1.5mm;vertical-align:middle;}'
-             . '.qmark-fail{background:#b42318;}'
-             . '.qmark-partial{background:#c48a00;color:#5a3f00;}'
-             . '.qmark-pending{background:#1e6fb0;}'
+             . '.qscore{font-size:9.5pt;color:#1a1a1a;font-weight:600;white-space:nowrap;text-align:right;width:22mm;}'
+             . '.qmark{color:#1f7a3f;font-size:12pt;font-weight:700;margin-left:2mm;vertical-align:middle;}'
+             . '.qmark-fail{color:#b42318;}'
+             . '.qmark-partial{color:#c48a00;}'
+             . '.qmark-pending{color:#1e6fb0;}'
 
              . '.qprompt{font-size:8.5pt;color:#4a4a4a;margin-bottom:1.5mm;font-style:italic;}'
 
@@ -505,22 +502,12 @@ class generator {
         $learner     = $DB->get_record('user', ['id' => $attempt->userid], '*', IGNORE_MISSING);
         $learnername = $learner ? fullname($learner) : '';
 
-        $grade      = ($quiz->sumgrades > 0)
-            ? ($attempt->sumgrades / $quiz->sumgrades * $quiz->grade) : 0;
-        $percentage = ($quiz->grade > 0) ? round($grade / $quiz->grade * 100, 1) : 0;
-        $scoretext  = format_float($grade, 1) . ' / ' . format_float((float) $quiz->grade, 1)
-            . ' Â· ' . format_float($percentage, 1) . ' %';
-
-        $attemptno  = (string) ($attempt->attempt ?? '');
-        $datestr    = $attempt->timefinish
-            ? userdate($attempt->timefinish, get_string('strftimedatetimeshort', 'core_langconfig'))
-            : '';
-        $midparts   = array_filter([
+        $attemptno = (string) ($attempt->attempt ?? '');
+        $rightparts = array_filter([
             s($quiz->name),
             $attemptno !== ''
                 ? s(get_string('pdf_attempt_hash', 'local_eledia_exam2pdf', $attemptno))
                 : '',
-            s($datestr),
         ], static fn($v) => $v !== '');
 
         unset($config);
@@ -528,10 +515,9 @@ class generator {
             . ' style="font-size:7.5pt;color:#7a7a7a;'
             . 'border-bottom:0.4pt solid #dcdcdc;padding-bottom:2mm;">'
             . '<tr>'
-            . '<td style="width:33%;text-align:left;color:#1a1a1a;font-weight:600;">'
+            . '<td style="width:40%;text-align:left;color:#1a1a1a;font-weight:600;">'
             . s($learnername) . '</td>'
-            . '<td style="width:40%;text-align:center;">' . implode(' Â· ', $midparts) . '</td>'
-            . '<td style="width:27%;text-align:right;">' . s($scoretext) . '</td>'
+            . '<td style="width:60%;text-align:right;">' . implode(' · ', $rightparts) . '</td>'
             . '</tr></table>';
     }
 
@@ -576,25 +562,15 @@ class generator {
         \stdClass $attempt,
         array $config
     ): string {
-        $attemptno  = (string) ($attempt->attempt ?? '');
-        $datestr    = $attempt->timefinish
-            ? userdate($attempt->timefinish, get_string('strftimedatetimeshort', 'core_langconfig'))
+        $datetimestr = $attempt->timefinish
+            ? s(userdate($attempt->timefinish, '%d.%m.%Y %H:%M'))
             : '';
-        $rightparts = array_filter([
-            $attemptno !== ''
-                ? s(get_string('pdf_attempt_hash', 'local_eledia_exam2pdf', $attemptno))
-                : '',
-            s($datestr),
-        ], static fn($v) => $v !== '');
 
         unset($config);
         return '<table class="hdr-table" cellpadding="0" cellspacing="0"><tr>'
-            . '<td style="width:33%;">' . $logohtml . '</td>'
+            . '<td style="width:40mm;">' . $logohtml . '</td>'
             . '<td class="hdr-title">' . s(get_string('pdf_cover_title', 'local_eledia_exam2pdf')) . '</td>'
-            . '<td class="hdr-meta">'
-            . '<strong>' . ($rightparts[0] ?? '') . '</strong>'
-            . ($rightparts[1] ?? '')
-            . '</td>'
+            . '<td class="hdr-meta">' . $datetimestr . '</td>'
             . '</tr></table>';
     }
 
@@ -625,23 +601,20 @@ class generator {
             $statusclass = 'hcell-status hcell-status-pending';
             $iconclass   = 'hcell-icon hcell-icon-pending';
             $badgeclass  = 'hcell-badge hcell-badge-pending';
-            $iconchar    = '?';
+            $iconchar    = '&#8987;';
             $badge       = s(get_string('pdf_status_pending', 'local_eledia_exam2pdf'));
-            $sub         = s(get_string('pdf_pending_questions', 'local_eledia_exam2pdf', $pendingcount));
         } else if ($passed) {
             $statusclass = 'hcell-status';
             $iconclass   = 'hcell-icon';
             $badgeclass  = 'hcell-badge';
             $iconchar    = '&#10003;';
             $badge       = s(get_string('pdf_status_passed', 'local_eledia_exam2pdf'));
-            $sub         = s(get_string('pdf_status_label', 'local_eledia_exam2pdf'));
         } else {
             $statusclass = 'hcell-status hcell-status-fail';
             $iconclass   = 'hcell-icon hcell-icon-fail';
             $badgeclass  = 'hcell-badge hcell-badge-fail';
             $iconchar    = '&#10007;';
             $badge       = s(get_string('pdf_status_failed', 'local_eledia_exam2pdf'));
-            $sub         = s(get_string('pdf_status_label', 'local_eledia_exam2pdf'));
         }
 
         $scorestr   = format_float($grade, 1) . '&nbsp;/&nbsp;' . format_float((float) $quiz->grade, 1);
@@ -649,33 +622,24 @@ class generator {
         $quizname   = s($quiz->name);
         $coursedisp = s($course->fullname);
         $scorelbl   = strtoupper(s(get_string('pdf_score_points_label', 'local_eledia_exam2pdf')));
-        $quizlbl    = strtoupper(s(get_string('pdf_context_block', 'local_eledia_exam2pdf')));
 
-        $completedstr = '';
-        if ($attempt->timefinish) {
-            $completedstr = s(
-                get_string('pdf_timestamp', 'local_eledia_exam2pdf') . ': '
-                . userdate($attempt->timefinish, get_string('strftimedatetimeshort', 'core_langconfig'))
-            );
-        }
+        unset($attempt, $config);
+        $html  = '<div class="hero-intro">';
+        $html .= '<div class="hero-intro-name">' . $quizname . '</div>';
+        $html .= '<div class="hero-intro-ctx">'
+            . s(get_string('course')) . ': ' . $coursedisp . '</div>';
+        $html .= '</div>';
 
-        unset($config);
-        $html  = '<table class="hero-table" cellpadding="0" cellspacing="0"><tr>';
+        $html .= '<table class="hero-table" cellpadding="0" cellspacing="0"><tr>';
         $html .= '<td class="' . $statusclass . '">'
             . '<span class="' . $iconclass . '">' . $iconchar . '</span>'
             . '<div class="' . $badgeclass . '">' . $badge . '</div>'
-            . '<div class="hcell-sub">' . $sub . '</div>'
             . '</td>';
+        $html .= '<td style="width:12mm;">&nbsp;</td>';
         $html .= '<td class="hcell-score">'
-            . '<div class="hcell-big" style="font-variant-numeric: tabular-nums;">' . $scorestr
-            . '<span class="hcell-pct">&nbsp;&middot;&nbsp;' . $pctstr . '</span></div>'
-            . '<div class="hcell-lbl">' . $scorelbl . '</div>'
-            . '</td>';
-        $html .= '<td class="hcell-quiz">'
-            . '<div class="hcell-name">' . $quizname . '</div>'
-            . '<div class="hcell-ctx">'
-            . s(get_string('course')) . ': ' . $coursedisp . '<br>'
-            . ($completedstr !== '' ? $completedstr : '') . '</div>'
+            . '<div class="hcell-big" style="font-variant-numeric: tabular-nums;">' . $scorestr . '</div>'
+            . '<div class="hcell-lbl">' . $scorelbl
+            . '&nbsp;<span class="hcell-lbl-pct">(' . $pctstr . ')</span></div>'
             . '</td>';
         $html .= '</tr></table>';
         return $html;
@@ -759,28 +723,16 @@ class generator {
             );
         }
         if ($attemptrows !== '') {
-            $html .= '<div class="mblock">';
+            $html .= '<div class="mblock" style="margin-top:25mm;">';
             $html .= '<span class="mblock-hdr">'
                 . s(get_string('pdf_attempt_block', 'local_eledia_exam2pdf')) . '</span>';
-            $html .= '<table class="mbrow-table" cellpadding="0" cellspacing="0">'
-                . $attemptrows . '</table>';
+            $html .= $attemptrows;
             $html .= '</div>';
         }
         $html .= '</td>';
 
         $html .= '<td style="padding-left:0;">';
         $html .= self::render_navigation_dots($attemptobj, $config);
-
-        // Quiz context block below dots (matching mockup).
-        $html .= '<div class="mblock" style="margin-top:5mm;">';
-        $html .= '<span class="mblock-hdr">' . s(get_string('pdf_context_block', 'local_eledia_exam2pdf')) . '</span>';
-        $html .= '<div class="mb-stack">'
-            . '<p class="mb-name">' . s($quiz->name) . '</p>'
-            . '<p class="mb-sub">' . s(get_string('course')) . ': ' . s($course->fullname) . '</p>';
-        if (!empty($course->idnumber)) {
-            $html .= '<p class="mb-sub">ID: ' . s($course->idnumber) . '</p>';
-        }
-        $html .= '</div></div>';
         $html .= '</td>';
 
         $html .= '</tr></table>';
@@ -796,10 +748,10 @@ class generator {
      * @return string HTML tr element.
      */
     private static function render_meta_row(string $label, $value): string {
-        return '<tr>'
-            . '<td class="mb-lbl">' . s($label) . '</td>'
-            . '<td class="mb-val">' . s((string) $value) . '</td>'
-            . '</tr>';
+        return '<p class="mb-line">'
+            . '<span class="mb-line-lbl">' . s($label) . '</span>&nbsp;'
+            . s((string) $value)
+            . '</p>';
     }
 
     /**
@@ -867,20 +819,24 @@ class generator {
         }
         $html .= '</table>';
 
-        $html .= '<div class="sb-legend">';
-        $html .= '<span><i class="sb-li sli-ok">&#10003;</i>'
-            . s(get_string('pdf_nav_legend_correct', 'local_eledia_exam2pdf', (string) $counts['correct']))
-            . '</span>';
-        $html .= '<span><i class="sb-li sli-partial">?</i>'
-            . s(get_string('pdf_nav_legend_partial', 'local_eledia_exam2pdf', (string) $counts['partial']))
-            . '</span>';
-        $html .= '<span><i class="sb-li sli-wrong">&#10007;</i>'
-            . s(get_string('pdf_nav_legend_wrong', 'local_eledia_exam2pdf', (string) $counts['wrong']))
-            . '</span>';
-        $html .= '<span><i class="sb-li sli-pending">&nbsp;</i>'
-            . s(get_string('pdf_nav_legend_pending', 'local_eledia_exam2pdf', (string) $counts['pending']))
-            . '</span>';
-        $html .= '</div>';
+        $lblcorrect = s(get_string('pdf_nav_legend_correct', 'local_eledia_exam2pdf', (string) $counts['correct']));
+        $lblwrong   = s(get_string('pdf_nav_legend_wrong', 'local_eledia_exam2pdf', (string) $counts['wrong']));
+        $lblpartial = s(get_string('pdf_nav_legend_partial', 'local_eledia_exam2pdf', (string) $counts['partial']));
+        $lblpending = s(get_string('pdf_nav_legend_pending', 'local_eledia_exam2pdf', (string) $counts['pending']));
+        $html .= '<table class="sb-legend-tbl" cellpadding="0" cellspacing="0">';
+        $html .= '<tr>'
+            . '<td class="sb-legend-icon"><i class="sb-li sli-ok">&#10003;</i></td>'
+            . '<td class="sb-legend-lbl">' . $lblcorrect . '</td>'
+            . '<td class="sb-legend-icon"><i class="sb-li sli-wrong">&#10007;</i></td>'
+            . '<td class="sb-legend-lbl">' . $lblwrong . '</td>'
+            . '</tr>';
+        $html .= '<tr>'
+            . '<td class="sb-legend-icon"><i class="sb-li sli-partial">&frac12;</i></td>'
+            . '<td class="sb-legend-lbl">' . $lblpartial . '</td>'
+            . '<td class="sb-legend-icon"><i class="sb-li sli-pending">?</i></td>'
+            . '<td class="sb-legend-lbl">' . $lblpending . '</td>'
+            . '</tr>';
+        $html .= '</table>';
         $html .= '</div>';
 
         unset($config);
@@ -901,7 +857,7 @@ class generator {
             return ['sb-ok', '&#10003;'];
         }
         if ($state->is_partially_correct()) {
-            return ['sb-partial', '?'];
+            return ['sb-partial', '&frac12;'];
         }
         if ($state->is_incorrect()) {
             return ['sb-wrong', '&#10007;'];
@@ -951,13 +907,7 @@ class generator {
         $qtype    = $question->get_type_name();
         $state    = $qa->get_state();
 
-        $html = '';
-        // As per 0.6.3 specs: Q2, Q3, etc. each start on a new page.
-        if ($num > 1) {
-            $html .= '<pagebreak />';
-        }
-
-        $html .= self::render_question_card($qa, $question, $qtype, $state, $num, $config, $accent);
+        $html = self::render_question_card($qa, $question, $qtype, $state, $num, $config, $accent);
         return $html;
     }
 
@@ -1080,7 +1030,7 @@ class generator {
             return ['', '', '&#10003;'];
         }
         if ($state->is_partially_correct()) {
-            return ['qcard-partial', 'qmark-partial', '?'];
+            return ['qcard-partial', 'qmark-partial', '&frac12;'];
         }
         if ($state->is_incorrect()) {
             return ['qcard-wrong', 'qmark-fail', '&#10007;'];
@@ -1304,9 +1254,9 @@ class generator {
                 (object) ['grader' => $grader, 'date' => $datestr]
             );
         } else if ($grader !== '') {
-            $graderlabel = 'â ' . $grader;
+            $graderlabel = '— ' . $grader;
         } else if ($datestr !== '') {
-            $graderlabel = 'â ' . $datestr;
+            $graderlabel = '— ' . $datestr;
         }
 
         return [$commenttext, $graderlabel];
