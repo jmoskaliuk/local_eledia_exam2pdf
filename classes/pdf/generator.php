@@ -89,7 +89,7 @@ class generator {
         return preg_match('/^#[0-9a-fA-F]{3,6}$/', $c) ? $c : self::ACCENT_DEFAULT;
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    // Public API.
 
     /**
      * Generates PDF bytes for a single quiz attempt.
@@ -151,7 +151,7 @@ class generator {
         }
     }
 
-    // ── Private infrastructure ────────────────────────────────────────────────
+    // Private infrastructure.
 
     /**
      * Creates a configured mPDF document instance.
@@ -329,7 +329,8 @@ class generator {
 
              . '.qcomment{margin-top:2.5mm;padding:2mm 3mm;background:#eff6ff;border-left:1mm solid ' . $a . ';'
              . 'border-radius:0.6mm;font-size:8pt;color:#1a1a1a;line-height:1.45;}'
-             . '.qcomment-lbl{font-size:7pt;color:' . $a . ';text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-bottom:0.8mm;display:block;}'
+             . '.qcomment-lbl{font-size:7pt;color:' . $a . ';text-transform:uppercase;'
+             . 'letter-spacing:0.5px;font-weight:700;margin-bottom:0.8mm;display:block;}'
              . '.qcomment-by{color:#7a7a7a;font-weight:500;text-transform:none;letter-spacing:0;margin-left:1mm;}'
              . '.qcomment-body{color:#4a4a4a;}'
              . '.pending-note{margin-top:1.5mm;font-size:8pt;color:#1e6fb0;font-style:italic;}';
@@ -337,7 +338,7 @@ class generator {
         return $css;
     }
 
-    // ── Language helpers ──────────────────────────────────────────────────────
+    // Language helpers.
 
     /**
      * Forces the PDF rendering language.
@@ -392,7 +393,7 @@ class generator {
         return current_language();
     }
 
-    // ── Document renderer ─────────────────────────────────────────────────────
+    // Document renderer.
 
     /**
      * Renders one attempt as an HTML body fragment.
@@ -494,7 +495,7 @@ class generator {
         return $body;
     }
 
-    // ── Section renderers ─────────────────────────────────────────────────────
+    // Section renderers.
 
     /**
      * Builds running header HTML for use inside the mPDF htmlpageheader tag.
@@ -928,12 +929,7 @@ class generator {
         $qtype    = $question->get_type_name();
         $state    = $qa->get_state();
 
-        $html = '';
-        if ($num > 1) {
-            $html .= '<pagebreak />';
-        }
-        $html .= self::render_question_card($qa, $question, $qtype, $state, $num, $config, $accent);
-        return $html;
+        return self::render_question_card($qa, $question, $qtype, $state, $num, $config, $accent);
     }
 
     /**

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<libraries>
+    <library>
+        <location>vendor</location>
+        <name>mPDF (and transitive Composer dependencies)</name>
+        <version>composer-managed (see composer.json)</version>
+        <license>GPL-2.0-or-later</license>
+        <licenseversion>2.0</licenseversion>
+    </library>
+</libraries>
