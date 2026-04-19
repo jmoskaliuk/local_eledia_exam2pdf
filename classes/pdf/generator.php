@@ -908,7 +908,11 @@ class generator {
         $qtype    = $question->get_type_name();
         $state    = $qa->get_state();
 
-        $html = self::render_question_card($qa, $question, $qtype, $state, $num, $config, $accent);
+        $html = '';
+        if ($num > 1) {
+            $html .= '<pagebreak />';
+        }
+        $html .= self::render_question_card($qa, $question, $qtype, $state, $num, $config, $accent);
         return $html;
     }
 
@@ -954,18 +958,21 @@ class generator {
         [$cardclass, $markclass, $markchar] = self::resolve_question_card_style($state);
         $ispending = ($state->get_summary_state() === 'needsgrading');
 
-        $qtext     = trim(strip_tags($question->questiontext));
         $mark      = $qa->get_mark();
         $maxmark   = $qa->get_max_mark();
         $scoretext = self::format_question_mark($mark) . ' / ' . self::format_question_mark($maxmark);
+        $questiontext = self::render_rich_text_fragment(
+            (string) ($question->questiontext ?? ''),
+            (int) ($question->questiontextformat ?? FORMAT_HTML)
+        );
 
         $html  = '<div class="qcard ' . $cardclass . '">';
         $html .= '<table class="qhdr-table" cellpadding="0" cellspacing="0"><tr>';
         $html .= '<td class="qnum">'
             . '<span class="qno">'
             . s(get_string('pdf_question', 'local_eledia_exam2pdf')) . ' ' . $num
-            . '</span> '
-            . s($qtext)
+            . '</span>'
+            . '<div class="qtext">' . $questiontext . '</div>'
             . '</td>';
         $html .= '<td class="qscore" style="font-variant-numeric: tabular-nums;">'
             . s($scoretext)
@@ -978,9 +985,8 @@ class generator {
             $html .= '<div class="qprompt">' . s($hint) . '</div>';
         }
 
-        $response      = $qa->get_response_summary();
-        $answertext    = ($response !== null && $response !== '') ? (string) $response : '';
-        $displayanswer = self::decorate_answer_value($answertext, $state);
+        [$answertext, $answerformat] = self::extract_response_text_and_format($qa);
+        $displayanswer = self::decorate_answer_value($answertext, $state, $answerformat);
 
         $html .= '<table class="qans-table" cellpadding="0" cellspacing="0">';
         $html .= self::render_q_arow(
@@ -988,11 +994,7 @@ class generator {
             $displayanswer
         );
         if (!empty($config['showcorrectanswers']) && $qtype !== 'essay') {
-            $correct = self::get_correct_answer_text($question, $qtype);
-            if ($correct === '') {
-                $correct = get_string('pdf_nocorrectanswer', 'local_eledia_exam2pdf');
-            }
-            $solvalue = '<span class="qans-correct">&#10003;&nbsp;' . s($correct) . '</span>';
+            $solvalue = self::get_correct_answer_html($question, $qtype);
             $html .= self::render_q_arow(
                 get_string('pdf_correctanswer', 'local_eledia_exam2pdf'),
                 $solvalue
@@ -1042,27 +1044,28 @@ class generator {
     /**
      * Decorates the learner's answer with state-appropriate color markup.
      *
-     * @param string          $raw   Raw response summary (may be empty).
+     * @param string          $raw Raw response text (may be empty).
      * @param \question_state $state Question state.
+     * @param int             $format Moodle text format.
      * @return string HTML fragment (pre-escaped).
      */
-    private static function decorate_answer_value(string $raw, \question_state $state): string {
+    private static function decorate_answer_value(string $raw, \question_state $state, int $format = FORMAT_PLAIN): string {
         if ($raw === '') {
             return '<span style="color:#7a7a7a;font-style:italic;">'
                 . s(get_string('pdf_noanswer', 'local_eledia_exam2pdf'))
                 . '</span>';
         }
-        $escaped = trim(s($raw));
+        $valuehtml = self::render_value_fragment($raw, $format);
         if ($state->is_correct()) {
-            return '<span class="qans-correct">&#10003;&nbsp;' . $escaped . '</span>';
+            return '<span class="qans-correct">&#10003;&nbsp;</span>' . $valuehtml;
         }
         if ($state->is_partially_correct()) {
-            return '<span style="color:#c48a00;">' . $escaped . '</span>';
+            return '<div style="color:#c48a00;">' . $valuehtml . '</div>';
         }
         if ($state->is_incorrect()) {
-            return '<span class="qans-wrong">&#10007;&nbsp;' . $escaped . '</span>';
+            return '<span class="qans-wrong">&#10007;&nbsp;</span><div>' . $valuehtml . '</div>';
         }
-        return '<span>' . $escaped . '</span>';
+        return $valuehtml;
     }
 
     /**
@@ -1130,20 +1133,21 @@ class generator {
     }
 
     /**
-     * Extracts a human-readable correct answer string for common question types.
+     * Extracts a display-ready correct answer HTML fragment for common question types.
      *
      * @param \question_definition $question The question definition.
      * @param string               $qtype    The qtype name.
-     * @return string Correct answer text, or empty string when not determinable.
+     * @return string Correct answer HTML fragment.
      */
-    private static function get_correct_answer_text(\question_definition $question, string $qtype): string {
+    private static function get_correct_answer_html(\question_definition $question, string $qtype): string {
         if ($qtype === 'truefalse') {
             if (property_exists($question, 'rightanswer') && isset($question->rightanswer)) {
-                return $question->rightanswer
+                $label = $question->rightanswer
                     ? get_string('true', 'qtype_truefalse')
                     : get_string('false', 'qtype_truefalse');
+                return '<span class="qans-correct">&#10003;&nbsp;</span>' . s($label);
             }
-            return '';
+            return s(get_string('pdf_nocorrectanswer', 'local_eledia_exam2pdf'));
         }
 
         $answers = (property_exists($question, 'answers') && is_iterable($question->answers))
@@ -1155,10 +1159,13 @@ class generator {
                 $correct = [];
                 foreach ($answers as $answer) {
                     if ($answer->fraction > 0) {
-                        $correct[] = strip_tags($answer->answer);
+                        $correct[] = self::render_value_fragment(
+                            (string) ($answer->answer ?? ''),
+                            (int) ($answer->answerformat ?? FORMAT_HTML)
+                        );
                     }
                 }
-                return implode(', ', $correct);
+                return self::wrap_correct_answer_html($correct);
 
             case 'shortanswer':
             case 'numerical':
@@ -1168,17 +1175,108 @@ class generator {
                         $best = $answer;
                     }
                 }
-                return $best ? strip_tags($best->answer) : '';
+                if ($best) {
+                    return self::wrap_correct_answer_html([
+                        self::render_value_fragment(
+                            (string) ($best->answer ?? ''),
+                            (int) ($best->answerformat ?? FORMAT_HTML)
+                        ),
+                    ]);
+                }
+                break;
 
             default:
                 if (method_exists($question, 'get_correct_response')) {
                     $cr = $question->get_correct_response();
                     if ($cr) {
-                        return implode(', ', array_filter(array_map('strip_tags', (array) $cr)));
+                        $items = [];
+                        foreach ((array) $cr as $value) {
+                            $plain = trim((string) $value);
+                            if ($plain !== '') {
+                                $items[] = self::render_value_fragment($plain, FORMAT_PLAIN);
+                            }
+                        }
+                        return self::wrap_correct_answer_html($items);
                     }
                 }
-                return '';
+                break;
         }
+
+        return s(get_string('pdf_nocorrectanswer', 'local_eledia_exam2pdf'));
+    }
+
+    /**
+     * Wraps one or more correct-answer fragments with the success marker.
+     *
+     * @param string[] $items Pre-rendered HTML fragments.
+     * @return string HTML fragment.
+     */
+    private static function wrap_correct_answer_html(array $items): string {
+        $items = array_values(array_filter($items, static fn(string $item): bool => trim($item) !== ''));
+        if (empty($items)) {
+            return s(get_string('pdf_nocorrectanswer', 'local_eledia_exam2pdf'));
+        }
+
+        return '<span class="qans-correct">&#10003;&nbsp;</span>' . implode('<br>', $items);
+    }
+
+    /**
+     * Extracts the best available answer text plus its Moodle text format.
+     *
+     * Essay responses keep their stored HTML formatting; other qtypes fall back
+     * to the response summary, which is already a plain-text representation.
+     *
+     * @param \question_attempt $qa Question attempt.
+     * @return array{0: string, 1: int} [answer text, format]
+     */
+    private static function extract_response_text_and_format(\question_attempt $qa): array {
+        $response = $qa->get_response_summary();
+        $answertext = ($response !== null && $response !== '') ? trim((string) $response) : '';
+        $format = FORMAT_PLAIN;
+
+        $qtdata = $qa->get_last_qt_data();
+        if (is_array($qtdata) && !empty($qtdata['answer'])) {
+            $answertext = (string) $qtdata['answer'];
+            $format = isset($qtdata['answerformat']) ? (int) $qtdata['answerformat'] : FORMAT_HTML;
+        }
+
+        return [$answertext, $format];
+    }
+
+    /**
+     * Renders a text fragment for value cells while preserving safe formatting.
+     *
+     * @param string $text Source text.
+     * @param int    $format Moodle text format.
+     * @return string HTML fragment.
+     */
+    private static function render_value_fragment(string $text, int $format): string {
+        if ($format === FORMAT_PLAIN) {
+            return nl2br(s(trim($text)));
+        }
+
+        return self::render_rich_text_fragment($text, $format);
+    }
+
+    /**
+     * Renders a Moodle rich-text fragment without stripping author formatting.
+     *
+     * @param string $text Source text.
+     * @param int    $format Moodle text format.
+     * @return string HTML fragment.
+     */
+    private static function render_rich_text_fragment(string $text, int $format = FORMAT_HTML): string {
+        $text = trim($text);
+        if ($text === '') {
+            return '';
+        }
+
+        return format_text($text, $format, [
+            'noclean' => true,
+            'para' => false,
+            'newlines' => false,
+            'filter' => false,
+        ]);
     }
 
     /**
