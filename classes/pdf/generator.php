@@ -723,7 +723,8 @@ class generator {
             );
         }
         if ($attemptrows !== '') {
-            $html .= '<div class="mblock" style="margin-top:25mm;">';
+            $html .= '<div style="height:12mm;line-height:12mm;">&nbsp;</div>';
+            $html .= '<div class="mblock">';
             $html .= '<span class="mblock-hdr">'
                 . s(get_string('pdf_attempt_block', 'local_eledia_exam2pdf')) . '</span>';
             $html .= $attemptrows;
