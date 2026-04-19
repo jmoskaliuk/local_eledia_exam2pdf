@@ -32,10 +32,10 @@ use mod_quiz\quiz_attempt;
 class generator {
 
     /** @var string Brand accent color (configurable via plugin settings). */
-    private const ACCENT_DEFAULT = '#1d4fd8';
+    private const ACCENT_DEFAULT = '#2a5d8a';
 
     /** @var string Soft accent background. */
-    private const ACCENT_SOFT    = '#eff6ff';
+    private const ACCENT_SOFT    = '#eaf1f8';
 
     /** @var string Success state foreground. */
     private const SUCCESS        = '#1f7a3f';
