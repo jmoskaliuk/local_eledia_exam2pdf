@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# release.sh — Clean release ZIP aus git archive, honoriert .gitattributes export-ignore
+# release.sh — Clean release ZIP inkl. vendor/ für Moodle Plugin Directory
 #
 # Usage: ./bin/release.sh [output-dir]   (default: /tmp)
 #
 # Produziert: <output-dir>/<shortname>-<version>.zip
 # Liest Component + Version direkt aus version.php.
+# Wichtig: Composer-Libraries aus vendor/ werden in das Release-ZIP kopiert,
+# obwohl sie nicht im Git-Repository versioniert sind.
 
 set -euo pipefail
 
@@ -32,6 +34,9 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 ZIP="${OUT_DIR}/${SHORTNAME}-${VERSION}.zip"
+STAGE_DIR="$(mktemp -d "${OUT_DIR%/}/exam2pdf-release.XXXXXX")"
+ARCHIVE_ZIP="${STAGE_DIR}/source.zip"
+PLUGIN_STAGE="${STAGE_DIR}/${SHORTNAME}"
 
 echo "Building ${ZIP}"
 echo "  component: ${COMPONENT}"
@@ -39,8 +44,21 @@ echo "  shortname: ${SHORTNAME}"
 echo "  version:   ${VERSION}"
 echo
 
+if [[ ! -f "vendor/autoload.php" ]]; then
+    echo "ERROR: vendor/ fehlt. Bitte zuerst 'composer install --no-dev --optimize-autoloader' ausführen." >&2
+    exit 6
+fi
+
 # --prefix sorgt für den Frankenstyle-Top-Level-Ordner, den das Plugins Directory erwartet.
-git archive --format=zip --prefix="${SHORTNAME}/" -o "${ZIP}" HEAD
+git archive --format=zip --prefix="${SHORTNAME}/" -o "${ARCHIVE_ZIP}" HEAD
+unzip -q "${ARCHIVE_ZIP}" -d "${STAGE_DIR}"
+cp -R vendor "${PLUGIN_STAGE}/vendor"
+
+rm -f "${ZIP}"
+(
+    cd "${STAGE_DIR}"
+    zip -qr "${ZIP}" "${SHORTNAME}"
+)
 
 # Verifikation
 echo "── ZIP contents (first 20 entries) ──"
@@ -72,5 +90,15 @@ if [[ "$(echo "${top}" | wc -l | tr -d ' ')" != "1" || "${top}" != "${SHORTNAME}
 fi
 
 echo
+echo "── vendor check ──"
+if ! unzip -l "${ZIP}" | grep -q "${SHORTNAME}/vendor/autoload.php"; then
+    echo "ERROR: Release ZIP enthält kein vendor/autoload.php"
+    exit 7
+fi
+echo "(vendor present)"
+
+echo
 echo "✓ Release ZIP fertig: ${ZIP}"
 echo "  Size: $(du -h "${ZIP}" | cut -f1)"
+
+rm -rf "${STAGE_DIR}"

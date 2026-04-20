@@ -45,7 +45,6 @@ INCLUDES=(
     bin
     download.php
     regenerate.php
-    report.php
     zip.php
     lib.php
     settings.php

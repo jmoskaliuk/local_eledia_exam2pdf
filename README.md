@@ -8,7 +8,7 @@ Automatically generates a PDF document after each passed quiz attempt as a compl
 
 ## Features
 
-- **Automatic PDF generation** after each passed quiz attempt (TCPDF-based)
+- **Automatic PDF generation** after each passed quiz attempt (mPDF-based)
 - **Questions & answers** in the PDF: open-ended, single/multiple choice with correct/incorrect marking, model answer (configurable)
 - **Output modes**: download, instant e-mail delivery, or both
 - **Configurable header fields**: mandatory fields + optional fields (score, percentage, pass grade, timestamp, duration, attempt number)
@@ -46,6 +46,28 @@ php admin/cli/upgrade.php
 ```
 
 Then visit **Site administration → Notifications** in Moodle to create the database tables.
+
+The plugin-directory release ZIP already includes the required `vendor/` libraries. Server-side Composer is not required for production installation.
+
+---
+
+## Project Links
+
+These URLs are the canonical metadata targets for Moodle Plugin Directory submission:
+
+- **Source code**: https://github.com/jmoskaliuk/local_eledia_exam2pdf
+- **Issue tracker**: https://github.com/jmoskaliuk/local_eledia_exam2pdf/issues
+- **Documentation**: https://github.com/jmoskaliuk/local_eledia_exam2pdf/blob/main/README.md
+- **User documentation**: https://github.com/jmoskaliuk/local_eledia_exam2pdf/blob/main/docs/02-user-doc.md
+- **Development / QA workflow**: https://github.com/jmoskaliuk/local_eledia_exam2pdf/blob/main/docs/dev-workflow.md
+
+### Remaining manual plugin-directory tasks
+
+These points are intentionally documented here because they are maintained in the Moodle Plugin Directory UI rather than in PHP code:
+
+- Upload current **screenshots** of the quiz overview/report actions and the learner review download button
+- Maintain the **plugin-directory description text** based on the links above
+- If desired, align the public repository name with Moodle's recommended naming pattern (`moodle-local_eledia_exam2pdf`)
 
 ---
 
@@ -118,7 +140,7 @@ local/eledia_exam2pdf/
 │   │   └── quiz_page_callbacks.php    # Review button + overview actions/bulk button via Hooks API
 │   ├── observer.php                   # Event listener: attempt_submitted
 │   ├── pdf/
-│   │   └── generator.php              # TCPDF-based PDF generation with logo + footer
+│   │   └── generator.php              # mPDF-based PDF generation with logo + footer
 │   ├── privacy/
 │   │   └── provider.php               # GDPR Privacy API
 │   └── task/
@@ -169,6 +191,17 @@ docker exec demo-webserver-1 php /var/www/site/moodle/admin/cli/purge_caches.php
 ### CI Pipeline
 
 GitHub Actions runs on every push/PR with 4 matrix cells (Moodle 4.5/5.0/5.1 × PHP 8.1/8.3 × PostgreSQL/MariaDB). Local prechecks via `bin/precheck.sh` use the same `moodle-plugin-ci` commands.
+
+### Release ZIP
+
+The supported release path is:
+
+```bash
+composer install --no-dev --optimize-autoloader
+bash bin/release.sh /tmp
+```
+
+`bin/release.sh` builds a plugin-directory-ready ZIP from `HEAD`, applies `.gitattributes` export rules, and injects the required `vendor/` tree into the release package.
 
 ---
 

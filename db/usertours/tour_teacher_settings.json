@@ -20,7 +20,7 @@
         },
         {
             "title": "Student Download Toggle",
-            "content": "<p>Controls whether students see a <strong>Download certificate</strong> button on their quiz review page.</p><p>If disabled, only teachers can access PDFs via the quiz report overview.</p>",
+            "content": "<p>Controls whether students see a <strong>Download evaluation</strong> button on their quiz review page.</p><p>If disabled, only teachers can access PDFs via the quiz report overview.</p>",
             "targettype": 1,
             "targetvalue": "#id_studentdownload",
             "placement": "right",

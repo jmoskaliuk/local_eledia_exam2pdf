@@ -22,6 +22,9 @@ PDF-Erzeugung erfolgt:
 - automatisch via Event-Observer (`attempt_submitted`) oder
 - on-demand via Endpunkte (`download.php`, `regenerate.php`, `zip.php`).
 
+Es gibt keine separate `report.php`-Seite mehr; die Integration läuft direkt
+über die bestehende Quiz-Overview und die Review-Seite.
+
 ---
 
 ## Dateistruktur
@@ -91,7 +94,7 @@ local/eledia_exam2pdf/
 
 ### `classes/pdf/generator.php`
 
-- TCPDF-basierte Generierung
+- mPDF-basierte Generierung
 - Sprache erzwungen über konfiguriertes PDF-Language-Setting
 - Header mit Pflicht-/Optionalfeldern
 - Logo aus Moodle-Sitelogo (`core_admin/logo` bzw. `logocompact`)

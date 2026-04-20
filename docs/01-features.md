@@ -12,6 +12,7 @@ Teacher und Manager brauchen einen schnellen Weg, PDF-Prüfungsberichte für Qui
 - **Bulk-Download**: alle Reports als ZIP oder zusammengefügtes PDF
 - **Student-Self-Service**: optionale Download-Möglichkeit auf der Review-Seite
 - **Per-Quiz-Konfiguration**: globale Defaults, Quiz-spezifisch überschreibbar
+- **Keine separate Report-App**: Integration in bestehende Quiz-Seiten statt eigener `report.php`
 
 ### Key Features
 - feat01: PDF-Erzeugung (konfigurierbar: auto oder on-demand)
@@ -77,7 +78,7 @@ Für Quizversuche soll ein PDF-Prüfungsbericht erzeugt werden können. Der Zeit
 - Default: "Bei Abgabe (automatisch)"
 
 **Decisions**
-- PDF-Bibliothek: TCPDF (Moodle built-in)
+- PDF-Bibliothek: mPDF (Composer-managed)
 - Speicherort: Moodle File API unter Quiz-Kursmodul-Kontext
 - Dateiname: `quiz-{slug}-attempt-{n}-{datum}.pdf`
 
@@ -235,7 +236,7 @@ Studenten können optional ihr eigenes PDF auf der Quiz-Review-Seite herunterlad
 - Admin-Setting: `studentdownload` — Checkbox "Student darf herunterladen" (Default: Ja)
 - Wenn aktiviert UND Versuch im PDF-Scope (feat10):
   - Download-Button auf der Quiz-Review-Seite
-  - Platzierung im Header/bei den Review-Aktionen über Hook `before_footer_html_generation`
+  - Platzierung über die bestehende Hook-Injektion in die Review-Seite
 - Wenn deaktiviert: kein Button auf der Review-Seite
 - Wenn Versuch nicht im PDF-Scope: deaktivierter Button mit Hinweis
 

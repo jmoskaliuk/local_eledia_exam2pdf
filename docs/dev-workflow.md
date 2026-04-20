@@ -22,8 +22,9 @@ Wichtige Endpunkte für Tests:
 
 **PDF-Abhängigkeit**: `vendor/` (mPDF) wird via Composer verwaltet.
 Nach `git clone` oder auf frischer Maschine: `composer install --no-dev` ausführen.
-Die `vendor/`-Verzeichnis liegt in `.gitignore` und muss beim ZIP-Export für das
-Moodle Plugin Directory manuell eingeschlossen werden.
+`vendor/` liegt in `.gitignore`; der Release-Build wird deshalb nicht über
+`git archive` allein erzeugt, sondern über `bin/release.sh`, das `vendor/`
+gezielt in das Staging-ZIP kopiert.
 
 ---
 
@@ -102,9 +103,29 @@ Bei Fehlschlägen: Logs analysieren, fixen, erneut pushen.
 3. ZIP bauen — **`vendor/` muss enthalten sein**:
    ```bash
    composer install --no-dev --optimize-autoloader
-   git archive HEAD --prefix=eledia_exam2pdf/ | tar x -C /tmp/
-   cp -r vendor/ /tmp/eledia_exam2pdf/
-   cd /tmp && zip -r eledia_exam2pdf-vX.Y.Z.zip eledia_exam2pdf/
+   bash bin/release.sh /tmp
    ```
 4. ZIP auf `moodle.org/plugins` hochladen.
 
+### Moodle Plugin Directory metadata
+
+Diese Werte gehören in die Plugin-Directory-Maske und werden im Repo als
+kanonische Referenz gepflegt:
+
+| Feld | Wert |
+|---|---|
+| Source code | `https://github.com/jmoskaliuk/local_eledia_exam2pdf` |
+| Issue tracker | `https://github.com/jmoskaliuk/local_eledia_exam2pdf/issues` |
+| Documentation | `https://github.com/jmoskaliuk/local_eledia_exam2pdf/blob/main/README.md` |
+| User documentation | `https://github.com/jmoskaliuk/local_eledia_exam2pdf/blob/main/docs/02-user-doc.md` |
+| Development / QA workflow | `https://github.com/jmoskaliuk/local_eledia_exam2pdf/blob/main/docs/dev-workflow.md` |
+
+### Manual submission checklist items
+
+Diese Punkte werden bewusst nicht im PHP-Code gepflegt und müssen bei der
+Moodle.org-Einreichung manuell mitgeführt werden:
+
+- aktuelle Screenshots für Quiz-Overview, Bulk-Download und Review-Download
+- Short description und Full description im Plugin-Directory-Formular
+- optional spätere Umbenennung des öffentlichen Repos auf das empfohlene
+  Schema `moodle-local_eledia_exam2pdf`

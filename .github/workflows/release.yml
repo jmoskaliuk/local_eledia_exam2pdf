@@ -17,6 +17,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip, gd, intl
+          coverage: none
+
+      - name: Install plugin composer dependencies
+        run: composer install --no-dev --no-progress --prefer-dist --optimize-autoloader
+
       - name: Build release ZIP
         run: bash bin/release.sh "$RUNNER_TEMP"
 

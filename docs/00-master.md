@@ -6,7 +6,7 @@
 - **Display Name:** `eLeDia | exam2pdf`
 - **Goal:** Moodle-Quiz-Auswertungen als PDF erzeugen, verwalten und sicher ausliefern.
 - **Primary UX:** Integration in bestehende Quiz-Seiten (Overview + Review), keine separate Report-App.
-- **Tech Stack:** Moodle 4.5+, PHP 8.1+, TCPDF, Moodle File API, Events API, Hooks API.
+- **Tech Stack:** Moodle 4.5+, PHP 8.1+, mPDF, Moodle File API, Events API, Hooks API.
 
 ---
 
