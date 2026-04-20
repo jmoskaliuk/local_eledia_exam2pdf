@@ -79,6 +79,41 @@ final class generator_test extends \advanced_testcase {
     }
 
     /**
+     * Non-essay responses must keep the readable summary instead of raw qtdata values.
+     */
+    public function test_resolve_response_text_and_format_keeps_summary_for_non_essay(): void {
+        $method = new \ReflectionMethod(\local_eledia_exam2pdf\pdf\generator::class, 'resolve_response_text_and_format');
+        $method->setAccessible(true);
+
+        [$answertext, $format] = $method->invoke(
+            null,
+            'truefalse',
+            'True',
+            ['answer' => '1', 'answerformat' => FORMAT_HTML]
+        );
+
+        $this->assertSame('True', $answertext);
+        $this->assertSame(FORMAT_PLAIN, $format);
+    }
+
+    /**
+     * Essay responses may keep markup, but learner HTML must still be cleaned.
+     */
+    public function test_render_learner_answer_fragment_cleans_unsafe_markup(): void {
+        $method = new \ReflectionMethod(\local_eledia_exam2pdf\pdf\generator::class, 'render_learner_answer_fragment');
+        $method->setAccessible(true);
+
+        $html = $method->invoke(
+            null,
+            '<p><strong>Essay</strong><script>alert(1)</script></p>',
+            FORMAT_HTML
+        );
+
+        $this->assertStringContainsString('<strong>Essay</strong>', $html);
+        $this->assertStringNotContainsString('<script>', $html);
+    }
+
+    /**
      * Questions flow naturally: no forced pagebreak between slots.
      *
      * The card's CSS (page-break-inside: avoid) keeps individual questions

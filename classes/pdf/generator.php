@@ -482,8 +482,8 @@ class generator {
         $body .= '</div>';
         $body .= '<sethtmlpageheader name="runhdr" value="on" show-this-page="1" />';
 
-        // Render questions with specific page-break logic:
-        // Q1 follows the cover grid on page 1. Q2+ force a page break.
+        // Render questions directly after the cover grid; question cards
+        // keep themselves together via CSS, but the overall flow remains natural.
         $body .= '<div class="questions-section">';
         $body .= self::render_questions_heading($attemptobj);
         foreach ($attemptobj->get_slots() as $index => $slot) {
@@ -908,7 +908,7 @@ class generator {
     }
 
     /**
-     * Renders a single question slot including the page break logic for Q2+.
+     * Renders a single question slot within the natural question flow.
      *
      * @param quiz_attempt $attemptobj Attempt object.
      * @param int          $slot       The slot ID.
@@ -1001,7 +1001,7 @@ class generator {
             $html .= '<div class="qprompt">' . s($hint) . '</div>';
         }
 
-        [$answertext, $answerformat] = self::extract_response_text_and_format($qa);
+        [$answertext, $answerformat] = self::extract_response_text_and_format($qa, $qtype);
         $displayanswer = self::decorate_answer_value($answertext, $state, $answerformat);
 
         $html .= '<table class="qans-table" cellpadding="0" cellspacing="0">';
@@ -1071,7 +1071,7 @@ class generator {
                 . s(get_string('pdf_noanswer', 'local_eledia_exam2pdf'))
                 . '</span>';
         }
-        $valuehtml = self::render_value_fragment($raw, $format);
+        $valuehtml = self::render_learner_answer_fragment($raw, $format);
         if ($state->is_correct()) {
             return '<span class="qans-correct">&#10003;&nbsp;</span>' . $valuehtml;
         }
@@ -1243,15 +1243,35 @@ class generator {
      * to the response summary, which is already a plain-text representation.
      *
      * @param \question_attempt $qa Question attempt.
+     * @param string            $qtype Question type.
      * @return array{0: string, 1: int} [answer text, format]
      */
-    private static function extract_response_text_and_format(\question_attempt $qa): array {
+    private static function extract_response_text_and_format(\question_attempt $qa, string $qtype): array {
         $response = $qa->get_response_summary();
-        $answertext = ($response !== null && $response !== '') ? trim((string) $response) : '';
+        $qtdata = $qtype === 'essay' ? $qa->get_last_qt_data() : null;
+        return self::resolve_response_text_and_format(
+            $qtype,
+            ($response !== null && $response !== '') ? trim((string) $response) : '',
+            is_array($qtdata) ? $qtdata : null
+        );
+    }
+
+    /**
+     * Resolves display-ready response text from the summary plus raw question data.
+     *
+     * Only essay responses should read stored rich text from qtdata; other qtypes
+     * keep the human-readable summary returned by the question engine.
+     *
+     * @param string     $qtype Question type.
+     * @param string     $summary Response summary.
+     * @param array|null $qtdata Last question attempt data.
+     * @return array{0: string, 1: int} [answer text, format]
+     */
+    private static function resolve_response_text_and_format(string $qtype, string $summary, ?array $qtdata): array {
+        $answertext = trim($summary);
         $format = FORMAT_PLAIN;
 
-        $qtdata = $qa->get_last_qt_data();
-        if (is_array($qtdata) && !empty($qtdata['answer'])) {
+        if ($qtype === 'essay' && is_array($qtdata) && !empty($qtdata['answer'])) {
             $answertext = (string) $qtdata['answer'];
             $format = isset($qtdata['answerformat']) ? (int) $qtdata['answerformat'] : FORMAT_HTML;
         }
@@ -1272,6 +1292,33 @@ class generator {
         }
 
         return self::render_rich_text_fragment($text, $format);
+    }
+
+    /**
+     * Renders learner answers safely while still preserving allowed formatting.
+     *
+     * Question text and teacher-authored answer content can use the richer
+     * fragment renderer; learner-submitted content should still be cleaned.
+     *
+     * @param string $text Source text.
+     * @param int    $format Moodle text format.
+     * @return string HTML fragment.
+     */
+    private static function render_learner_answer_fragment(string $text, int $format): string {
+        if ($format === FORMAT_PLAIN) {
+            return nl2br(s(trim($text)));
+        }
+
+        $text = trim($text);
+        if ($text === '') {
+            return '';
+        }
+
+        return format_text($text, $format, [
+            'para' => false,
+            'newlines' => false,
+            'filter' => false,
+        ]);
     }
 
     /**

@@ -57,9 +57,8 @@ wurden nicht separat released; 0.6.3 ist der erste öffentliche Design-Cut.
 - Seitenränder von 15/28/15 mm auf 12/28/12 mm — nutzt die PDF-Breite
   besser aus, FRAGEN-ÜBERSICHT füllt jetzt die ganze Seite.
 - **Seitenumbruch-Flow**: kein forcierter Break mehr zwischen Cover und
-  Fragen (Q1 beginnt auf Seite 1 direkt unter der Übersicht), stattdessen
-  `<br pagebreak="true" />` **vor** Q2, Q3, Q4… Ergebnis: eine Frage pro
-  Seite ab Q2, sauberer Cover ohne Leerfläche am Seitenende.
+  Fragen. Die Fragen folgen natürlich aufeinander; einzelne Karten bleiben
+  weiterhin per CSS zusammengehalten, ohne ab Q2 eine neue Seite zu erzwingen.
 - **Section-Heading** "Fragen & Antworten · N Fragen" wird visuell
   gesplittet: Hauptteil in Accent-Bold, Separator + Zählung in Ink-Muted-
   Normal.
