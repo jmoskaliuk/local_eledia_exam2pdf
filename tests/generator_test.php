@@ -79,9 +79,12 @@ final class generator_test extends \advanced_testcase {
     }
 
     /**
-     * Slots from question 2 onwards must start on a new PDF page.
+     * Questions flow naturally: no forced pagebreak between slots.
+     *
+     * The card's CSS (page-break-inside: avoid) keeps individual questions
+     * together, but multiple questions are allowed per page.
      */
-    public function test_render_single_question_slot_adds_pagebreak_for_second_question(): void {
+    public function test_render_single_question_slot_has_no_forced_pagebreak(): void {
         $this->setAdminUser();
         $quiz = $this->create_quiz_with_questions(2);
         $attempt = $this->create_finished_attempt($quiz, 0.0);
@@ -96,7 +99,7 @@ final class generator_test extends \advanced_testcase {
 
         $html = $method->invoke(null, $attemptobj, (int) $slots[1], 2, $config);
 
-        $this->assertStringContainsString('<pagebreak />', $html);
+        $this->assertStringNotContainsString('<pagebreak />', $html);
     }
 
     /**
