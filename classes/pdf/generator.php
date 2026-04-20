@@ -620,7 +620,7 @@ class generator {
             $statusclass = 'hcell-status hcell-status-pending';
             $iconclass   = 'hcell-icon hcell-icon-pending';
             $badgeclass  = 'hcell-badge hcell-badge-pending';
-            $iconchar    = '&#8987;';
+            $iconchar    = '?';
             $badge       = s(get_string('pdf_status_pending', 'local_eledia_exam2pdf'));
         } else if ($passed) {
             $statusclass = 'hcell-status';
@@ -1043,7 +1043,7 @@ class generator {
      */
     private static function resolve_question_card_style(\question_state $state): array {
         if ($state->get_summary_state() === 'needsgrading') {
-            return ['qcard-pending', 'qmark-pending', '&#8943;'];
+            return ['qcard-pending', 'qmark-pending', '?'];
         }
         if ($state->is_correct()) {
             return ['', '', '&#10003;'];
